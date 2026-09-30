@@ -1,11 +1,11 @@
 name: PhotoVeil CI
 on: [push, pull_request]
 jobs:
-  build:
-    runs-on: macos-14
+  build-and-test:
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Geometry tests
+      - name: Core Image and geometry tests
         run: swift test
-      - name: Build iPhone Simulator app
-        run: xcodebuild -project PhotoVeil.xcodeproj -scheme PhotoVeil -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+      - name: Build app and run simulator UI tests
+        run: xcodebuild -project PhotoVeil.xcodeproj -scheme PhotoVeil -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath /tmp/veil-ci CODE_SIGNING_ALLOWED=NO test

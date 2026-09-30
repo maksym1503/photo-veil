@@ -1,19 +1,32 @@
 import PhotosUI
 import SwiftUI
 import Vision
-import Photos
 
-private enum EditorMode: String, CaseIterable, Identifiable {
-    case background = "Background", faces = "Faces", plate = "Plate", manual = "Manual"
-    var id: String { rawValue }
-    var symbol: String { switch self { case .background: "person.fill"; case .faces: "face.smiling"; case .plate: "rectangle.on.rectangle"; case .manual: "scribble.variable" } }
+private struct EditSnapshot {
+    let mode: EditorMode?
+    let regions: [BlurRegion]
+    let selectedFaces: Set<Int>
+    let selectedPlates: Set<Int>
+    let strength: BlurStrength
 }
 
-private struct EditSnapshot { let regions: [CGRect]; let selectedFaces: Set<Int>; let mode: EditorMode }
+enum EditorMode: String, CaseIterable, Identifiable {
+    case background = "Background", faces = "Faces", plate = "Plate", manual = "Manual"
+    var id: String { rawValue }
+    var symbol: String {
+        switch self {
+        case .background: "person.crop.rectangle"
+        case .faces: "face.smiling"
+        case .plate: "rectangle.on.rectangle"
+        case .manual: "scribble.variable"
+        }
+    }
+}
 
 struct PhotoVeilHome: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var original: UIImage?
+    @State private var previewSource: UIImage?
     @State private var preview: UIImage?
     @State private var backgroundMask: CIImage?
     @State private var mode: EditorMode?
@@ -21,23 +34,26 @@ struct PhotoVeilHome: View {
     @State private var faceRegions: [CGRect] = []
     @State private var selectedFaces = Set<Int>()
     @State private var plateSuggestions: [CGRect] = []
-    @State private var regions: [CGRect] = []
+    @State private var selectedPlates = Set<Int>()
+    @State private var manualRegions: [BlurRegion] = []
     @State private var undoStack: [EditSnapshot] = []
     @State private var working = false
-    @State private var errorMessage: String?
-    @State private var showingShare = false
     @State private var showingOriginal = false
+    @State private var showingShare = false
+    @State private var manualDraws = true
+    @State private var zoomed = false
+    @State private var errorMessage: String?
     @State private var exportURL: URL?
-    @State private var dragStart: CGPoint?
-    @State private var pendingRegion: CGRect?
+    @State private var renderRevision = 0
+    @State private var didAnalyzePlates = false
 
     var body: some View {
         Group {
             if original == nil { importView } else { editorView }
         }
         .background(Color(uiColor: .systemBackground))
-        .preferredColorScheme(nil)
         .onChange(of: pickerItem) { _, item in Task { await load(item) } }
+        .onAppear(perform: loadFixtureIfRequested)
         .alert("Couldn’t open that photo", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) { errorMessage = nil }
         } message: { Text(errorMessage ?? "Please choose another image.") }
@@ -50,279 +66,434 @@ struct PhotoVeilHome: View {
         VStack(spacing: 0) {
             Spacer()
             Image(systemName: "eye.slash.circle.fill")
-                .font(.system(size: 62, weight: .light)).foregroundStyle(.primary)
-                .padding(.bottom, 22)
+                .font(.system(size: 58, weight: .light)).foregroundStyle(.primary)
+                .padding(.bottom, 20)
             Text("Keep private details private.")
-                .font(.system(size: 28, weight: .semibold, design: .rounded)).multilineTextAlignment(.center)
+                .font(.system(size: 27, weight: .semibold, design: .rounded)).multilineTextAlignment(.center)
             Text("Blur backgrounds, faces and sensitive details.")
-                .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.top, 9)
+                .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.top, 8)
             PhotosPicker(selection: $pickerItem, matching: .images) {
                 Label("Choose a photo", systemImage: "photo")
-                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
-                    .background(Color.primary, in: RoundedRectangle(cornerRadius: 16))
+                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 15)
+                    .background(Color.primary, in: Capsule())
                     .foregroundStyle(Color(uiColor: .systemBackground))
-            }.padding(.top, 34).accessibilityIdentifier("choosePhoto")
-            Text("Processed on your iPhone")
-                .font(.footnote).foregroundStyle(.secondary).padding(.top, 18)
+            }.padding(.top, 30).accessibilityIdentifier("choosePhoto")
+            Label("Processed on your iPhone", systemImage: "iphone")
+                .font(.footnote).foregroundStyle(.secondary).padding(.top, 17)
             Spacer()
-            Spacer().frame(height: 24)
+            Spacer().frame(height: 22)
         }
         .padding(.horizontal, 28)
     }
 
     private var editorView: some View {
         VStack(spacing: 0) {
-            HStack {
-                Button { clearSession() } label: { Image(systemName: "xmark").font(.headline).frame(width: 44, height: 44).background(.ultraThinMaterial, in: Circle()) }
-                    .accessibilityLabel("Close photo")
-                Spacer()
-                Button { undo() } label: { Image(systemName: "arrow.uturn.backward").font(.headline).frame(width: 44, height: 44).background(.ultraThinMaterial, in: Circle()) }
-                    .disabled(undoStack.isEmpty).opacity(undoStack.isEmpty ? 0.45 : 1).accessibilityLabel("Undo")
-                Button { resetEdits() } label: { Text("Reset").font(.subheadline.weight(.semibold)).padding(.horizontal, 15).frame(height: 44).background(.ultraThinMaterial, in: Capsule()) }
-                    .padding(.leading, 8).accessibilityIdentifier("reset")
-                Button { prepareExport() } label: { Image(systemName: "square.and.arrow.up").font(.headline).frame(width: 44, height: 44).background(Color.primary, in: Circle()).foregroundStyle(Color(uiColor: .systemBackground)) }
-                    .padding(.leading, 8).accessibilityLabel("Export")
-            }.padding(.horizontal, 16).padding(.top, 8)
-
-            GeometryReader { proxy in
-                let mapper = ImageGeometryMapper(imageSize: original?.size ?? .zero, container: CGRect(origin: .zero, size: proxy.size))
-                ZStack {
-                    if let displayed = showingOriginal ? original : preview {
-                        Image(uiImage: displayed).resizable().aspectRatio(contentMode: .fit).frame(width: proxy.size.width, height: proxy.size.height)
-                            .accessibilityIdentifier("photoPreview")
-                        if !showingOriginal { regionOverlays(mapper: mapper) }
-                    }
-                    if working { ProgressView().padding(18).background(.ultraThinMaterial, in: Capsule()).accessibilityLabel("Processing") }
+            editorToolbar
+            ZStack(alignment: .topLeading) {
+                if let original, let previewSource, let preview {
+                    ZoomablePhotoCanvas(
+                        original: original,
+                        preview: showingOriginal ? previewSource : preview,
+                        mode: mode,
+                        faces: faceRegions,
+                        selectedFaces: selectedFaces,
+                        plates: plateSuggestions,
+                        selectedPlates: selectedPlates,
+                        regions: manualRegions,
+                        drawsRegions: manualDraws,
+                        onFaces: toggleFace,
+                        onPlate: togglePlate,
+                        onRegions: replaceManualRegions,
+                        onZoomChanged: { zoomed = $0 }
+                    )
+                    .accessibilityIdentifier("photoCanvas")
                 }
-                .contentShape(Rectangle())
-                .gesture(manualGesture(mapper: mapper))
-                .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 30, pressing: { pressing in showingOriginal = pressing }, perform: {})
-                .overlay(alignment: .topLeading) {
-                    if mode == .manual, let rect = pendingRegion { RoundedRectangle(cornerRadius: 14).stroke(Color.yellow, lineWidth: 2).frame(width: rect.width * mapper.displayedRect.width, height: rect.height * mapper.displayedRect.height).position(x: mapper.viewRect(fromNormalized: rect).midX, y: mapper.viewRect(fromNormalized: rect).midY) }
+
+                HStack(spacing: 8) {
+                    Button { showingOriginal.toggle() } label: {
+                        Label(showingOriginal ? "Edited" : "Original", systemImage: showingOriginal ? "slider.horizontal.3" : "eye")
+                            .font(.caption.weight(.semibold)).padding(.horizontal, 12).frame(height: 36)
+                            .background(.regularMaterial, in: Capsule())
+                    }
+                    .accessibilityIdentifier("originalToggle")
+                    if zoomed {
+                        Button { NotificationCenter.default.post(name: .photoVeilFitPhoto, object: nil) } label: {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right").font(.caption.weight(.semibold))
+                                .frame(width: 36, height: 36).background(.regularMaterial, in: Circle())
+                        }
+                        .accessibilityLabel("Fit photo")
+                        .accessibilityIdentifier("fitPhoto")
+                    }
+                }
+                .padding(12)
+                if working {
+                    ProgressView().controlSize(.regular).padding(13).background(.regularMaterial, in: Circle())
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel("Processing")
+                } else {
+                    Color.clear.frame(width: 1, height: 1)
+                        .accessibilityElement()
+                        .accessibilityLabel(mode == .background ? (backgroundMask == nil ? "Manual fallback" : "Background ready") : "Processing complete")
+                        .accessibilityIdentifier("processingComplete")
                 }
             }
-            .padding(.horizontal, 8).padding(.vertical, 8)
-            .frame(maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(uiColor: .secondarySystemBackground))
+            editorControls
+        }
+        .ignoresSafeArea(.container, edges: .bottom)
+    }
 
-            VStack(spacing: 12) {
-                if let mode {
-                    HStack {
-                        Text(modeHint).font(.footnote).foregroundStyle(.secondary).lineLimit(2)
-                        Spacer(minLength: 8)
-                        Menu {
-                            ForEach(BlurStrength.allCases) { option in Button(option.rawValue) { strength = option; rerender() } }
-                        } label: {
-                            Label(strength.rawValue, systemImage: "circle.lefthalf.filled").font(.caption.weight(.semibold)).padding(.horizontal, 12).padding(.vertical, 9).background(Color(uiColor: .secondarySystemBackground), in: Capsule())
-                        }.accessibilityIdentifier("blurStrength")
-                    }
+    private var editorToolbar: some View {
+        HStack(spacing: 10) {
+            Button { clearSession() } label: { toolbarCircle("xmark") }
+                .accessibilityLabel("Close photo")
+            Spacer(minLength: 10)
+            Button { undo() } label: { toolbarCircle("arrow.uturn.backward") }
+                .disabled(undoStack.isEmpty).opacity(undoStack.isEmpty ? 0.42 : 1).accessibilityLabel("Undo")
+            Menu {
+                Button("Reset edits", systemImage: "arrow.counterclockwise", role: .destructive) { resetEdits() }
+            } label: { toolbarCircle("ellipsis") }
+                .accessibilityLabel("More editing actions")
+            Button { prepareExport() } label: {
+                Image(systemName: "square.and.arrow.up").font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white).frame(width: 44, height: 44)
+                    .background(Color.accentColor, in: Circle())
+            }
+            .disabled(working).accessibilityLabel("Export")
+        }
+        .padding(.horizontal, 16).padding(.top, 6).padding(.bottom, 8)
+        .background(.bar)
+    }
+
+    private func toolbarCircle(_ symbol: String) -> some View {
+        Image(systemName: symbol).font(.system(size: 16, weight: .medium))
+            .frame(width: 44, height: 44).background(.thinMaterial, in: Circle())
+            .contentShape(Circle())
+    }
+
+    private var editorControls: some View {
+        VStack(spacing: 9) {
+            if let mode {
+                HStack(spacing: 10) {
+                    strengthControl
+                    Spacer(minLength: 6)
                     if mode == .faces, !faceRegions.isEmpty {
-                        Button(selectedFaces.count == faceRegions.count ? "Leave faces clear" : "Blur all faces") { toggleAllFaces() }
-                            .font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity).padding(.vertical, 10).background(Color(uiColor: .secondarySystemBackground), in: Capsule())
-                            .accessibilityIdentifier("blurAllFaces")
+                        Button { toggleAllFaces() } label: {
+                            Label(selectedFaces.count == faceRegions.count ? "Clear all" : "Blur all", systemImage: "person.2.fill")
+                                .font(.subheadline.weight(.semibold)).padding(.horizontal, 13).frame(height: 40)
+                                .background(.thinMaterial, in: Capsule())
+                        }
+                        .accessibilityIdentifier("blurAllFaces")
+                        .accessibilityLabel(selectedFaces.count == faceRegions.count ? "Clear all faces" : "Blur all faces")
+                    }
+                    if mode == .manual || mode == .plate {
+                        Button { manualDraws.toggle() } label: {
+                            Image(systemName: manualDraws ? "hand.raised" : "pencil.tip.crop.circle")
+                                .font(.system(size: 17, weight: .semibold)).frame(width: 42, height: 42)
+                                .background(.thinMaterial, in: Circle())
+                        }
+                        .accessibilityLabel(manualDraws ? "Move photo" : "Draw blur region")
+                        .accessibilityIdentifier("canvasGestureMode")
+                    }
+                    if mode == .faces, faceRegions.isEmpty {
+                        Button { select(.manual) } label: { Image(systemName: "scribble.variable").frame(width: 42, height: 42) }
+                            .accessibilityLabel("Select manually")
                     }
                 }
-                HStack(spacing: 6) {
-                    ForEach(EditorMode.allCases) { item in
-                        Button { select(item) } label: {
-                            VStack(spacing: 6) {
-                                Image(systemName: item.symbol).font(.system(size: 18, weight: .medium))
-                                Text(item.rawValue).font(.caption.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
-                            }.foregroundStyle(mode == item ? Color.primary : Color.secondary)
-                                .frame(maxWidth: .infinity).frame(height: 58)
-                                .background(mode == item ? Color(uiColor: .tertiarySystemFill) : .clear, in: RoundedRectangle(cornerRadius: 14))
-                        }.accessibilityIdentifier("mode_\(item.rawValue.lowercased())")
+            }
+            HStack(spacing: 5) {
+                ForEach(EditorMode.allCases) { item in
+                    Button { select(item) } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: item.symbol).font(.system(size: 18, weight: .medium))
+                                .symbolEffect(.bounce, value: mode == item)
+                            Text(item.rawValue).font(.caption2.weight(.medium)).lineLimit(1)
+                        }
+                        .foregroundStyle(mode == item ? Color.accentColor : Color.secondary)
+                        .frame(maxWidth: .infinity).frame(height: 50)
+                        .background(mode == item ? Color.accentColor.opacity(0.11) : .clear, in: Capsule())
+                        .contentShape(Capsule())
                     }
-                }.padding(8).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22))
-            }.padding(.horizontal, 14).padding(.bottom, 12)
-        }
-    }
-
-    @ViewBuilder private func regionOverlays(mapper: ImageGeometryMapper) -> some View {
-        if mode == .faces { ForEach(Array(faceRegions.enumerated()), id: \.offset) { index, rect in
-            overlay(rect, mapper: mapper, selected: selectedFaces.contains(index), color: .cyan) {
-                pushUndo(); if selectedFaces.contains(index) { selectedFaces.remove(index) } else { selectedFaces.insert(index) }; rerender()
-            }
-        } }
-        if mode == .plate {
-            ForEach(Array(plateSuggestions.enumerated()), id: \.offset) { _, rect in
-                overlay(rect, mapper: mapper, selected: regions.contains(rect), color: .orange) { pushUndo(); regions = regions.contains(rect) ? regions.filter { $0 != rect } : regions + [rect]; rerender() }
-            }
-        }
-        if mode == .manual || mode == .plate {
-            ForEach(Array(regions.enumerated()), id: \.offset) { index, rect in
-                if !(mode == .faces && faceRegions.contains(rect)) {
-                    editableOverlay(rect, index: index, mapper: mapper)
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("mode_\(item.rawValue.lowercased())")
                 }
             }
+            .padding(5)
+            .background(.thinMaterial, in: Capsule())
         }
+        .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 28)
+        .background(.bar)
     }
 
-    private func overlay(_ rect: CGRect, mapper: ImageGeometryMapper, selected: Bool, color: Color, action: @escaping () -> Void) -> some View {
-        let frame = mapper.viewRect(fromNormalized: rect)
-        return Button(action: action) {
-            RoundedRectangle(cornerRadius: 14).fill(color.opacity(selected ? 0.38 : 0.12)).overlay(RoundedRectangle(cornerRadius: 14).stroke(color, style: StrokeStyle(lineWidth: selected ? 2.5 : 1.5, dash: selected ? [] : [5, 4])))
-                .frame(width: frame.width, height: frame.height).overlay(alignment: .topTrailing) { if selected { Image(systemName: "checkmark.circle.fill").font(.title3).padding(3) } }
-        }.buttonStyle(.plain).position(x: frame.midX, y: frame.midY).accessibilityLabel(selected ? "Blurred region" : "Select region to blur")
-    }
-
-    private func editableOverlay(_ rect: CGRect, index: Int, mapper: ImageGeometryMapper) -> some View {
-        let frame = mapper.viewRect(fromNormalized: rect)
-        return RoundedRectangle(cornerRadius: 12).fill(.cyan.opacity(0.28)).overlay(RoundedRectangle(cornerRadius: 12).stroke(.cyan, lineWidth: 2))
-            .frame(width: frame.width, height: frame.height).position(x: frame.midX, y: frame.midY)
-            .overlay {
-                Circle().fill(.white).frame(width: 22, height: 22).overlay(Image(systemName: "arrow.up.left.and.arrow.down.right").font(.system(size: 9, weight: .bold)).foregroundStyle(.black)).position(x: frame.maxX, y: frame.maxY)
-                    .gesture(DragGesture().onChanged { value in
-                        let drag = CGRect(origin: value.startLocation, size: .zero)
-                        _ = drag
-                    }.onEnded { value in
-                        pushUndo(); var resized = rect; resized.size.width = min(1 - resized.minX, max(0.04, rect.width + value.translation.width / mapper.displayedRect.width)); resized.size.height = min(1 - resized.minY, max(0.04, rect.height + value.translation.height / mapper.displayedRect.height)); regions[index] = resized; rerender()
-                    })
+    private var strengthControl: some View {
+        HStack(spacing: 0) {
+            ForEach(BlurStrength.allCases) { option in
+                Button(option.rawValue) {
+                    guard strength != option else { return }
+                    pushUndo(); strength = option; rerender()
+                }
+                .font(.caption.weight(strength == option ? .semibold : .regular))
+                .foregroundStyle(strength == option ? Color.primary : Color.secondary)
+                .padding(.horizontal, 11).frame(height: 36)
+                .background(strength == option ? Color(uiColor: .tertiarySystemFill) : .clear, in: Capsule())
+                .accessibilityIdentifier("strength_\(option.rawValue.lowercased())")
             }
-            .overlay(alignment: .topTrailing) {
-                Button { pushUndo(); regions.remove(at: index); rerender() } label: { Image(systemName: "xmark.circle.fill").font(.title3).symbolRenderingMode(.palette).foregroundStyle(.white, .black.opacity(0.65)) }.offset(x: 10, y: -10).accessibilityLabel("Delete blur region")
-            }
-            .gesture(DragGesture().onEnded { value in pushUndo(); let dx = value.translation.width / mapper.displayedRect.width, dy = value.translation.height / mapper.displayedRect.height; regions[index].origin.x = min(max(0, rect.minX + dx), 1 - rect.width); regions[index].origin.y = min(max(0, rect.minY + dy), 1 - rect.height); rerender() })
-    }
-
-    private func manualGesture(mapper: ImageGeometryMapper) -> some Gesture {
-        DragGesture(minimumDistance: 4).onChanged { value in
-            guard mode == .manual || mode == .plate, !showingOriginal else { return }
-            guard let point = mapper.normalizedPoint(fromView: value.startLocation) else { return }
-            if dragStart == nil { dragStart = point }
-            let start = dragStart ?? point
-            let end = mapper.normalizedPoint(fromView: value.location) ?? point
-            pendingRegion = CGRect(x: min(start.x, end.x), y: min(start.y, end.y), width: max(abs(start.x - end.x), 0.035), height: max(abs(start.y - end.y), 0.035))
-        }.onEnded { _ in
-            if let pendingRegion { pushUndo(); regions.append(pendingRegion); rerender() }
-            dragStart = nil; pendingRegion = nil
         }
-    }
-
-    private var modeHint: String {
-        switch mode {
-        case .background: "Subject stays clear. Hold photo to compare original."
-        case .faces: faceRegions.isEmpty ? "No faces found. Try Manual selection instead." : "Tap any face to toggle blur. Hold photo to compare."
-        case .plate: plateSuggestions.isEmpty ? "No likely plates found. Drag over one to select manually." : "Tap a suggested region, or drag to add one."
-        case .manual: "Drag across anything you want to hide."
-        case nil: "Choose what to hide."
-        }
+        .padding(3).background(.thinMaterial, in: Capsule())
     }
 
     @MainActor private func load(_ item: PhotosPickerItem?) async {
-        guard let item else { return }; working = true
+        guard let item else { return }
+        working = true
         defer { working = false }
         do {
-            guard let data = try await item.loadTransferable(type: Data.self), let image = UIImage(data: data), let normalized = BlurRenderer.normalizedImage(image) else { throw BlurError.unavailable }
-            original = normalized; preview = normalized; mode = nil; regions = []; faceRegions = []; selectedFaces = []; undoStack = []
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data), let normalized = BlurRenderer.normalizedImage(image),
+                  let downsampled = BlurRenderer.previewImage(normalized) else { throw BlurError.unavailable }
+            beginSession(original: normalized, preview: downsampled)
         } catch { errorMessage = "The photo couldn’t be loaded. Please try another one." }
     }
 
+    @MainActor private func beginSession(original: UIImage, preview: UIImage) {
+        self.original = original
+        self.previewSource = preview
+        self.preview = preview
+        self.mode = nil
+        self.backgroundMask = nil
+        self.faceRegions = []
+        self.selectedFaces = []
+        self.plateSuggestions = []
+        self.selectedPlates = []
+        self.manualRegions = []
+        self.undoStack = []
+        self.didAnalyzePlates = false
+        self.strength = .medium
+        self.showingOriginal = false
+        self.manualDraws = true
+    }
+
+    @MainActor private func loadFixtureIfRequested() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-veil-ui-testing"), original == nil,
+              let fixtureName = arguments.contains("-veil-mode") && arguments.indices.contains(arguments.firstIndex(of: "-veil-mode")! + 1)
+                ? (arguments[arguments.firstIndex(of: "-veil-mode")! + 1] == "background" ? "background-person" :
+                   (arguments[arguments.firstIndex(of: "-veil-mode")! + 1] == "faces" ? "two-faces" : "two-people-car"))
+                : "two-people-car",
+              let fixtureURL = Bundle.main.url(forResource: fixtureName, withExtension: "jpg"),
+              let fixtureData = try? Data(contentsOf: fixtureURL),
+              let fixture = UIImage(data: fixtureData),
+              let normalized = BlurRenderer.normalizedImage(fixture),
+              let downsampled = BlurRenderer.previewImage(normalized) else { return }
+        beginSession(original: normalized, preview: downsampled)
+        if arguments.contains("-veil-test-faces") {
+            faceRegions = [CGRect(x: 0.17, y: 0.17, width: 0.18, height: 0.13),
+                           CGRect(x: 0.64, y: 0.20, width: 0.16, height: 0.12)]
+            selectedFaces = Set(faceRegions.indices)
+        }
+        if let index = arguments.firstIndex(of: "-veil-mode"), arguments.indices.contains(index + 1),
+           let requested = EditorMode.allCases.first(where: { $0.rawValue.lowercased() == arguments[index + 1] }) {
+            select(requested)
+        }
+    }
+
     private func select(_ newMode: EditorMode) {
-        if mode == newMode { return }
-        pushUndo(); mode = newMode
+        guard mode != newMode else {
+            if newMode == .manual || newMode == .plate { manualDraws = true }
+            return
+        }
+        pushUndo()
+        mode = newMode
+        showingOriginal = false
+        if newMode == .manual || newMode == .plate { manualDraws = true }
         switch newMode {
-        case .background: runBackground()
-        case .faces: runFaces()
-        case .plate: runPlate()
+        case .background:
+            if backgroundMask == nil { runBackground() } else { rerender() }
+        case .faces:
+            if ProcessInfo.processInfo.arguments.contains("-veil-test-faces"), !faceRegions.isEmpty {
+                selectedFaces = Set(faceRegions.indices); rerender()
+            } else if faceRegions.isEmpty { runFaces() } else { selectedFaces = Set(faceRegions.indices); rerender() }
+        case .plate:
+            if !didAnalyzePlates { runPlate() } else { rerender() }
         case .manual: rerender()
         }
     }
 
     private func runBackground() {
-        guard let original else { return }; working = true
+        guard let previewSource else { return }
+        working = true; renderRevision += 1
+        let revision = renderRevision, currentStrength = strength
         Task.detached(priority: .userInitiated) {
             let result: Result<(image: UIImage, mask: CIImage), Error>
-            do { result = .success(try await BlurRenderer.renderBackground(original, strength: strength)) } catch { result = .failure(error) }
+            do { result = .success(try await BlurRenderer.renderBackground(previewSource, strength: currentStrength)) }
+            catch { result = .failure(error) }
             await MainActor.run {
+                guard renderRevision == revision else { return }
                 working = false
-                switch result { case .success(let output): backgroundMask = output.mask; preview = output.image; case .failure: mode = .manual; errorMessage = "We couldn’t separate a clear subject. Select the area to blur manually." }
+                switch result {
+                case .success(let output): backgroundMask = output.mask; preview = output.image
+                case .failure: mode = .manual
+                }
             }
         }
     }
 
     private func runFaces() {
-        guard let original else { return }; working = true
+        guard let previewSource else { return }
+        working = true
         Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
-            do { result = .success(try await BlurRenderer.detectFaces(in: original)) } catch { result = .failure(error) }
+            do { result = .success(try await BlurRenderer.detectFaces(in: previewSource)) }
+            catch { result = .failure(error) }
             await MainActor.run {
                 working = false
-                switch result { case .success(let faces): faceRegions = faces; selectedFaces = Set(faces.indices); rerender(); case .failure: errorMessage = "Face detection didn’t finish. Try Manual selection instead." }
+                switch result {
+                case .success(let faces): faceRegions = faces; selectedFaces = Set(faces.indices); rerender()
+                case .failure: faceRegions = []; selectedFaces = []
+                }
             }
         }
     }
 
     private func runPlate() {
-        guard let original else { return }; working = true
+        guard let previewSource else { return }
+        working = true
         Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
-            do { result = .success(try await BlurRenderer.detectPlateSuggestions(in: original)) } catch { result = .failure(error) }
-            await MainActor.run { working = false; if case .success(let boxes) = result { plateSuggestions = boxes } else { plateSuggestions = [] }; rerender() }
+            do { result = .success(try await BlurRenderer.detectPlateSuggestions(in: previewSource)) }
+            catch { result = .failure(error) }
+            await MainActor.run {
+                working = false; didAnalyzePlates = true
+                plateSuggestions = (try? result.get()) ?? []
+                rerender()
+            }
         }
     }
 
+    private func toggleFace(_ index: Int) {
+        guard faceRegions.indices.contains(index) else { return }
+        pushUndo()
+        if selectedFaces.contains(index) { selectedFaces.remove(index) } else { selectedFaces.insert(index) }
+        rerender()
+    }
+
+    private func togglePlate(_ index: Int) {
+        guard plateSuggestions.indices.contains(index) else { return }
+        pushUndo()
+        if selectedPlates.contains(index) { selectedPlates.remove(index) } else { selectedPlates.insert(index) }
+        rerender()
+    }
+
     private func toggleAllFaces() {
+        guard !faceRegions.isEmpty else { return }
         pushUndo()
         selectedFaces = selectedFaces.count == faceRegions.count ? [] : Set(faceRegions.indices)
         rerender()
     }
 
-    private func rerender() {
-        guard let original else { return }
-        let chosen: [CGRect]
+    private func replaceManualRegions(_ regions: [BlurRegion]) {
+        pushUndo()
+        manualRegions = regions
+        rerender()
+    }
+
+    private func regionsForCurrentMode() -> [BlurRegion] {
         switch mode {
-        case .faces: chosen = selectedFaces.compactMap { faceRegions.indices.contains($0) ? faceRegions[$0] : nil } + regions
-        case .plate, .manual: chosen = regions
-        case .background, .none: chosen = regions
+        case .faces:
+            let faces = selectedFaces.sorted().compactMap { index -> BlurRegion? in
+                guard faceRegions.indices.contains(index) else { return nil }
+                return BlurRegion(id: "face-\(index)", rect: faceRegions[index], shape: .oval)
+            }
+            return faces + manualRegions
+        case .plate:
+            let plates = selectedPlates.sorted().compactMap { index -> BlurRegion? in
+                guard plateSuggestions.indices.contains(index) else { return nil }
+                return BlurRegion(id: "plate-\(index)", rect: plateSuggestions[index], shape: .roundedRectangle)
+            }
+            return plates + manualRegions
+        case .manual: return manualRegions
+        case .background, .none: return []
         }
-        if mode == .background {
-            if let mask = backgroundMask {
-                let capturedStrength = strength
-                working = true
-                Task.detached(priority: .userInitiated) {
-                    let result = BlurRenderer.render(original, regions: [], strength: capturedStrength, personMask: mask)
-                    await MainActor.run { working = false; if let result { preview = result } }
-                }
-            } else { runBackground() }
-            return
-        }
-        let capturedStrength = strength
-        working = true
+    }
+
+    private func rerender() {
+        guard let previewSource else { return }
+        working = true; renderRevision += 1
+        let revision = renderRevision, currentMode = mode, currentStrength = strength
+        let regions = regionsForCurrentMode(), mask = currentMode == .background ? backgroundMask : nil
         Task.detached(priority: .userInitiated) {
-            let result = BlurRenderer.render(original, regions: chosen, strength: capturedStrength)
-            await MainActor.run { working = false; if let result { preview = result } }
+            let output: UIImage?
+            if currentMode == .background, let mask {
+                output = BlurRenderer.render(previewSource, regions: [], strength: currentStrength, foregroundMask: mask)
+            } else {
+                output = BlurRenderer.render(previewSource, regions: regions, strength: currentStrength)
+            }
+            await MainActor.run {
+                guard renderRevision == revision else { return }
+                working = false
+                if let output { preview = output }
+            }
         }
     }
 
     private func pushUndo() {
-        guard let mode else { return }
-        undoStack.append(EditSnapshot(regions: regions, selectedFaces: selectedFaces, mode: mode))
+        undoStack.append(EditSnapshot(mode: mode, regions: manualRegions, selectedFaces: selectedFaces,
+                                      selectedPlates: selectedPlates, strength: strength))
         if undoStack.count > 30 { undoStack.removeFirst() }
     }
 
     private func undo() {
         guard let snapshot = undoStack.popLast() else { return }
-        regions = snapshot.regions; selectedFaces = snapshot.selectedFaces; mode = snapshot.mode; rerender()
+        mode = snapshot.mode; manualRegions = snapshot.regions; selectedFaces = snapshot.selectedFaces
+        selectedPlates = snapshot.selectedPlates; strength = snapshot.strength
+        rerender()
     }
 
     private func resetEdits() {
-        guard original != nil else { return }; pushUndo(); mode = nil; regions = []; selectedFaces = []; preview = original
+        guard let previewSource else { return }
+        pushUndo(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
+        showingOriginal = false; preview = previewSource; manualDraws = true
     }
 
     private func clearSession() {
-        original = nil; preview = nil; backgroundMask = nil; mode = nil; regions = []; faceRegions = []; plateSuggestions = []; selectedFaces = []; undoStack = []; pickerItem = nil
+        original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
+        faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
+        undoStack = []; pickerItem = nil; showingOriginal = false; zoomed = false; working = false
     }
 
     private func prepareExport() {
-        guard let preview, let data = preview.jpegData(compressionQuality: 0.96) else { errorMessage = "The edited image couldn’t be prepared."; return }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("PhotoVeil-\(UUID().uuidString).jpg")
-        do { try data.write(to: url, options: .atomic); exportURL = url; showingShare = true }
-        catch { errorMessage = "The edited image couldn’t be exported." }
+        guard let original else { errorMessage = "The image couldn’t be prepared."; return }
+        working = true
+        let currentMode = mode, regions = regionsForCurrentMode(), currentStrength = strength
+        Task.detached(priority: .userInitiated) {
+            let rendered: UIImage?
+            if currentMode == .background {
+                rendered = try? await BlurRenderer.renderBackground(original, strength: currentStrength).image
+            } else if let source = original.cgImage,
+                      let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: currentStrength) {
+                rendered = UIImage(cgImage: output, scale: 1, orientation: .up)
+            } else {
+                rendered = nil
+            }
+            guard let data = rendered?.jpegData(compressionQuality: 0.98) else {
+                await MainActor.run { working = false; errorMessage = "The edited image couldn’t be exported." }
+                return
+            }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("Veil-\(UUID().uuidString).jpg")
+            do {
+                try data.write(to: url, options: .atomic)
+                await MainActor.run { working = false; exportURL = url; showingShare = true }
+            } catch {
+                await MainActor.run { working = false; errorMessage = "The edited image couldn’t be exported." }
+            }
+        }
     }
+
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController { UIActivityViewController(activityItems: items, applicationActivities: nil) }
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
