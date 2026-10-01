@@ -8,4 +8,4 @@ Open `PhotoVeil.xcodeproj`, choose the `PhotoVeil` scheme and an iPhone Simulato
 
 ## Current MVP
 
-Background blur uses Vision person segmentation and falls back to manual selection when a subject mask cannot be made. Face detection uses Vision face rectangles. Plate suggestions come from recognized text boxes filtered by shape and require confirmation; manual drawing is always available. Export writes a high-quality JPEG and opens the iOS share sheet.
+Background blur uses Vision foreground instance masking (people, vehicles and other subjects) and falls back to manual selection when a subject mask cannot be made. Face detection uses Vision face rectangles. Plate suggestions come from recognized text boxes filtered by shape and require confirmation; manual drawing is always available. Export writes a high-quality JPEG and opens the iOS share sheet.
