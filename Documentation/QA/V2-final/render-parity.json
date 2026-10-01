@@ -1,0 +1,35 @@
+{
+  "evidence-preexport-plate-regions-two-people-car.png": {
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "previewExportPixelIdenticalBeforeJPEG": true,
+    "changedFromOriginal": true
+  },
+  "evidence-preexport-faces-regions-two-faces.png": {
+    "dimensions": [
+      1448,
+      1086
+    ],
+    "previewExportPixelIdenticalBeforeJPEG": true,
+    "changedFromOriginal": true
+  },
+  "evidence-preexport-manual-brush-two-people-car.png": {
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "previewExportPixelIdenticalBeforeJPEG": true,
+    "changedFromOriginal": true
+  },
+  "evidence-preexport-manual-regions-two-people-car.png": {
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "previewExportPixelIdenticalBeforeJPEG": true,
+    "changedFromOriginal": true
+  },
+  "plateStrengthChangesPixels": true
+}

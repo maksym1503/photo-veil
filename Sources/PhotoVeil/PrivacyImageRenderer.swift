@@ -16,6 +16,18 @@ struct BlurRegion: Equatable, Identifiable {
     }
 }
 
+/// Top-left normalized image points; width is a fraction of the image's shorter edge.
+struct BlurStroke: Equatable, Identifiable {
+    let id: String
+    var points: [CGPoint]
+    var width: CGFloat
+    init(id: String = UUID().uuidString, points: [CGPoint], width: CGFloat = 0.06) {
+        self.id = id
+        self.points = points.map { CGPoint(x: min(1, max(0, $0.x)), y: min(1, max(0, $0.y))) }
+        self.width = width
+    }
+}
+
 enum BlurStrength: String, CaseIterable, Identifiable {
     case low = "Low", medium = "Medium", strong = "Strong"
     var id: String { rawValue }
@@ -39,7 +51,8 @@ enum PrivacyImageRenderer {
         source: CGImage,
         regions: [BlurRegion],
         strength: BlurStrength,
-        foregroundMask: CIImage? = nil
+        foregroundMask: CIImage? = nil,
+        strokes: [BlurStroke] = []
     ) -> CGImage? {
         let original = CIImage(cgImage: source)
         let extent = original.extent
@@ -55,8 +68,8 @@ enum PrivacyImageRenderer {
                 .transformed(by: CGAffineTransform(translationX: -bounds.minX, y: -bounds.minY))
                 .transformed(by: CGAffineTransform(scaleX: extent.width / bounds.width, y: extent.height / bounds.height))
                 .cropped(to: extent)
-        } else if !regions.isEmpty {
-            mask = regionMask(size: CGSize(width: extent.width, height: extent.height), regions: regions)
+        } else if !regions.isEmpty || !strokes.isEmpty {
+            mask = regionMask(size: CGSize(width: extent.width, height: extent.height), regions: regions, strokes: strokes)
         } else {
             mask = nil
         }
@@ -100,7 +113,7 @@ enum PrivacyImageRenderer {
         context.createCGImage(image, from: image.extent)
     }
 
-    private static func regionMask(size: CGSize, regions: [BlurRegion]) -> CIImage? {
+    private static func regionMask(size: CGSize, regions: [BlurRegion], strokes: [BlurStroke] = []) -> CIImage? {
         let width = Int(size.width.rounded()), height = Int(size.height.rounded())
         guard width > 0, height > 0,
               let bitmap = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width,
@@ -123,6 +136,25 @@ enum PrivacyImageRenderer {
                                       cornerWidth: pixelRect.height * 0.16, cornerHeight: pixelRect.height * 0.16, transform: nil))
             }
             bitmap.fillPath()
+        }
+        bitmap.setStrokeColor(gray: 1, alpha: 1)
+        bitmap.setLineCap(.round)
+        bitmap.setLineJoin(.round)
+        for stroke in strokes {
+            guard let first = stroke.points.first else { continue }
+            let diameter = stroke.width * CGFloat(min(width, height))
+            func pixelPoint(_ point: CGPoint) -> CGPoint {
+                CGPoint(x: point.x * CGFloat(width), y: point.y * CGFloat(height))
+            }
+            let start = pixelPoint(first)
+            if stroke.points.count == 1 {
+                bitmap.fillEllipse(in: CGRect(x: start.x - diameter / 2, y: start.y - diameter / 2, width: diameter, height: diameter))
+            } else {
+                bitmap.setLineWidth(diameter)
+                bitmap.move(to: start)
+                for point in stroke.points.dropFirst() { bitmap.addLine(to: pixelPoint(point)) }
+                bitmap.strokePath()
+            }
         }
         bitmap.restoreGState()
         guard let cgMask = bitmap.makeImage() else { return nil }

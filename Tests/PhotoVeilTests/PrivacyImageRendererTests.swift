@@ -64,6 +64,29 @@ final class PrivacyImageRendererTests: XCTestCase {
         XCTAssertTrue(PrivacyImageRenderer.hasUsefulForeground(try mask(width: 240, height: 160, rect: CGRect(x: 80, y: 20, width: 80, height: 120))))
     }
 
+    func testStrokeMaskBlursOnlyPaintedPixelsAtEveryStrength() throws {
+        let source = try checkerboard(width: 240, height: 140)
+        let stroke = BlurStroke(points: [CGPoint(x: 0.2, y: 0.2), CGPoint(x: 0.7, y: 0.2)], width: 0.15)
+        var interiors: [[UInt8]] = []
+        for strength in BlurStrength.allCases {
+            let output = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [], strength: strength, strokes: [stroke]))
+            XCTAssertNotEqual(pixel(output, x: 80, y: 28), pixel(source, x: 80, y: 28))
+            XCTAssertEqual(pixel(output, x: 80, y: 112), pixel(source, x: 80, y: 112))
+            interiors.append(pixel(output, x: 80, y: 28))
+        }
+        XCTAssertNotEqual(interiors[0], interiors[2])
+    }
+
+    func testPlateStrengthChangesRenderedPixelsAndEmptySelectionKeepsOriginal() throws {
+        let source = try checkerboard(width: 240, height: 140)
+        let plate = BlurRegion(rect: CGRect(x: 0.5, y: 0.5, width: 0.4, height: 0.3), shape: .roundedRectangle)
+        let low = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [plate], strength: .low))
+        let strong = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [plate], strength: .strong))
+        XCTAssertNotEqual(pixel(low, x: 152, y: 88), pixel(strong, x: 152, y: 88))
+        let empty = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [], strength: .strong))
+        XCTAssertEqual(pixel(empty, x: 152, y: 88), pixel(source, x: 152, y: 88))
+    }
+
     private func checkerboard(width: Int, height: Int) throws -> CGImage {
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else {

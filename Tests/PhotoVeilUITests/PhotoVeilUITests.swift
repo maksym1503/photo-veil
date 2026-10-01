@@ -20,6 +20,13 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["blurAllFaces"].tap()
         waitForRender(app)
         XCTAssertEqual(face.label, "Blurred face 1")
+        let fingerprint = app.otherElements["processingComplete"].value as? String
+        app.buttons["finalPreview"].tap()
+        XCTAssertFalse(face.exists)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, fingerprint)
+        attach(app, "faces-clean-preview")
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(face.label, "Blurred face 1")
         export(app, "faces-export")
     }
 
@@ -31,13 +38,27 @@ final class PhotoVeilUITests: XCTestCase {
         assertCamera(app, before)
         let plate = app.buttons["plate_0"]
         XCTAssertTrue(plate.waitForExistence(timeout: 10))
+        let sharpFingerprint = app.otherElements["processingComplete"].value as? String
         attach(app, "plate-detected")
         plate.tap()
         waitForRender(app)
         XCTAssertEqual(plate.label, "Blurred plate suggestion")
+        XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, sharpFingerprint, "Selection must change rendered pixels, not just the outline")
         assertCamera(app, before)
         XCTAssertFalse(app.buttons["blur_region_0"].exists)
         attach(app, "plate-blurred")
+        app.buttons["strength_low"].tap(); waitForRender(app)
+        let lowFingerprint = app.otherElements["processingComplete"].value as? String
+        attach(app, "plate-low")
+        app.buttons["strength_strong"].tap(); waitForRender(app)
+        XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, lowFingerprint)
+        attach(app, "plate-strong")
+        app.buttons["finalPreview"].tap()
+        XCTAssertFalse(plate.exists)
+        XCTAssertFalse(app.buttons["originalToggle"].exists)
+        attach(app, "plate-clean-preview")
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(plate.label, "Blurred plate suggestion")
         app.scrollViews["photoCanvas"].pinch(withScale: 2, velocity: 1)
         XCTAssertGreaterThan(transform(app)[0], 1.5)
         attach(app, "plate-zoomed")
@@ -86,7 +107,50 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["Undo"].tap()
         waitForRender(app)
         XCTAssertTrue(region.exists)
+        let editedCoordinates = region.value as? String
+        app.buttons["finalPreview"].tap()
+        XCTAssertFalse(region.exists)
+        attach(app, "rectangle-clean-preview")
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(region.value as? String, editedCoordinates)
+        app.buttons["finalPreview"].tap()
         export(app, "manual-export")
+    }
+
+    @MainActor func testFreehandBlurUndoZoomPanAndCleanPreview() {
+        let app = launch(fixture: "two-people-car")
+        let canvas = app.scrollViews["photoCanvas"]
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        let sharpFingerprint = app.otherElements["processingComplete"].value as? String
+        app.buttons["manualBrush"].tap()
+        drag(canvas, from: CGVector(dx: 0.35, dy: 0.55), to: CGVector(dx: 0.7, dy: 0.65))
+        waitForRender(app)
+        let stroke = app.otherElements["blur_stroke_0"]
+        XCTAssertTrue(stroke.exists)
+        XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, sharpFingerprint)
+        attach(app, "freehand-blurred")
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertFalse(stroke.exists)
+        drag(canvas, from: CGVector(dx: 0.35, dy: 0.55), to: CGVector(dx: 0.7, dy: 0.65))
+        waitForRender(app)
+        XCTAssertNotNil(stroke.value as? String)
+        let savedCoordinates = stroke.value as? String
+        canvas.pinch(withScale: 2, velocity: 1)
+        app.buttons["Move photo"].tap()
+        drag(canvas, from: CGVector(dx: 0.65, dy: 0.65), to: CGVector(dx: 0.45, dy: 0.45))
+        XCTAssertEqual(stroke.value as? String, savedCoordinates)
+        attach(app, "freehand-zoom-pan")
+        app.buttons["fitPhoto"].tap()
+        app.buttons["strength_strong"].tap(); waitForRender(app)
+        app.buttons["finalPreview"].tap()
+        XCTAssertFalse(stroke.exists)
+        XCTAssertFalse(app.buttons["mode_manual"].exists)
+        XCTAssertFalse(app.buttons["originalToggle"].exists)
+        attach(app, "freehand-clean-preview")
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(stroke.value as? String, savedCoordinates)
+        app.buttons["finalPreview"].tap()
+        export(app, "freehand-export")
     }
 
     @MainActor func testManualCreationAfterZoomAndPanMapsToImagePixels() {

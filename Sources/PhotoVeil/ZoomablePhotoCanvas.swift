@@ -15,6 +15,9 @@ struct ZoomablePhotoCanvas: UIViewRepresentable {
     let selectedPlates: Set<Int>
     let regions: [BlurRegion]
     let drawsRegions: Bool
+    let paintsStrokes: Bool
+    let strokes: [BlurStroke]
+    let onStroke: (BlurStroke?, Bool) -> Void
     let onFaces: (Int) -> Void
     let onPlate: (Int) -> Void
     let onRegions: ([BlurRegion]) -> Void
@@ -23,14 +26,14 @@ struct ZoomablePhotoCanvas: UIViewRepresentable {
     func makeUIView(context: Context) -> ZoomingPhotoView {
         let view = ZoomingPhotoView()
         view.configure(original: original, preview: preview, mode: mode, faces: faces, selectedFaces: selectedFaces,
-                       plates: plates, selectedPlates: selectedPlates, regions: regions, drawsRegions: drawsRegions,
+                       plates: plates, selectedPlates: selectedPlates, regions: regions, drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: strokes, onStroke: onStroke,
                        onFaces: onFaces, onPlate: onPlate, onRegions: onRegions, onZoomChanged: onZoomChanged)
         return view
     }
 
     func updateUIView(_ view: ZoomingPhotoView, context: Context) {
         view.configure(original: original, preview: preview, mode: mode, faces: faces, selectedFaces: selectedFaces,
-                       plates: plates, selectedPlates: selectedPlates, regions: regions, drawsRegions: drawsRegions,
+                       plates: plates, selectedPlates: selectedPlates, regions: regions, drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: strokes, onStroke: onStroke,
                        onFaces: onFaces, onPlate: onPlate, onRegions: onRegions, onZoomChanged: onZoomChanged)
     }
 }
@@ -78,7 +81,7 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
     deinit { if let fitObserver { NotificationCenter.default.removeObserver(fitObserver) } }
 
     func configure(original: UIImage, preview: UIImage, mode: EditorMode?, faces: [CGRect], selectedFaces: Set<Int>,
-                   plates: [CGRect], selectedPlates: Set<Int>, regions: [BlurRegion], drawsRegions: Bool,
+                   plates: [CGRect], selectedPlates: Set<Int>, regions: [BlurRegion], drawsRegions: Bool, paintsStrokes: Bool, strokes: [BlurStroke], onStroke: @escaping (BlurStroke?, Bool) -> Void,
                    onFaces: @escaping (Int) -> Void, onPlate: @escaping (Int) -> Void,
                    onRegions: @escaping ([BlurRegion]) -> Void, onZoomChanged: @escaping (Bool) -> Void) {
         let identity = ObjectIdentifier(original)
@@ -90,7 +93,7 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
         self.onZoomChanged = onZoomChanged
         overlay.configure(imageSize: photoContent.bounds.size, mode: mode, faces: mode == .faces ? faces : [], selectedFaces: selectedFaces,
                           plates: mode == .plate ? plates : [], selectedPlates: selectedPlates, regions: mode == .manual ? regions : [],
-                          drawsRegions: drawsRegions, onFaces: onFaces, onPlate: onPlate, onRegions: onRegions)
+                          drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: mode == .manual ? strokes : [], onStroke: onStroke, onFaces: onFaces, onPlate: onPlate, onRegions: onRegions)
         let canvasInteractive = mode == .manual
         // One finger edits; two fingers can always navigate while drawing.
         panGestureRecognizer.isEnabled = true
@@ -193,6 +196,27 @@ private final class PhotoRegionOverlay: UIView {
     private var selectedPlates = Set<Int>()
     private var regions: [BlurRegion] = []
     private var drawsRegions = true
+    private var paintsStrokes = false
+    private var strokes: [BlurStroke] = []
+    private var draftStroke: BlurStroke?
+    private var onStroke: ((BlurStroke?, Bool) -> Void)?
+    private lazy var plateTap = UITapGestureRecognizer(target: self, action: #selector(selectPlate(_:)))
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        // A recognized tap survives UIScrollView touch arbitration; an outline alone is only a candidate.
+        addGestureRecognizer(plateTap)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func selectPlate(_ gesture: UITapGestureRecognizer) {
+        guard mode == .plate, gesture.state == .ended else { return }
+        let point = gesture.location(in: self)
+        if let index = plates.indices.first(where: { pixelRect(plates[$0]).contains(point) }) {
+            onPlate?(index)
+        }
+    }
+
     private var onFaces: ((Int) -> Void)?
     private var onPlate: ((Int) -> Void)?
     private var onRegions: (([BlurRegion]) -> Void)?
@@ -202,10 +226,12 @@ private final class PhotoRegionOverlay: UIView {
     var zoomScale: CGFloat = 1 { didSet { setNeedsDisplay() } }
 
     func configure(imageSize: CGSize, mode: EditorMode?, faces: [CGRect], selectedFaces: Set<Int>, plates: [CGRect], selectedPlates: Set<Int>,
-                   regions: [BlurRegion], drawsRegions: Bool, onFaces: @escaping (Int) -> Void, onPlate: @escaping (Int) -> Void,
+                   regions: [BlurRegion], drawsRegions: Bool, paintsStrokes: Bool, strokes: [BlurStroke], onStroke: @escaping (BlurStroke?, Bool) -> Void, onFaces: @escaping (Int) -> Void, onPlate: @escaping (Int) -> Void,
                    onRegions: @escaping ([BlurRegion]) -> Void) {
         self.imageSize = imageSize; self.mode = mode; self.faces = faces; self.selectedFaces = selectedFaces
         self.plates = plates; self.selectedPlates = selectedPlates; self.regions = regions; self.drawsRegions = drawsRegions
+        self.paintsStrokes = paintsStrokes; self.strokes = strokes; self.onStroke = onStroke
+        plateTap.isEnabled = mode == .plate
         self.onFaces = onFaces; self.onPlate = onPlate; self.onRegions = onRegions
         isUserInteractionEnabled = mode != nil
         accessibilityIdentifier = "photoRegions"
@@ -251,6 +277,17 @@ private final class PhotoRegionOverlay: UIView {
             }
             element.accessibilityTraits = .button
             element.accessibilityFrameInContainerSpace = pixelRect(region.rect)
+            elements.append(element)
+        }
+        for (index, stroke) in strokes.enumerated() {
+            let element = UIAccessibilityElement(accessibilityContainer: self)
+            element.accessibilityLabel = "Blur stroke \(index + 1)"
+            element.accessibilityIdentifier = "blur_stroke_\(index)"
+            element.accessibilityValue = stroke.points.map { String(format: "%.6f,%.6f", $0.x, $0.y) }.joined(separator: ";")
+            let xs = stroke.points.map(\.x), ys = stroke.points.map(\.y)
+            if let x = xs.min(), let y = ys.min(), let maxX = xs.max(), let maxY = ys.max() {
+                element.accessibilityFrameInContainerSpace = pixelRect(CGRect(x: x, y: y, width: max(0.01, maxX - x), height: max(0.01, maxY - y)))
+            }
             elements.append(element)
         }
         return elements
@@ -331,11 +368,16 @@ private final class PhotoRegionOverlay: UIView {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard event?.allTouches?.count == 1, let point = touches.first?.location(in: self) else { clearDraft(); return }
         switch mode {
-        case .faces, .plate:
+        case .faces:
             startPoint = point
         case .manual:
             guard drawsRegions else { return }
-            beginRegionGesture(at: point)
+            if paintsStrokes {
+                draftStroke = BlurStroke(points: [normalizedPoint(point)])
+                onStroke?(draftStroke, false)
+            } else {
+                beginRegionGesture(at: point)
+            }
         default: break
         }
     }
@@ -369,6 +411,15 @@ private final class PhotoRegionOverlay: UIView {
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard event?.allTouches?.count == 1 else { clearDraft(); return }
+        if paintsStrokes, var stroke = draftStroke, let point = touches.first?.location(in: self) {
+            let normalized = normalizedPoint(point)
+            if let last = stroke.points.last,
+               hypot((last.x - normalized.x) * imageSize.width, (last.y - normalized.y) * imageSize.height) * zoomScale < 3 { return }
+            stroke.points.append(normalized)
+            draftStroke = stroke
+            onStroke?(stroke, false)
+            return
+        }
         guard let point = touches.first?.location(in: self), let startPoint, let activeKind else { return }
         let dx = (point.x - startPoint.x) / imageSize.width
         let dy = (point.y - startPoint.y) / imageSize.height
@@ -392,11 +443,19 @@ private final class PhotoRegionOverlay: UIView {
         setNeedsDisplay()
     }
 
+    private func normalizedPoint(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: min(1, max(0, point.x / imageSize.width)), y: min(1, max(0, point.y / imageSize.height)))
+    }
+
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let stroke = draftStroke {
+            draftStroke = nil
+            onStroke?(stroke, true)
+            return
+        }
         if let point = touches.first?.location(in: self), let startPoint,
            hypot(point.x - startPoint.x, point.y - startPoint.y) * zoomScale < 12 {
             if mode == .faces, let index = faces.indices.first(where: { pixelRect(faces[$0]).contains(point) }) { onFaces?(index) }
-            if mode == .plate, let index = plates.indices.first(where: { pixelRect(plates[$0]).contains(point) }) { onPlate?(index) }
         }
         guard let activeKind, let draftRect else { clearDraft(); return }
         switch activeKind {
@@ -421,6 +480,7 @@ private final class PhotoRegionOverlay: UIView {
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { clearDraft() }
 
     private func clearDraft() {
+        if draftStroke != nil { draftStroke = nil; onStroke?(nil, false) }
         activeKind = nil; startPoint = nil; draftRect = nil; setNeedsDisplay()
     }
 }
