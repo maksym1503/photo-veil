@@ -246,7 +246,9 @@ private final class PhotoRegionOverlay: UIView {
             let element = UIAccessibilityElement(accessibilityContainer: self)
             element.accessibilityLabel = "Blur region \(index + 1)"
             element.accessibilityIdentifier = "blur_region_\(index)"
-            element.accessibilityValue = String(format: "%.6f,%.6f,%.6f,%.6f", region.rect.minX, region.rect.minY, region.rect.width, region.rect.height)
+            if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") {
+                element.accessibilityValue = String(format: "%.6f,%.6f,%.6f,%.6f", region.rect.minX, region.rect.minY, region.rect.width, region.rect.height)
+            }
             element.accessibilityTraits = .button
             element.accessibilityFrameInContainerSpace = pixelRect(region.rect)
             elements.append(element)

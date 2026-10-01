@@ -168,7 +168,7 @@ struct PhotoVeilHome: View {
                     .foregroundStyle(.white).frame(width: 44, height: 44)
                     .background(Color.accentColor, in: Circle())
             }
-            .disabled(working).accessibilityLabel("Export")
+            .disabled(working || (mode == .background && backgroundMask == nil)).accessibilityLabel("Export")
         }
         .padding(.horizontal, 16).padding(.top, 6).padding(.bottom, 8)
         .background(.bar)
@@ -311,6 +311,7 @@ struct PhotoVeilHome: View {
         pushUndo()
         renderRevision += 1
         mode = newMode
+        backgroundUnavailable = false
         showingOriginal = false
         if newMode == .manual || newMode == .plate { manualDraws = true }
         switch newMode {
@@ -435,6 +436,8 @@ struct PhotoVeilHome: View {
 
     private func rerender() {
         guard let previewSource else { return }
+        // Strength changes must not publish an unprocessed Background preview.
+        guard mode != .background || backgroundMask != nil else { return }
         working = true; renderRevision += 1
         let revision = renderRevision, currentMode = mode, currentStrength = strength
         let regions = regionsForCurrentMode(), mask = currentMode == .background ? backgroundMask : nil
@@ -471,7 +474,7 @@ struct PhotoVeilHome: View {
 
     private func resetEdits() {
         guard let previewSource else { return }
-        renderRevision += 1; working = false
+        renderRevision += 1; working = false; backgroundUnavailable = false
         pushUndo(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
         showingOriginal = false; preview = previewSource; manualDraws = true
     }
