@@ -17,6 +17,10 @@ The user confirmed Background, Faces, zoom/pan and rectangular Manual editing on
 - `render-parity.json`: Plate, Faces, rectangular Manual and brush Manual preview/export pixels match exactly for deterministic fixtures before JPEG encoding. Each differs from its original. Low and Strong plate output pixels differ. Shared files remain original-size JPEG at quality 0.98.
 - Simulator screenshots inspected for visible plate/brush blur, zoom attachment, clean preview without editing overlays, and readable compact controls. Representative screenshots are beside this document; full screenshots remain in the result bundles and CI artifacts.
 
+## Hosted CI timing
+
+The first push run timed out after 45 seconds on the initial cold-Simulator Background analysis; it subsequently reached the expected Manual fallback. The identical PR run passed all tests. Background fixture tests now allow 120 seconds for hosted Vision model initialization, while interactive editing waits retain their 45-second bound. No app processing or Background behavior changed.
+
 ## Runtime limits
 
 No new physical-device run was performed here. The user supplied positive physical validation of the preserved functionality. This Intel Simulator still cannot run foreground instance inference and returns the existing Manual fallback for both person/car fixtures; background mask semantics remain covered by pixel tests and prior user validation.

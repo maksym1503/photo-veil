@@ -210,7 +210,9 @@ final class PhotoVeilUITests: XCTestCase {
         let app = launch(fixture: fixture)
         let before = transform(app)
         app.buttons["mode_background"].tap()
-        waitForRender(app)
+        // A cold hosted Simulator can take over 45s to initialize Vision before returning its fallback.
+        // Keep the normal bound for interactive edits; only foreground model startup gets extra time.
+        waitForRender(app, timeout: 120)
         assertCamera(app, before)
         let state = app.otherElements["processingComplete"].label
         if state == "Manual fallback" {
@@ -244,8 +246,8 @@ final class PhotoVeilUITests: XCTestCase {
         XCTAssertEqual(values.count, 3)
         return values.count == 3 ? values : [-1, -1, -1]
     }
-    @MainActor private func waitForRender(_ app: XCUIApplication) {
-        XCTAssertTrue(app.otherElements["processingComplete"].waitForExistence(timeout: 45))
+    @MainActor private func waitForRender(_ app: XCUIApplication, timeout: TimeInterval = 45) {
+        XCTAssertTrue(app.otherElements["processingComplete"].waitForExistence(timeout: timeout))
     }
     @MainActor private func drag(_ canvas: XCUIElement, from: CGVector, to: CGVector) {
         canvas.coordinate(withNormalizedOffset: from).press(forDuration: 0.1, thenDragTo: canvas.coordinate(withNormalizedOffset: to))
