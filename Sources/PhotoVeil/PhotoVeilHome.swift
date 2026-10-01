@@ -46,6 +46,8 @@ struct PhotoVeilHome: View {
     @State private var exportURL: URL?
     @State private var renderRevision = 0
     @State private var didAnalyzePlates = false
+    @State private var sessionID = UUID()
+    @State private var backgroundUnavailable = false
 
     var body: some View {
         Group {
@@ -94,7 +96,7 @@ struct PhotoVeilHome: View {
                     ZoomablePhotoCanvas(
                         original: original,
                         preview: showingOriginal ? previewSource : preview,
-                        mode: mode,
+                        mode: showingOriginal ? nil : mode,
                         faces: faceRegions,
                         selectedFaces: selectedFaces,
                         plates: plateSuggestions,
@@ -128,16 +130,23 @@ struct PhotoVeilHome: View {
                 .padding(12)
                 if working {
                     ProgressView().controlSize(.regular).padding(13).background(.regularMaterial, in: Circle())
-                        .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel("Processing")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel("Processing").allowsHitTesting(false)
                 } else {
                     Color.clear.frame(width: 1, height: 1)
                         .accessibilityElement()
-                        .accessibilityLabel(mode == .background ? (backgroundMask == nil ? "Manual fallback" : "Background ready") : "Processing complete")
+                        .accessibilityLabel(backgroundUnavailable ? "Manual fallback" : mode == .background ? "Background ready" : "Processing complete")
                         .accessibilityIdentifier("processingComplete")
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(uiColor: .secondarySystemBackground))
+            .overlay(alignment: .bottom) {
+                if backgroundUnavailable {
+                    Text("No foreground found. Select manually.").font(.caption)
+                        .padding(10).background(.regularMaterial, in: Capsule()).padding(8)
+                        .allowsHitTesting(false)
+                }
+            }
             editorControls
         }
         .ignoresSafeArea(.container, edges: .bottom)
@@ -173,8 +182,8 @@ struct PhotoVeilHome: View {
 
     private var editorControls: some View {
         VStack(spacing: 9) {
-            if let mode {
-                HStack(spacing: 10) {
+            HStack(spacing: 10) {
+              if let mode {
                     strengthControl
                     Spacer(minLength: 6)
                     if mode == .faces, !faceRegions.isEmpty {
@@ -186,7 +195,7 @@ struct PhotoVeilHome: View {
                         .accessibilityIdentifier("blurAllFaces")
                         .accessibilityLabel(selectedFaces.count == faceRegions.count ? "Clear all faces" : "Blur all faces")
                     }
-                    if mode == .manual || mode == .plate {
+                    if mode == .manual {
                         Button { manualDraws.toggle() } label: {
                             Image(systemName: manualDraws ? "hand.raised" : "pencil.tip.crop.circle")
                                 .font(.system(size: 17, weight: .semibold)).frame(width: 42, height: 42)
@@ -195,12 +204,12 @@ struct PhotoVeilHome: View {
                         .accessibilityLabel(manualDraws ? "Move photo" : "Draw blur region")
                         .accessibilityIdentifier("canvasGestureMode")
                     }
-                    if mode == .faces, faceRegions.isEmpty {
+                    if (mode == .faces && faceRegions.isEmpty) || (mode == .plate && didAnalyzePlates && plateSuggestions.isEmpty) {
                         Button { select(.manual) } label: { Image(systemName: "scribble.variable").frame(width: 42, height: 42) }
                             .accessibilityLabel("Select manually")
                     }
-                }
-            }
+              }
+            }.frame(height: 42)
             HStack(spacing: 5) {
                 ForEach(EditorMode.allCases) { item in
                     Button { select(item) } label: {
@@ -255,6 +264,7 @@ struct PhotoVeilHome: View {
     }
 
     @MainActor private func beginSession(original: UIImage, preview: UIImage) {
+        sessionID = UUID(); renderRevision += 1; backgroundUnavailable = false
         self.original = original
         self.previewSource = preview
         self.preview = preview
@@ -274,22 +284,19 @@ struct PhotoVeilHome: View {
 
     @MainActor private func loadFixtureIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
+        func argument(_ key: String) -> String? {
+            guard let index = arguments.firstIndex(of: key), arguments.indices.contains(index + 1) else { return nil }
+            return arguments[index + 1]
+        }
+        let requestedMode = argument("-veil-mode")
+        let fixtureName = argument("-veil-fixture") ?? (requestedMode == "background" ? "background-person" : requestedMode == "faces" ? "two-faces" : "two-people-car")
         guard arguments.contains("-veil-ui-testing"), original == nil,
-              let fixtureName = arguments.contains("-veil-mode") && arguments.indices.contains(arguments.firstIndex(of: "-veil-mode")! + 1)
-                ? (arguments[arguments.firstIndex(of: "-veil-mode")! + 1] == "background" ? "background-person" :
-                   (arguments[arguments.firstIndex(of: "-veil-mode")! + 1] == "faces" ? "two-faces" : "two-people-car"))
-                : "two-people-car",
               let fixtureURL = Bundle.main.url(forResource: fixtureName, withExtension: "jpg"),
               let fixtureData = try? Data(contentsOf: fixtureURL),
               let fixture = UIImage(data: fixtureData),
               let normalized = BlurRenderer.normalizedImage(fixture),
               let downsampled = BlurRenderer.previewImage(normalized) else { return }
         beginSession(original: normalized, preview: downsampled)
-        if arguments.contains("-veil-test-faces") {
-            faceRegions = [CGRect(x: 0.17, y: 0.17, width: 0.18, height: 0.13),
-                           CGRect(x: 0.64, y: 0.20, width: 0.16, height: 0.12)]
-            selectedFaces = Set(faceRegions.indices)
-        }
         if let index = arguments.firstIndex(of: "-veil-mode"), arguments.indices.contains(index + 1),
            let requested = EditorMode.allCases.first(where: { $0.rawValue.lowercased() == arguments[index + 1] }) {
             select(requested)
@@ -302,6 +309,7 @@ struct PhotoVeilHome: View {
             return
         }
         pushUndo()
+        renderRevision += 1
         mode = newMode
         showingOriginal = false
         if newMode == .manual || newMode == .plate { manualDraws = true }
@@ -309,9 +317,7 @@ struct PhotoVeilHome: View {
         case .background:
             if backgroundMask == nil { runBackground() } else { rerender() }
         case .faces:
-            if ProcessInfo.processInfo.arguments.contains("-veil-test-faces"), !faceRegions.isEmpty {
-                selectedFaces = Set(faceRegions.indices); rerender()
-            } else if faceRegions.isEmpty { runFaces() } else { selectedFaces = Set(faceRegions.indices); rerender() }
+            if faceRegions.isEmpty { runFaces() } else { rerender() }
         case .plate:
             if !didAnalyzePlates { runPlate() } else { rerender() }
         case .manual: rerender()
@@ -320,18 +326,23 @@ struct PhotoVeilHome: View {
 
     private func runBackground() {
         guard let previewSource else { return }
-        working = true; renderRevision += 1
-        let revision = renderRevision, currentStrength = strength
+        working = true
+        let currentStrength = strength, session = sessionID
         Task.detached(priority: .userInitiated) {
             let result: Result<(image: UIImage, mask: CIImage), Error>
             do { result = .success(try await BlurRenderer.renderBackground(previewSource, strength: currentStrength)) }
             catch { result = .failure(error) }
             await MainActor.run {
-                guard renderRevision == revision else { return }
-                working = false
+                guard sessionID == session else { return }
                 switch result {
-                case .success(let output): backgroundMask = output.mask; preview = output.image
-                case .failure: mode = .manual
+                case .success(let output):
+                    backgroundMask = output.mask; backgroundUnavailable = false
+                    if mode == .background { rerender() }
+                case .failure:
+                    if mode == .background {
+                        backgroundUnavailable = true; mode = .manual; manualDraws = true
+                        rerender()
+                    }
                 }
             }
         }
@@ -340,15 +351,20 @@ struct PhotoVeilHome: View {
     private func runFaces() {
         guard let previewSource else { return }
         working = true
+        let session = sessionID
         Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
             do { result = .success(try await BlurRenderer.detectFaces(in: previewSource)) }
             catch { result = .failure(error) }
             await MainActor.run {
-                working = false
+                guard sessionID == session else { return }
                 switch result {
-                case .success(let faces): faceRegions = faces; selectedFaces = Set(faces.indices); rerender()
-                case .failure: faceRegions = []; selectedFaces = []
+                case .success(let faces):
+                    faceRegions = faces; selectedFaces = Set(faces.indices)
+                    if mode == .faces { rerender() }
+                case .failure:
+                    faceRegions = []; selectedFaces = []
+                    if mode == .faces { working = false }
                 }
             }
         }
@@ -357,14 +373,16 @@ struct PhotoVeilHome: View {
     private func runPlate() {
         guard let previewSource else { return }
         working = true
+        let session = sessionID
         Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
             do { result = .success(try await BlurRenderer.detectPlateSuggestions(in: previewSource)) }
             catch { result = .failure(error) }
             await MainActor.run {
-                working = false; didAnalyzePlates = true
+                guard sessionID == session else { return }
+                didAnalyzePlates = true
                 plateSuggestions = (try? result.get()) ?? []
-                rerender()
+                if mode == .plate { rerender() }
             }
         }
     }
@@ -430,7 +448,10 @@ struct PhotoVeilHome: View {
             await MainActor.run {
                 guard renderRevision == revision else { return }
                 working = false
-                if let output { preview = output }
+                if let output {
+                    preview = output
+                    captureTestRender(output, name: "preview-\(currentMode?.rawValue.lowercased() ?? "none")")
+                }
             }
         }
     }
@@ -450,11 +471,13 @@ struct PhotoVeilHome: View {
 
     private func resetEdits() {
         guard let previewSource else { return }
+        renderRevision += 1; working = false
         pushUndo(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
         showingOriginal = false; preview = previewSource; manualDraws = true
     }
 
     private func clearSession() {
+        sessionID = UUID(); renderRevision += 1
         original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
         faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
         undoStack = []; pickerItem = nil; showingOriginal = false; zoomed = false; working = false
@@ -463,13 +486,13 @@ struct PhotoVeilHome: View {
     private func prepareExport() {
         guard let original else { errorMessage = "The image couldn’t be prepared."; return }
         working = true
+        if let preview { captureTestRender(preview, name: "preexport-\(mode?.rawValue.lowercased() ?? "none")") }
         let currentMode = mode, regions = regionsForCurrentMode(), currentStrength = strength
+        let mask = currentMode == .background ? backgroundMask : nil, session = sessionID
         Task.detached(priority: .userInitiated) {
             let rendered: UIImage?
-            if currentMode == .background {
-                rendered = try? await BlurRenderer.renderBackground(original, strength: currentStrength).image
-            } else if let source = original.cgImage,
-                      let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: currentStrength) {
+            if let source = original.cgImage,
+               let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: currentStrength, foregroundMask: mask) {
                 rendered = UIImage(cgImage: output, scale: 1, orientation: .up)
             } else {
                 rendered = nil
@@ -481,13 +504,32 @@ struct PhotoVeilHome: View {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("Veil-\(UUID().uuidString).jpg")
             do {
                 try data.write(to: url, options: .atomic)
-                await MainActor.run { working = false; exportURL = url; showingShare = true }
+                if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing"), let rendered {
+                    let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    try rendered.pngData()?.write(to: directory.appendingPathComponent("export-\(currentMode?.rawValue.lowercased() ?? "none")-\(Self.testFixtureName).png"))
+                }
+                await MainActor.run {
+                    guard sessionID == session else { return }
+                    working = false; exportURL = url; showingShare = true
+                }
             } catch {
                 await MainActor.run { working = false; errorMessage = "The edited image couldn’t be exported." }
             }
         }
     }
 
+    private static var testFixtureName: String {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-veil-fixture"), arguments.indices.contains(index + 1) else { return "fixture" }
+        return arguments[index + 1]
+    }
+
+    private func captureTestRender(_ image: UIImage, name: String) {
+        guard ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") else { return }
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        try? image.pngData()?.write(to: directory.appendingPathComponent("\(name)-\(Self.testFixtureName).png"))
+        try? previewSource?.pngData()?.write(to: directory.appendingPathComponent("original-\(Self.testFixtureName).png"))
+    }
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {

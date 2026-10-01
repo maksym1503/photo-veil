@@ -22,7 +22,7 @@ enum BlurStrength: String, CaseIterable, Identifiable {
 
     func radius(for imageSize: CGSize) -> Float {
         let dimension = max(imageSize.width, imageSize.height)
-        let scale = max(1, dimension / 900)
+        let scale = dimension / 900
         switch self {
         case .low: return Float(14 * scale)
         case .medium: return Float(28 * scale)
@@ -50,7 +50,11 @@ enum PrivacyImageRenderer {
 
         let mask: CIImage?
         if let foregroundMask {
+            let bounds = foregroundMask.extent
             mask = foregroundMask
+                .transformed(by: CGAffineTransform(translationX: -bounds.minX, y: -bounds.minY))
+                .transformed(by: CGAffineTransform(scaleX: extent.width / bounds.width, y: extent.height / bounds.height))
+                .cropped(to: extent)
         } else if !regions.isEmpty {
             mask = regionMask(size: CGSize(width: extent.width, height: extent.height), regions: regions)
         } else {
@@ -60,7 +64,7 @@ enum PrivacyImageRenderer {
 
         let feather = CIFilter.gaussianBlur()
         feather.inputImage = mask.clampedToExtent()
-        feather.radius = 3
+        feather.radius = Float(3 * max(extent.width, extent.height) / 900)
         let softenedMask = feather.outputImage?.cropped(to: extent) ?? mask
         let blend = CIFilter.blendWithMask()
         if foregroundMask != nil {
@@ -75,6 +79,17 @@ enum PrivacyImageRenderer {
         blend.maskImage = softenedMask
         guard let output = blend.outputImage?.cropped(to: extent) else { return nil }
         return context.createCGImage(output, from: extent)
+    }
+
+    /// Reject empty/full masks: they cannot separate a subject from its environment.
+    static func hasUsefulForeground(_ mask: CIImage) -> Bool {
+        let average = CIFilter.areaAverage()
+        average.inputImage = mask
+        average.extent = mask.extent
+        guard let output = average.outputImage else { return false }
+        var pixel = [Float](repeating: 0, count: 4)
+        context.render(output, toBitmap: &pixel, rowBytes: 16, bounds: CGRect(x: 0, y: 0, width: 1, height: 1), format: .RGBAf, colorSpace: nil)
+        return pixel[0].isFinite && pixel[0] > 0.02 && pixel[0] < 0.98
     }
 
     static func maskImage(size: CGSize, regions: [BlurRegion]) -> CGImage? {
@@ -105,7 +120,7 @@ enum PrivacyImageRenderer {
                 bitmap.addEllipse(in: pixelRect)
             case .roundedRectangle:
                 bitmap.addPath(CGPath(roundedRect: pixelRect,
-                                      cornerWidth: min(pixelRect.height * 0.16, 24), cornerHeight: min(pixelRect.height * 0.16, 24), transform: nil))
+                                      cornerWidth: pixelRect.height * 0.16, cornerHeight: pixelRect.height * 0.16, transform: nil))
             }
             bitmap.fillPath()
         }

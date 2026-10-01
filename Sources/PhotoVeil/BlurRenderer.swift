@@ -14,13 +14,13 @@ struct BlurRenderer {
     }
 
     static func previewImage(_ image: UIImage, maxDimension: Int = 1800) -> UIImage? {
-        guard let data = image.jpegData(compressionQuality: 0.98),
-              let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: maxDimension,
-                kCGImageSourceCreateThumbnailWithTransform: true
-              ] as CFDictionary) else { return nil }
+        guard let source = image.cgImage else { return nil }
+        let scale = min(1, CGFloat(maxDimension) / CGFloat(max(source.width, source.height)))
+        guard scale < 1 else { return image }
+        let scaled = CIImage(cgImage: source).applyingFilter("CILanczosScaleTransform", parameters: [
+            kCIInputScaleKey: scale, kCIInputAspectRatioKey: 1
+        ])
+        guard let thumbnail = context.createCGImage(scaled, from: scaled.extent) else { return nil }
         return UIImage(cgImage: thumbnail, scale: 1, orientation: .up)
     }
 
@@ -34,13 +34,16 @@ struct BlurRenderer {
         guard let cg = image.cgImage else { throw BlurError.unavailable }
         let handler = VNImageRequestHandler(cgImage: cg, orientation: .up)
         let request = VNGenerateForegroundInstanceMaskRequest()
+        #if targetEnvironment(simulator)
+        request.usesCPUOnly = true
+        #endif
         try handler.perform([request])
         guard let observation = request.results?.first, !observation.allInstances.isEmpty,
               let buffer = try? observation.generateScaledMaskForImage(forInstances: observation.allInstances, from: handler) else {
             throw BlurError.noSubject
         }
-        // Vision returns white for selected foreground instances. The renderer's
-        // background mask uses white for pixels to blur, so invert the mask.
+        // Vision white = foreground, black = environment. Pass it unchanged:
+        // the renderer selects original pixels with white, blurred pixels with black.
         let foreground = CIImage(cvPixelBuffer: buffer)
         let extent = CGRect(x: 0, y: 0, width: cg.width, height: cg.height)
         let aligned = foreground
@@ -48,16 +51,17 @@ struct BlurRenderer {
             .transformed(by: CGAffineTransform(scaleX: CGFloat(cg.width) / foreground.extent.width,
                                                y: CGFloat(cg.height) / foreground.extent.height))
             .cropped(to: extent)
-        let mask = CIFilter.colorInvert()
-        mask.inputImage = aligned
-        guard let backgroundMask = mask.outputImage?.cropped(to: extent) else { throw BlurError.noSubject }
-        guard let rendered = render(image, regions: [], strength: strength, foregroundMask: backgroundMask) else { throw BlurError.unavailable }
-        return (rendered, backgroundMask)
+        guard PrivacyImageRenderer.hasUsefulForeground(aligned) else { throw BlurError.noSubject }
+        guard let rendered = render(image, regions: [], strength: strength, foregroundMask: aligned) else { throw BlurError.unavailable }
+        return (rendered, aligned)
     }
 
     static func detectFaces(in image: UIImage) async throws -> [CGRect] {
         guard let cg = image.cgImage else { throw BlurError.unavailable }
         let request = VNDetectFaceRectanglesRequest()
+        #if targetEnvironment(simulator)
+        request.usesCPUOnly = true
+        #endif
         try VNImageRequestHandler(cgImage: cg, orientation: .up).perform([request])
         return (request.results ?? []).map { expand(ImageGeometryMapper.topLeftRect(fromVision: $0.boundingBox), x: 0.23, y: 0.28) }
     }

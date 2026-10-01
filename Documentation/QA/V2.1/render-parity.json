@@ -1,0 +1,50 @@
+{
+  "preexport-plate-two-people-car.png": {
+    "preview": [
+      1122,
+      1402
+    ],
+    "export": [
+      1122,
+      1402
+    ],
+    "identical_pixels": true,
+    "mean_absolute_channel_difference": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "preexport-faces-two-faces.png": {
+    "preview": [
+      1448,
+      1086
+    ],
+    "export": [
+      1448,
+      1086
+    ],
+    "identical_pixels": true,
+    "mean_absolute_channel_difference": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "preexport-manual-two-people-car.png": {
+    "preview": [
+      1122,
+      1402
+    ],
+    "export": [
+      1122,
+      1402
+    ],
+    "identical_pixels": true,
+    "mean_absolute_channel_difference": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+}

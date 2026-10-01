@@ -41,7 +41,8 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
     private let overlay = PhotoRegionOverlay()
     private var sourceIdentity: ObjectIdentifier?
     private var sourceSize: CGSize = .zero
-    private var fitScale: CGFloat = 1
+    private var needsSourceLayout = true
+    private var isLayingOutPhoto = false
     private var lastViewportSize: CGSize = .zero
     private var lastZoomState: Bool?
     private var onZoomChanged: ((Bool) -> Void)?
@@ -60,12 +61,13 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
         imageView.contentMode = .scaleToFill
         imageView.isAccessibilityElement = false
         overlay.backgroundColor = .clear
+        overlay.isMultipleTouchEnabled = true
         addSubview(photoContent)
         photoContent.addSubview(imageView)
         photoContent.addSubview(overlay)
         let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
-        overlay.addGestureRecognizer(doubleTap)
+        addGestureRecognizer(doubleTap)
         fitObserver = NotificationCenter.default.addObserver(forName: .photoVeilFitPhoto, object: nil, queue: .main) { [weak self] _ in
             self?.fitToScreen()
         }
@@ -86,33 +88,56 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
         sourceSize = size
         imageView.image = preview
         self.onZoomChanged = onZoomChanged
-        overlay.configure(imageSize: size, mode: mode, faces: faces, selectedFaces: selectedFaces,
-                          plates: plates, selectedPlates: selectedPlates, regions: regions,
+        overlay.configure(imageSize: photoContent.bounds.size, mode: mode, faces: mode == .faces ? faces : [], selectedFaces: selectedFaces,
+                          plates: mode == .plate ? plates : [], selectedPlates: selectedPlates, regions: mode == .manual ? regions : [],
                           drawsRegions: drawsRegions, onFaces: onFaces, onPlate: onPlate, onRegions: onRegions)
-        let canvasInteractive = mode == .manual || mode == .plate
-        panGestureRecognizer.isEnabled = !canvasInteractive || !drawsRegions
+        let canvasInteractive = mode == .manual
+        // One finger edits; two fingers can always navigate while drawing.
+        panGestureRecognizer.isEnabled = true
+        panGestureRecognizer.minimumNumberOfTouches = canvasInteractive && drawsRegions ? 2 : 1
+        panGestureRecognizer.maximumNumberOfTouches = 2
         setNeedsLayout()
-        if sourceChanged { setNeedsLayout() }
+        if sourceChanged { needsSourceLayout = true }
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         guard sourceSize.width > 0, sourceSize.height > 0, bounds.width > 0, bounds.height > 0 else { return }
-        let sizeChanged = photoContent.bounds.size != sourceSize
-        let viewportChanged = bounds.size != lastViewportSize
-        if sizeChanged || viewportChanged {
-            photoContent.frame = CGRect(origin: .zero, size: sourceSize)
+        guard !isLayingOutPhoto else { return }
+        isLayingOutPhoto = true
+        defer { isLayingOutPhoto = false }
+        if needsSourceLayout || bounds.size != lastViewportSize {
+            let userZoom = needsSourceLayout ? 1 : zoomScale
+            // Preserve the image point under the viewport center during rotation/layout.
+            let center = convert(CGPoint(x: bounds.midX, y: bounds.midY), to: photoContent)
+            let oldSize = photoContent.bounds.size
+            let normalizedCenter = oldSize.width > 0 && oldSize.height > 0
+                ? CGPoint(x: center.x / oldSize.width, y: center.y / oldSize.height) : CGPoint(x: 0.5, y: 0.5)
+            let fit = min(bounds.width / sourceSize.width, bounds.height / sourceSize.height)
+            let fittedSize = CGSize(width: sourceSize.width * fit, height: sourceSize.height * fit)
+            // UIScrollView owns the transform. Never set frame while it is transformed.
+            setZoomScale(1, animated: false)
+            photoContent.bounds = CGRect(origin: .zero, size: fittedSize)
+            photoContent.center = CGPoint(x: fittedSize.width / 2, y: fittedSize.height / 2)
             imageView.frame = photoContent.bounds
             overlay.frame = photoContent.bounds
-            contentSize = sourceSize
-            fitScale = min(bounds.width / sourceSize.width, bounds.height / sourceSize.height)
-            minimumZoomScale = fitScale
-            maximumZoomScale = fitScale * 8
-            setZoomScale(fitScale, animated: false)
-            lastViewportSize = bounds.size
-        } else {
+            overlay.updateCanvasSize(fittedSize)
+            contentSize = fittedSize
+            minimumZoomScale = 1
+            maximumZoomScale = 8
+            setZoomScale(userZoom, animated: false)
             centerContent()
+            if needsSourceLayout || userZoom == 1 {
+                contentOffset = CGPoint(x: -contentInset.left, y: -contentInset.top)
+            } else {
+                contentOffset = CGPoint(x: normalizedCenter.x * fittedSize.width * userZoom - bounds.width / 2,
+                                        y: normalizedCenter.y * fittedSize.height * userZoom - bounds.height / 2)
+            }
+            needsSourceLayout = false
+            lastViewportSize = bounds.size
         }
+        centerContent()
+        updateCanvasDiagnostics()
     }
 
     func viewForZooming(in scrollView: UIScrollView) -> UIView? { photoContent }
@@ -129,6 +154,14 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
         let vertical = max(0, (bounds.height - scaledHeight) / 2)
         contentInset = UIEdgeInsets(top: vertical, left: horizontal, bottom: vertical, right: horizontal)
         overlay.zoomScale = zoomScale
+        updateCanvasDiagnostics()
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) { updateCanvasDiagnostics() }
+
+    private func updateCanvasDiagnostics() {
+        guard ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") else { return }
+        accessibilityValue = String(format: "%.4f,%.2f,%.2f", zoomScale, contentOffset.x + contentInset.left, contentOffset.y + contentInset.top)
     }
 
     private func notifyZoomState() {
@@ -139,20 +172,15 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
     }
 
     func fitToScreen() {
-        setZoomScale(minimumZoomScale, animated: true)
+        setZoomScale(1, animated: false)
+        centerContent()
+        setContentOffset(CGPoint(x: -contentInset.left, y: -contentInset.top), animated: false)
     }
 
     @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
-        if zoomScale > minimumZoomScale * 1.04 {
-            fitToScreen()
-        } else {
-            let point = gesture.location(in: photoContent)
-            let targetScale = min(maximumZoomScale, minimumZoomScale * 2.4)
-            let rect = CGRect(x: point.x - bounds.width / (targetScale * 2), y: point.y - bounds.height / (targetScale * 2),
-                              width: bounds.width / targetScale, height: bounds.height / targetScale)
-            zoom(to: rect, animated: true)
-        }
+        fitToScreen()
     }
+
 }
 
 private final class PhotoRegionOverlay: UIView {
@@ -169,7 +197,6 @@ private final class PhotoRegionOverlay: UIView {
     private var onPlate: ((Int) -> Void)?
     private var onRegions: (([BlurRegion]) -> Void)?
     private var startPoint: CGPoint?
-    private var activeIndex: Int?
     private var activeKind: DragKind?
     private var draftRect: CGRect?
     var zoomScale: CGFloat = 1 { didSet { setNeedsDisplay() } }
@@ -182,6 +209,12 @@ private final class PhotoRegionOverlay: UIView {
         self.onFaces = onFaces; self.onPlate = onPlate; self.onRegions = onRegions
         isUserInteractionEnabled = mode != nil
         accessibilityIdentifier = "photoRegions"
+        super.accessibilityElements = makeAccessibleRegions()
+        setNeedsDisplay()
+    }
+
+    func updateCanvasSize(_ size: CGSize) {
+        imageSize = size
         super.accessibilityElements = makeAccessibleRegions()
         setNeedsDisplay()
     }
@@ -213,6 +246,7 @@ private final class PhotoRegionOverlay: UIView {
             let element = UIAccessibilityElement(accessibilityContainer: self)
             element.accessibilityLabel = "Blur region \(index + 1)"
             element.accessibilityIdentifier = "blur_region_\(index)"
+            element.accessibilityValue = String(format: "%.6f,%.6f,%.6f,%.6f", region.rect.minX, region.rect.minY, region.rect.width, region.rect.height)
             element.accessibilityTraits = .button
             element.accessibilityFrameInContainerSpace = pixelRect(region.rect)
             elements.append(element)
@@ -226,15 +260,19 @@ private final class PhotoRegionOverlay: UIView {
         context.setLineWidth(2 / max(zoomScale, 0.01))
         for (index, face) in faces.enumerated() {
             let box = pixelRect(face)
-            let path = UIBezierPath(ovalIn: box)
-            context.setStrokeColor(UIColor.white.withAlphaComponent(0.94).cgColor)
-            context.setLineDash(phase: 0, lengths: selectedFaces.contains(index) ? [] : [7 / zoomScale, 5 / zoomScale])
-            context.addPath(path.cgPath); context.strokePath()
-            if selectedFaces.contains(index) {
-                context.setFillColor(UIColor.black.withAlphaComponent(0.10).cgColor)
-                context.addPath(path.cgPath); context.fillPath()
+            // Corner marks indicate a tappable face without circular controls or handles.
+            let length = min(12 / zoomScale, min(box.width, box.height) * 0.18)
+            context.setStrokeColor(UIColor.white.withAlphaComponent(selectedFaces.contains(index) ? 0.8 : 0.5).cgColor)
+            context.setLineDash(phase: 0, lengths: [])
+            for (x, y, dx, dy) in [(box.minX, box.minY, length, length), (box.maxX, box.minY, -length, length),
+                                   (box.minX, box.maxY, length, -length), (box.maxX, box.maxY, -length, -length)] {
+                context.move(to: CGPoint(x: x, y: y + dy))
+                context.addLine(to: CGPoint(x: x, y: y))
+                context.addLine(to: CGPoint(x: x + dx, y: y))
             }
+            context.strokePath()
         }
+
         for (index, plate) in plates.enumerated() {
             let box = pixelRect(plate)
             let path = UIBezierPath(roundedRect: box, cornerRadius: min(box.height * 0.15, 28))
@@ -289,14 +327,10 @@ private final class PhotoRegionOverlay: UIView {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let point = touches.first?.location(in: self) else { return }
+        guard event?.allTouches?.count == 1, let point = touches.first?.location(in: self) else { clearDraft(); return }
         switch mode {
-        case .faces:
-            if let index = faces.indices.first(where: { pixelRect(faces[$0]).insetBy(dx: -faces[$0].width * imageSize.width * 0.15, dy: -faces[$0].height * imageSize.height * 0.15).contains(point) }) { onFaces?(index) }
-        case .plate:
-            if let index = plates.indices.first(where: { pixelRect(plates[$0]).contains(point) }) { onPlate?(index); return }
-            guard drawsRegions else { return }
-            beginRegionGesture(at: point)
+        case .faces, .plate:
+            startPoint = point
         case .manual:
             guard drawsRegions else { return }
             beginRegionGesture(at: point)
@@ -332,6 +366,7 @@ private final class PhotoRegionOverlay: UIView {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard event?.allTouches?.count == 1 else { clearDraft(); return }
         guard let point = touches.first?.location(in: self), let startPoint, let activeKind else { return }
         let dx = (point.x - startPoint.x) / imageSize.width
         let dy = (point.y - startPoint.y) / imageSize.height
@@ -347,8 +382,8 @@ private final class PhotoRegionOverlay: UIView {
             draftRect = rect
         case .resize(let index):
             var rect = regions[index].rect
-            rect.size.width = min(max(0.035, rect.width + dx), 1 - rect.minX)
-            rect.size.height = min(max(0.035, rect.height + dy), 1 - rect.minY)
+            rect.size.width = min(max(6 / (zoomScale * imageSize.width), rect.width + dx), 1 - rect.minX)
+            rect.size.height = min(max(6 / (zoomScale * imageSize.height), rect.height + dy), 1 - rect.minY)
             draftRect = rect
         case .delete: break
         }
@@ -356,11 +391,16 @@ private final class PhotoRegionOverlay: UIView {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let point = touches.first?.location(in: self), let startPoint,
+           hypot(point.x - startPoint.x, point.y - startPoint.y) * zoomScale < 12 {
+            if mode == .faces, let index = faces.indices.first(where: { pixelRect(faces[$0]).contains(point) }) { onFaces?(index) }
+            if mode == .plate, let index = plates.indices.first(where: { pixelRect(plates[$0]).contains(point) }) { onPlate?(index) }
+        }
         guard let activeKind, let draftRect else { clearDraft(); return }
         switch activeKind {
         case .create:
-            let minWidth = max(0.025, 26 / max(zoomScale * imageSize.width, 1))
-            let minHeight = max(0.025, 26 / max(zoomScale * imageSize.height, 1))
+            let minWidth = 6 / max(zoomScale * imageSize.width, 1)
+            let minHeight = 6 / max(zoomScale * imageSize.height, 1)
             if draftRect.width >= minWidth && draftRect.height >= minHeight {
                 onRegions?(regions + [BlurRegion(rect: draftRect, shape: .roundedRectangle)])
             }

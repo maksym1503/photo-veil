@@ -30,6 +30,40 @@ final class PrivacyImageRendererTests: XCTestCase {
         XCTAssertEqual(pixel(result, x: 24, y: 20), pixel(source, x: 24, y: 20), "Pixels outside the selected region must remain sharp")
     }
 
+    func testManualRegionUsesTopLeftImageCoordinatesAndKeepsAspectRatio() throws {
+        let source = try checkerboard(width: 240, height: 140)
+        let region = BlurRegion(rect: CGRect(x: 0.1, y: 0.1, width: 0.3, height: 0.25), shape: .roundedRectangle)
+        let output = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [region], strength: .strong))
+        XCTAssertEqual(output.width, source.width)
+        XCTAssertEqual(output.height, source.height)
+        XCTAssertNotEqual(pixel(output, x: 48, y: 28), pixel(source, x: 48, y: 28))
+        XCTAssertEqual(pixel(output, x: 48, y: 112), pixel(source, x: 48, y: 112))
+    }
+
+    func testCachedForegroundMaskScalesToFullResolutionExport() throws {
+        let source = try checkerboard(width: 240, height: 160)
+        let previewMask = try mask(width: 120, height: 80, rect: CGRect(x: 36, y: 12, width: 48, height: 48))
+        let output = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [], strength: .strong, foregroundMask: previewMask))
+        XCTAssertEqual(pixel(output, x: 100, y: 50), pixel(source, x: 100, y: 50))
+        XCTAssertNotEqual(pixel(output, x: 12, y: 12), pixel(source, x: 12, y: 12))
+        XCTAssertEqual(output.width, 240)
+        XCTAssertEqual(output.height, 160)
+    }
+
+    func testBlurRadiusScalesEquallyForPreviewAndExport() {
+        for strength in BlurStrength.allCases {
+            XCTAssertEqual(strength.radius(for: CGSize(width: 400, height: 300)) * 10,
+                           strength.radius(for: CGSize(width: 4000, height: 3000)), accuracy: 0.001)
+        }
+    }
+
+    func testEmptyOrFullForegroundMaskIsRejected() throws {
+        let extent = CGRect(x: 0, y: 0, width: 240, height: 160)
+        XCTAssertFalse(PrivacyImageRenderer.hasUsefulForeground(CIImage(color: .black).cropped(to: extent)))
+        XCTAssertFalse(PrivacyImageRenderer.hasUsefulForeground(CIImage(color: .white).cropped(to: extent)))
+        XCTAssertTrue(PrivacyImageRenderer.hasUsefulForeground(try mask(width: 240, height: 160, rect: CGRect(x: 80, y: 20, width: 80, height: 120))))
+    }
+
     private func checkerboard(width: Int, height: Int) throws -> CGImage {
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else {

@@ -8,4 +8,12 @@ jobs:
       - name: Core Image and geometry tests
         run: swift test
       - name: Build app and run simulator UI tests
-        run: xcodebuild -project PhotoVeil.xcodeproj -scheme PhotoVeil -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath /tmp/veil-ci CODE_SIGNING_ALLOWED=NO test
+        run: |
+          simulator_id=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; devices=json.load(sys.stdin)["devices"]; print(next(d["udid"] for group in devices.values() for d in group if d["name"].startswith("iPhone")))')
+          xcodebuild -project PhotoVeil.xcodeproj -scheme PhotoVeil -destination "platform=iOS Simulator,id=$simulator_id" -derivedDataPath /tmp/veil-ci -resultBundlePath /tmp/veil-ci.xcresult CODE_SIGNING_ALLOWED=NO test
+      - name: Keep runtime test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veil-runtime-results
+          path: /tmp/veil-ci.xcresult
