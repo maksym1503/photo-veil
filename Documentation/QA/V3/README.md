@@ -1,8 +1,10 @@
 # Veil V3 visual and regression QA
 
-V3 is held for the owner's physical-iPhone visual review. Do not merge yet. No new physical-device testing or App Store submission was performed.
+The owner approved V3 after physical-iPhone testing. The final revision only loops the existing landing portrait demonstration; no App Store submission was performed.
 
 ## Executed checks
+
+- Final landing revision: 2.2-second blur/reveal transitions with 1.4-second holds, unchanged layout. Repeated clear/blur cycles were visually inspected in Simulator captures and a recording. Reduce Motion remained statically blurred across captures more than one cycle apart. The first-launch/Settings/Privacy UI test and all 12 core tests passed (`/tmp/veil-v3-landing-loop.xcresult`).
 
 - Xcode 26.6 / iOS 26.5, iPhone 17 Pro Simulator: the complete ten-test UI regression suite passed in `/tmp/veil-v3-complete.xcresult`. Covers real Vision Faces/Plates, immediate plate blur, individual/bulk toggle, Low/Strong pixel changes, rectangle create/move/resize/delete/undo, freehand/undo, zoom/pan/fit, mode switching, Done/Edit, overlay-free preview and system export.
 - Smaller iPhone 17e Simulator, dark appearance: Faces, Plates and first-launch/Settings/Privacy tests passed in `/tmp/veil-v3-dark-tests.xcresult`.
@@ -30,7 +32,7 @@ V3 is held for the owner's physical-iPhone visual review. Do not merge yet. No n
 | Done / clean preview | Faces/Plates clean-preview light/dark screenshots: Edit and primary Share symbol; editor overlays disappear, photo transform retained |
 | Settings / About / Privacy | Light/dark Settings and Privacy; `accessibility-about.png`: native grouped lists, no fake legal/contact links |
 | Larger Text / largest Text | `accessibility-*.png`: scrolling text, readable controls; largest size switches to menus without truncated tool names |
-| Reduce Motion | One-shot portrait transformation becomes a static blurred portrait; press scale disabled. Preferences enabled during accessibility run |
+| Reduce Motion | Looping portrait demonstration becomes a static blurred portrait; press scale disabled. Preferences enabled during accessibility run |
 | Reduce Transparency / contrast | Accessibility screenshots: opaque fallback control surfaces, native system settings adaptation |
 | Differentiate Without Color | Neutral selected backgrounds and accessibility selected traits; blur plus solid/dashed detection corners communicate state without hue |
 
@@ -44,4 +46,4 @@ Done retains the hidden controls' layout footprint so it does not change the can
 
 VoiceOver detection button labels, state values, hints and activation callbacks were fixed and exercised through accessibility-based UI automation. Hands-on spoken VoiceOver review on physical iPhone remains required. Manual drawing still requires direct spatial interaction. iOS 17–25 fallback appearance and actual foreground Vision on physical hardware were not run locally because only the iOS 26.5 Simulator runtime is installed.
 
-Hosted CI status for the exact PR head is shown on the PR. Physical visual acceptance, real public URLs, legal/entity details and distribution validation remain in [the App Store checklist](../../AppStore/APP_STORE_CHECKLIST.md).
+Hosted CI status for the exact PR head is shown on the PR. Physical visual acceptance is complete; real public URLs, legal/entity details and distribution validation remain in [the App Store checklist](../../AppStore/APP_STORE_CHECKLIST.md).

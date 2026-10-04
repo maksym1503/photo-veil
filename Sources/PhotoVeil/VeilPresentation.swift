@@ -81,9 +81,18 @@ struct VeilDemonstration: View {
         .task(id: reduceMotion) {
             concealed = reduceMotion
             guard !reduceMotion else { return }
-            try? await Task.sleep(for: .milliseconds(700))
-            guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 1.4)) { concealed = true }
+            do {
+                try await Task.sleep(for: .seconds(1.2))
+                while !Task.isCancelled {
+                    withAnimation(.easeInOut(duration: 2.2)) { concealed = true }
+                    // Finish the transition, then hold the result briefly.
+                    try await Task.sleep(for: .seconds(3.6))
+                    withAnimation(.easeInOut(duration: 2.2)) { concealed = false }
+                    try await Task.sleep(for: .seconds(3.6))
+                }
+            } catch {
+                // Leaving the landing screen or changing Reduce Motion cancels the loop.
+            }
         }
     }
 }
