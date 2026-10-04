@@ -38,6 +38,15 @@ struct ZoomablePhotoCanvas: UIViewRepresentable {
     }
 }
 
+private final class DetectionAccessibilityElement: UIAccessibilityElement {
+    var activate: (() -> Void)?
+    override func accessibilityActivate() -> Bool {
+        guard let activate else { return false }
+        activate()
+        return true
+    }
+}
+
 final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
     private let photoContent = UIView()
     private let imageView = UIImageView()
@@ -163,8 +172,10 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) { updateCanvasDiagnostics() }
 
     private func updateCanvasDiagnostics() {
+        #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") else { return }
         accessibilityValue = String(format: "%.4f,%.2f,%.2f", zoomScale, contentOffset.x + contentInset.left, contentOffset.y + contentInset.top)
+        #endif
     }
 
     private func notifyZoomState() {
@@ -204,7 +215,7 @@ private final class PhotoRegionOverlay: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        // A recognized tap survives UIScrollView touch arbitration; an outline alone is only a candidate.
+        // A recognized tap survives UIScrollView touch arbitration.
         addGestureRecognizer(plateTap)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -253,16 +264,22 @@ private final class PhotoRegionOverlay: UIView {
     private func makeAccessibleRegions() -> [Any] {
         var elements: [Any] = []
         for (index, rect) in faces.enumerated() {
-            let element = UIAccessibilityElement(accessibilityContainer: self)
+            let element = DetectionAccessibilityElement(accessibilityContainer: self)
+            element.activate = { [weak self] in self?.onFaces?(index) }
             element.accessibilityLabel = selectedFaces.contains(index) ? "Blurred face \(index + 1)" : "Face \(index + 1)"
+            element.accessibilityHint = "Double-tap to toggle blur"
+            element.accessibilityValue = selectedFaces.contains(index) ? "Blur on" : "Blur off"
             element.accessibilityIdentifier = "face_\(index)"
             element.accessibilityTraits = .button
             element.accessibilityFrameInContainerSpace = pixelRect(rect)
             elements.append(element)
         }
         for (index, rect) in plates.enumerated() {
-            let element = UIAccessibilityElement(accessibilityContainer: self)
+            let element = DetectionAccessibilityElement(accessibilityContainer: self)
+            element.activate = { [weak self] in self?.onPlate?(index) }
             element.accessibilityLabel = selectedPlates.contains(index) ? "Blurred plate suggestion" : "Plate suggestion"
+            element.accessibilityHint = "Double-tap to toggle blur"
+            element.accessibilityValue = selectedPlates.contains(index) ? "Blur on" : "Blur off"
             element.accessibilityIdentifier = "plate_\(index)"
             element.accessibilityTraits = .button
             element.accessibilityFrameInContainerSpace = pixelRect(rect)
@@ -297,33 +314,8 @@ private final class PhotoRegionOverlay: UIView {
         guard let context = UIGraphicsGetCurrentContext() else { return }
         context.saveGState()
         context.setLineWidth(2 / max(zoomScale, 0.01))
-        for (index, face) in faces.enumerated() {
-            let box = pixelRect(face)
-            // Corner marks indicate a tappable face without circular controls or handles.
-            let length = min(12 / zoomScale, min(box.width, box.height) * 0.18)
-            context.setStrokeColor(UIColor.white.withAlphaComponent(selectedFaces.contains(index) ? 0.8 : 0.5).cgColor)
-            context.setLineDash(phase: 0, lengths: [])
-            for (x, y, dx, dy) in [(box.minX, box.minY, length, length), (box.maxX, box.minY, -length, length),
-                                   (box.minX, box.maxY, length, -length), (box.maxX, box.maxY, -length, -length)] {
-                context.move(to: CGPoint(x: x, y: y + dy))
-                context.addLine(to: CGPoint(x: x, y: y))
-                context.addLine(to: CGPoint(x: x + dx, y: y))
-            }
-            context.strokePath()
-        }
-
-        for (index, plate) in plates.enumerated() {
-            let box = pixelRect(plate)
-            let path = UIBezierPath(roundedRect: box, cornerRadius: min(box.height * 0.15, 28))
-            context.setStrokeColor(UIColor.systemOrange.cgColor)
-            context.setLineDash(phase: 0, lengths: selectedPlates.contains(index) ? [] : [9 / zoomScale, 5 / zoomScale])
-            context.addPath(path.cgPath); context.strokePath()
-            if selectedPlates.contains(index) {
-                context.setFillColor(UIColor.systemOrange.withAlphaComponent(0.16).cgColor)
-                context.addPath(path.cgPath); context.fillPath()
-                context.setStrokeColor(UIColor.systemOrange.cgColor); context.addPath(path.cgPath); context.strokePath()
-            }
-        }
+        for (index, face) in faces.enumerated() { drawDetection(face, active: selectedFaces.contains(index), context: context) }
+        for (index, plate) in plates.enumerated() { drawDetection(plate, active: selectedPlates.contains(index), context: context) }
         for region in regions {
             drawRegion(region.rect, shape: region.shape, context: context, selected: true)
         }
@@ -334,11 +326,26 @@ private final class PhotoRegionOverlay: UIView {
         context.restoreGState()
     }
 
+    private func drawDetection(_ normalized: CGRect, active: Bool, context: CGContext) {
+        let box = pixelRect(normalized)
+        let length = min(12 / zoomScale, min(box.width, box.height) * 0.2)
+        context.setLineDash(phase: 0, lengths: active ? [] : [3 / zoomScale, 3 / zoomScale])
+        // Neutral shadow keeps white corners legible over both light and dark photographs.
+        context.setShadow(offset: .zero, blur: 2 / zoomScale, color: UIColor.black.withAlphaComponent(0.75).cgColor)
+        context.setStrokeColor(UIColor.white.withAlphaComponent(active ? 0.72 : 0.9).cgColor)
+        for (x, y, dx, dy) in [(box.minX, box.minY, length, length), (box.maxX, box.minY, -length, length),
+                               (box.minX, box.maxY, length, -length), (box.maxX, box.maxY, -length, -length)] {
+            context.move(to: CGPoint(x: x, y: y + dy)); context.addLine(to: CGPoint(x: x, y: y)); context.addLine(to: CGPoint(x: x + dx, y: y))
+        }
+        context.strokePath()
+        context.setShadow(offset: .zero, blur: 0, color: nil)
+    }
+
     private func drawRegion(_ normalized: CGRect, shape: BlurRegion.Shape, context: CGContext, selected: Bool) {
         let box = pixelRect(normalized)
         let path: UIBezierPath = shape == .oval ? UIBezierPath(ovalIn: box) : UIBezierPath(roundedRect: box, cornerRadius: min(22, box.height * 0.18))
         context.setLineDash(phase: 0, lengths: [])
-        context.setFillColor(UIColor.systemOrange.withAlphaComponent(selected ? 0.20 : 0.32).cgColor)
+        context.setFillColor(UIColor.white.withAlphaComponent(selected ? 0.04 : 0.12).cgColor)
         context.addPath(path.cgPath); context.fillPath()
         context.setStrokeColor(UIColor.white.cgColor)
         context.addPath(path.cgPath); context.strokePath()
@@ -354,7 +361,7 @@ private final class PhotoRegionOverlay: UIView {
             context.addLine(to: CGPoint(x: closeRect.midX - 5 / zoomScale, y: closeRect.midY + 5 / zoomScale)); context.strokePath()
             let resize = CGRect(x: box.maxX - handleSize * 0.5, y: box.maxY - handleSize * 0.5, width: handleSize, height: handleSize)
             context.setFillColor(UIColor.white.cgColor); context.fillEllipse(in: resize)
-            context.setStrokeColor(UIColor.systemOrange.cgColor)
+            context.setStrokeColor(UIColor.darkGray.cgColor)
             context.move(to: CGPoint(x: resize.minX + 13 / zoomScale, y: resize.maxY - 13 / zoomScale))
             context.addLine(to: CGPoint(x: resize.maxX - 13 / zoomScale, y: resize.minY + 13 / zoomScale)); context.strokePath()
         }

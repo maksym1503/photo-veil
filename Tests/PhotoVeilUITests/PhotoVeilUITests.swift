@@ -1,6 +1,42 @@
 import XCTest
 
 final class PhotoVeilUITests: XCTestCase {
+    @MainActor func testFirstLaunchSettingsAndPrivacy() {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.buttons["choosePhoto"].waitForExistence(timeout: 10))
+        attach(app, "first-launch")
+        app.buttons["settings"].tap()
+        XCTAssertTrue(app.staticTexts["Version / Build"].waitForExistence(timeout: 5))
+        attach(app, "settings")
+        app.buttons["About Veil"].tap()
+        XCTAssertTrue(app.staticTexts["Share the moment. Keep the details."].waitForExistence(timeout: 5))
+        attach(app, "about")
+        app.buttons["BackButton"].tap()
+        app.buttons["photoPrivacy"].tap()
+        XCTAssertTrue(app.staticTexts["Photo processing happens entirely on this iPhone. Photos are not uploaded to Veil servers."].waitForExistence(timeout: 5))
+        attach(app, "privacy")
+    }
+
+    @MainActor func testLargestTextToolAndStrengthMenus() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-mode", "plate", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        waitForRender(app)
+        XCTAssertTrue(app.buttons["toolMenu"].waitForExistence(timeout: 10))
+        attach(app, "largest-text-plates")
+        app.buttons["Blur strength"].tap()
+        app.buttons["Strong"].tap()
+        waitForRender(app)
+        XCTAssertEqual(app.buttons["Blur strength"].value as? String, "Strong")
+        app.buttons["toolMenu"].tap()
+        app.buttons["mode_manual"].tap()
+        waitForRender(app)
+        XCTAssertEqual(app.buttons["toolMenu"].value as? String, "Manual")
+        XCTAssertTrue(app.buttons["manualBrush"].exists)
+        attach(app, "largest-text-manual")
+    }
+
     @MainActor func testFacesDetectionSelectionAndStableCanvas() {
         let app = launch(fixture: "two-faces")
         let before = transform(app)
@@ -38,15 +74,22 @@ final class PhotoVeilUITests: XCTestCase {
         assertCamera(app, before)
         let plate = app.buttons["plate_0"]
         XCTAssertTrue(plate.waitForExistence(timeout: 10))
+        XCTAssertEqual(plate.label, "Blurred plate suggestion")
         let sharpFingerprint = app.otherElements["processingComplete"].value as? String
-        attach(app, "plate-detected")
+        attach(app, "plate-auto-blurred")
         plate.tap()
         waitForRender(app)
-        XCTAssertEqual(plate.label, "Blurred plate suggestion")
+        XCTAssertEqual(plate.label, "Plate suggestion")
         XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, sharpFingerprint, "Selection must change rendered pixels, not just the outline")
         assertCamera(app, before)
         XCTAssertFalse(app.buttons["blur_region_0"].exists)
+        plate.tap(); waitForRender(app)
+        XCTAssertEqual(plate.label, "Blurred plate suggestion")
         attach(app, "plate-blurred")
+        app.buttons["blurAllPlates"].tap(); waitForRender(app)
+        XCTAssertEqual(plate.label, "Plate suggestion")
+        app.buttons["blurAllPlates"].tap(); waitForRender(app)
+        XCTAssertEqual(plate.label, "Blurred plate suggestion")
         app.buttons["strength_low"].tap(); waitForRender(app)
         let lowFingerprint = app.otherElements["processingComplete"].value as? String
         attach(app, "plate-low")
@@ -253,7 +296,10 @@ final class PhotoVeilUITests: XCTestCase {
         canvas.coordinate(withNormalizedOffset: from).press(forDuration: 0.1, thenDragTo: canvas.coordinate(withNormalizedOffset: to))
     }
     @MainActor private func export(_ app: XCUIApplication, _ name: String) {
-        app.buttons["Export"].tap()
+        let exportButton = app.buttons["export"]
+        if !exportButton.waitForExistence(timeout: 2) { app.buttons["finalPreview"].tap() }
+        XCTAssertTrue(exportButton.waitForExistence(timeout: 10))
+        exportButton.tap()
         XCTAssertTrue(app.staticTexts["Copy"].waitForExistence(timeout: 15))
         attach(app, name)
     }
