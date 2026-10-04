@@ -128,7 +128,7 @@ struct PhotoVeilHome: View {
                 Button(showingFinalPreview ? "Edit" : "Done") {
                     showingOriginal = false
                     showingFinalPreview.toggle()
-                }.disabled(working).accessibilityIdentifier("finalPreview")
+                }.id(showingFinalPreview).disabled(working).accessibilityIdentifier("finalPreview")
             }
             if showingFinalPreview {
                 ToolbarItem(placement: .topBarTrailing) {

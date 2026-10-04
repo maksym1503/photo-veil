@@ -296,8 +296,10 @@ final class PhotoVeilUITests: XCTestCase {
         canvas.coordinate(withNormalizedOffset: from).press(forDuration: 0.1, thenDragTo: canvas.coordinate(withNormalizedOffset: to))
     }
     @MainActor private func export(_ app: XCUIApplication, _ name: String) {
-        if app.buttons["finalPreview"].label == "Done" { app.buttons["finalPreview"].tap() }
-        app.buttons["Export"].tap()
+        let exportButton = app.buttons["export"]
+        if !exportButton.waitForExistence(timeout: 2) { app.buttons["finalPreview"].tap() }
+        XCTAssertTrue(exportButton.waitForExistence(timeout: 10))
+        exportButton.tap()
         XCTAssertTrue(app.staticTexts["Copy"].waitForExistence(timeout: 15))
         attach(app, name)
     }
