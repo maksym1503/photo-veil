@@ -24,7 +24,10 @@
 		<key>0C806DE6ACB2EC026FA8F435</key>
 		<dict>
 			<key>buildSettings</key>
-			<dict/>
+			<dict>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
 			<key>name</key>
@@ -118,6 +121,7 @@
 				<string>A20000000000000000000019</string>
 				<string>A20000000000000000000020</string>
 				<string>A2000000000000000000000B</string>
+				<string>B30000000000000000000102</string>
 			</array>
 			<key>isa</key>
 			<string>PBXResourcesBuildPhase</string>
@@ -143,6 +147,7 @@
 				<string>404109BE81EC8730E074C94C</string>
 				<string>A20000000000000000000002</string>
 				<string>A20000000000000000000005</string>
+				<string>B30000000000000000000002</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -177,7 +182,12 @@
 		<key>73B95E6E24CE1170B12B0131</key>
 		<dict>
 			<key>buildSettings</key>
-			<dict/>
+			<dict>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>$(inherited) DEBUG</string>
+			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
 			<key>name</key>
@@ -260,7 +270,7 @@
 				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
 				<string>PhotoVeilIcon</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>1</string>
+				<string>3</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>NO</string>
 				<key>INFOPLIST_FILE</key>
@@ -279,6 +289,12 @@
 				<string>5.9</string>
 				<key>TARGETED_DEVICE_FAMILY</key>
 				<string>1</string>
+				<key>MARKETING_VERSION</key>
+				<string>1.0</string>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>$(inherited) DEBUG</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -498,6 +514,10 @@
 				<string>1</string>
 				<key>TEST_TARGET_NAME</key>
 				<string>PhotoVeil</string>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>$(inherited) DEBUG</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -526,6 +546,8 @@
 				<string>1</string>
 				<key>TEST_TARGET_NAME</key>
 				<string>PhotoVeil</string>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -616,6 +638,10 @@
 				<string>iphoneos</string>
 				<key>SWIFT_VERSION</key>
 				<string>5.9</string>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>$(inherited) DEBUG</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -632,6 +658,8 @@
 				<string>iphoneos</string>
 				<key>SWIFT_VERSION</key>
 				<string>5.9</string>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -652,7 +680,7 @@
 				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
 				<string>PhotoVeilIcon</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>1</string>
+				<string>3</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>NO</string>
 				<key>INFOPLIST_FILE</key>
@@ -671,6 +699,12 @@
 				<string>5.9</string>
 				<key>TARGETED_DEVICE_FAMILY</key>
 				<string>1</string>
+				<key>MARKETING_VERSION</key>
+				<string>1.0</string>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>EXCLUDED_SOURCE_FILE_NAMES</key>
+				<string>two-faces.jpg two-people-car.jpg background-person.jpg</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -694,6 +728,8 @@
 				<string>A2000000000000000000000A</string>
 				<string>A20000000000000000000017</string>
 				<string>A20000000000000000000018</string>
+				<string>B30000000000000000000001</string>
+				<string>B30000000000000000000101</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -713,6 +749,42 @@
 			<string>Release</string>
 			<key>isa</key>
 			<string>XCConfigurationList</string>
+		</dict>
+		<key>B30000000000000000000001</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/VeilPresentation.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>B30000000000000000000002</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>B30000000000000000000001</string>
+		</dict>
+		<key>B30000000000000000000101</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>text.xml</string>
+			<key>path</key>
+			<string>PrivacyInfo.xcprivacy</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>B30000000000000000000102</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>B30000000000000000000101</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>

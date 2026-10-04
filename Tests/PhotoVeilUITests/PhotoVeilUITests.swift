@@ -1,6 +1,19 @@
 import XCTest
 
 final class PhotoVeilUITests: XCTestCase {
+    @MainActor func testFirstLaunchSettingsAndPrivacy() {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.buttons["choosePhoto"].waitForExistence(timeout: 10))
+        attach(app, "first-launch")
+        app.buttons["settings"].tap()
+        XCTAssertTrue(app.staticTexts["Version / Build"].waitForExistence(timeout: 5))
+        attach(app, "settings")
+        app.buttons["photoPrivacy"].tap()
+        XCTAssertTrue(app.staticTexts["Photo processing happens entirely on this iPhone. Photos are not uploaded to Veil servers."].waitForExistence(timeout: 5))
+        attach(app, "privacy")
+    }
+
     @MainActor func testFacesDetectionSelectionAndStableCanvas() {
         let app = launch(fixture: "two-faces")
         let before = transform(app)
@@ -38,15 +51,22 @@ final class PhotoVeilUITests: XCTestCase {
         assertCamera(app, before)
         let plate = app.buttons["plate_0"]
         XCTAssertTrue(plate.waitForExistence(timeout: 10))
+        XCTAssertEqual(plate.label, "Blurred plate suggestion")
         let sharpFingerprint = app.otherElements["processingComplete"].value as? String
-        attach(app, "plate-detected")
+        attach(app, "plate-auto-blurred")
         plate.tap()
         waitForRender(app)
-        XCTAssertEqual(plate.label, "Blurred plate suggestion")
+        XCTAssertEqual(plate.label, "Plate suggestion")
         XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, sharpFingerprint, "Selection must change rendered pixels, not just the outline")
         assertCamera(app, before)
         XCTAssertFalse(app.buttons["blur_region_0"].exists)
+        plate.tap(); waitForRender(app)
+        XCTAssertEqual(plate.label, "Blurred plate suggestion")
         attach(app, "plate-blurred")
+        app.buttons["blurAllPlates"].tap(); waitForRender(app)
+        XCTAssertEqual(plate.label, "Plate suggestion")
+        app.buttons["blurAllPlates"].tap(); waitForRender(app)
+        XCTAssertEqual(plate.label, "Blurred plate suggestion")
         app.buttons["strength_low"].tap(); waitForRender(app)
         let lowFingerprint = app.otherElements["processingComplete"].value as? String
         attach(app, "plate-low")
@@ -253,6 +273,7 @@ final class PhotoVeilUITests: XCTestCase {
         canvas.coordinate(withNormalizedOffset: from).press(forDuration: 0.1, thenDragTo: canvas.coordinate(withNormalizedOffset: to))
     }
     @MainActor private func export(_ app: XCUIApplication, _ name: String) {
+        if app.buttons["finalPreview"].label == "Done" { app.buttons["finalPreview"].tap() }
         app.buttons["Export"].tap()
         XCTAssertTrue(app.staticTexts["Copy"].waitForExistence(timeout: 15))
         attach(app, name)

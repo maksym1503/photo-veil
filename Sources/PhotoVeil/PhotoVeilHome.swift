@@ -15,6 +15,7 @@ private struct EditSnapshot {
 enum EditorMode: String, CaseIterable, Identifiable {
     case background = "Background", faces = "Faces", plate = "Plate", manual = "Manual"
     var id: String { rawValue }
+    var label: String { self == .plate ? "Plates" : rawValue }
     var symbol: String {
         switch self {
         case .background: "person.crop.rectangle"
@@ -26,6 +27,8 @@ enum EditorMode: String, CaseIterable, Identifiable {
 }
 
 struct PhotoVeilHome: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var showingSettings = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var original: UIImage?
     @State private var previewSource: UIImage?
@@ -59,47 +62,86 @@ struct PhotoVeilHome: View {
     @State private var testRenderFingerprint = ""
 
     var body: some View {
-        Group {
-            if original == nil { importView } else { editorView }
+        NavigationStack {
+            Group {
+                if original == nil { importView } else { editorView }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { navigationControls }
         }
         .background(Color(uiColor: .systemBackground))
         .onChange(of: pickerItem) { _, item in Task { await load(item) } }
         .onAppear(perform: loadFixtureIfRequested)
-        .alert("Couldn’t open that photo", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+        .alert("Couldn’t finish that action", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) { errorMessage = nil }
         } message: { Text(errorMessage ?? "Please choose another image.") }
+        .sheet(isPresented: $showingSettings) { VeilSettings() }
         .sheet(isPresented: $showingShare) {
             if let exportURL { ShareSheet(items: [exportURL]) }
         }
     }
 
     private var importView: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            Image(systemName: "eye.slash.circle.fill")
-                .font(.system(size: 58, weight: .light)).foregroundStyle(.primary)
-                .padding(.bottom, 20)
-            Text("Keep private details private.")
-                .font(.system(size: 27, weight: .semibold, design: .rounded)).multilineTextAlignment(.center)
-            Text("Blur backgrounds, faces and sensitive details.")
-                .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.top, 8)
-            PhotosPicker(selection: $pickerItem, matching: .images) {
-                Label("Choose a photo", systemImage: "photo")
-                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 15)
-                    .background(Color.primary, in: Capsule())
-                    .foregroundStyle(Color(uiColor: .systemBackground))
-            }.padding(.top, 30).accessibilityIdentifier("choosePhoto")
-            Label("Processed on your iPhone", systemImage: "iphone")
-                .font(.footnote).foregroundStyle(.secondary).padding(.top, 17)
-            Spacer()
-            Spacer().frame(height: 22)
+        ScrollView {
+            VStack(spacing: 24) {
+                VeilDemonstration().frame(maxWidth: 360).padding(.top, 32)
+                VStack(spacing: 10) {
+                    Text("Share the moment.\nKeep the details.")
+                        .font(.largeTitle.weight(.semibold)).multilineTextAlignment(.center)
+                    Text("Choose. Blur. Share.")
+                        .font(.body).foregroundStyle(.secondary)
+                }
+                PhotosPicker(selection: $pickerItem, matching: .images) {
+                    Label("Choose Photo", systemImage: "photo")
+                        .font(.headline).padding(.horizontal, 32).frame(minHeight: 52)
+                }
+                .modifier(VeilActionStyle(prominent: true))
+                .accessibilityIdentifier("choosePhoto")
+                Label("Processed on this iPhone", systemImage: "iphone")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity).padding(.horizontal, 24).padding(.bottom, 32)
         }
-        .padding(.horizontal, 28)
+    }
+
+    @ToolbarContentBuilder private var navigationControls: some ToolbarContent {
+        if original == nil {
+            ToolbarItem(placement: .principal) { Text("Veil").font(.headline) }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Settings", systemImage: "gearshape") { showingSettings = true }
+                    .labelStyle(.iconOnly).accessibilityIdentifier("settings")
+            }
+        } else {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Close photo", systemImage: "xmark") { clearSession() }.labelStyle(.iconOnly)
+            }
+            if !showingFinalPreview {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button("Undo", systemImage: "arrow.uturn.backward") { undo() }
+                        .labelStyle(.iconOnly).disabled(undoStack.isEmpty)
+                    Menu("More editing actions", systemImage: "ellipsis") {
+                        Button("Reset edits", systemImage: "arrow.counterclockwise", role: .destructive) { resetEdits() }
+                    }.labelStyle(.iconOnly)
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(showingFinalPreview ? "Edit" : "Done") {
+                    showingOriginal = false
+                    showingFinalPreview.toggle()
+                }.disabled(working).accessibilityIdentifier("finalPreview")
+            }
+            if showingFinalPreview {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Export", systemImage: "square.and.arrow.up") { prepareExport() }
+                        .labelStyle(.iconOnly).modifier(VeilActionStyle(prominent: true))
+                        .disabled(working).accessibilityIdentifier("export")
+                }
+            }
+        }
     }
 
     private var editorView: some View {
         VStack(spacing: 0) {
-            editorToolbar
             ZStack(alignment: .topLeading) {
                 if let original, let previewSource, let preview {
                     ZoomablePhotoCanvas(
@@ -127,14 +169,14 @@ struct PhotoVeilHome: View {
                     HStack(spacing: 8) {
                         Button { showingOriginal.toggle() } label: {
                             Label(showingOriginal ? "Edited" : "Original", systemImage: showingOriginal ? "slider.horizontal.3" : "eye")
-                                .font(.caption.weight(.semibold)).padding(.horizontal, 12).frame(height: 36)
-                                .background(.regularMaterial, in: Capsule())
+                                .font(.caption.weight(.semibold)).padding(.horizontal, 12).frame(minHeight: 44)
+                                .modifier(VeilGlassSurface())
                         }
                         .accessibilityIdentifier("originalToggle")
                         if zoomed {
                             Button { NotificationCenter.default.post(name: .photoVeilFitPhoto, object: nil) } label: {
                                 Image(systemName: "arrow.up.left.and.arrow.down.right").font(.caption.weight(.semibold))
-                                    .frame(width: 36, height: 36).background(.regularMaterial, in: Circle())
+                                    .frame(width: 44, height: 44).modifier(VeilGlassSurface())
                             }
                             .accessibilityLabel("Fit photo")
                             .accessibilityIdentifier("fitPhoto")
@@ -158,7 +200,7 @@ struct PhotoVeilHome: View {
             .overlay(alignment: .bottom) {
                 if backgroundUnavailable && !showingFinalPreview {
                     Text("No foreground found. Select manually.").font(.caption)
-                        .padding(10).background(.regularMaterial, in: Capsule()).padding(8)
+                        .padding(10).modifier(VeilGlassSurface()).padding(8)
                         .allowsHitTesting(false)
                 }
             }
@@ -166,44 +208,6 @@ struct PhotoVeilHome: View {
             if showingFinalPreview { editorControls.hidden().accessibilityHidden(true) }
             else { editorControls }
         }
-        .ignoresSafeArea(.container, edges: .bottom)
-    }
-
-    private var editorToolbar: some View {
-        HStack(spacing: 10) {
-            Button { clearSession() } label: { toolbarCircle("xmark") }
-                .accessibilityLabel("Close photo")
-            Spacer(minLength: 10)
-            if !showingFinalPreview {
-                Button { undo() } label: { toolbarCircle("arrow.uturn.backward") }
-                    .disabled(undoStack.isEmpty).opacity(undoStack.isEmpty ? 0.42 : 1).accessibilityLabel("Undo")
-                Menu {
-                    Button("Reset edits", systemImage: "arrow.counterclockwise", role: .destructive) { resetEdits() }
-                } label: { toolbarCircle("ellipsis") }
-                    .accessibilityLabel("More editing actions")
-            }
-            Button(showingFinalPreview ? "Edit" : "Done") {
-                showingOriginal = false
-                showingFinalPreview.toggle()
-            }
-            .font(.body.weight(.semibold)).frame(minWidth: 44, minHeight: 44)
-            .buttonStyle(.plain).foregroundStyle(.tint).id(showingFinalPreview)
-            .disabled(working).accessibilityIdentifier("finalPreview")
-            Button { prepareExport() } label: {
-                Image(systemName: "square.and.arrow.up").font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white).frame(width: 44, height: 44)
-                    .background(Color.accentColor, in: Circle())
-            }
-            .disabled(working || (mode == .background && backgroundMask == nil)).accessibilityLabel("Export")
-        }
-        .padding(.horizontal, 16).padding(.top, 6).padding(.bottom, 8)
-        .background(.bar)
-    }
-
-    private func toolbarCircle(_ symbol: String) -> some View {
-        Image(systemName: symbol).font(.system(size: 16, weight: .medium))
-            .frame(width: 44, height: 44).background(.thinMaterial, in: Circle())
-            .contentShape(Circle())
     }
 
     private var editorControls: some View {
@@ -212,63 +216,76 @@ struct PhotoVeilHome: View {
               if let mode {
                     strengthControl
                     Spacer(minLength: 6)
-                    if mode == .faces, !faceRegions.isEmpty {
-                        Button { toggleAllFaces() } label: {
-                            Label(selectedFaces.count == faceRegions.count ? "Clear all" : "Blur all", systemImage: "person.2.fill")
-                                .font(.subheadline.weight(.semibold)).padding(.horizontal, 13).frame(height: 40)
-                                .background(.thinMaterial, in: Capsule())
+                    if (mode == .faces && !faceRegions.isEmpty) || (mode == .plate && !plateSuggestions.isEmpty) {
+                        Button { toggleAllDetections() } label: {
+                            Label(allDetectionsSelected ? "Clear all" : "Blur all", systemImage: "checkmark.rectangle.stack")
+                                .font(.subheadline.weight(.semibold)).padding(.horizontal, 13).frame(minHeight: 44)
+                                .modifier(VeilGlassSurface())
                         }
-                        .accessibilityIdentifier("blurAllFaces")
-                        .accessibilityLabel(selectedFaces.count == faceRegions.count ? "Clear all faces" : "Blur all faces")
+                        .accessibilityIdentifier(mode == .faces ? "blurAllFaces" : "blurAllPlates")
+                        .accessibilityLabel("\(allDetectionsSelected ? "Clear all" : "Blur all") \(mode == .faces ? "faces" : "plates")")
                     }
                     if mode == .manual {
                         Button {
                             paintsStrokes.toggle(); manualDraws = true
                         } label: {
                             Image(systemName: paintsStrokes ? "rectangle.dashed" : "paintbrush.pointed")
-                                .frame(width: 42, height: 42).background(.thinMaterial, in: Circle())
+                                .frame(width: 44, height: 44).background(.thinMaterial, in: Circle())
                         }
                         .accessibilityLabel(paintsStrokes ? "Rectangle selection" : "Paint blur")
                         .accessibilityIdentifier("manualBrush")
                         Button { manualDraws.toggle() } label: {
                             Image(systemName: manualDraws ? "hand.raised" : "pencil.tip.crop.circle")
-                                .font(.system(size: 17, weight: .semibold)).frame(width: 42, height: 42)
+                                .font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44)
                                 .background(.thinMaterial, in: Circle())
                         }
                         .accessibilityLabel(manualDraws ? "Move photo" : "Draw blur region")
                         .accessibilityIdentifier("canvasGestureMode")
                     }
                     if (mode == .faces && faceRegions.isEmpty) || (mode == .plate && didAnalyzePlates && plateSuggestions.isEmpty) {
-                        Button { select(.manual) } label: { Image(systemName: "scribble.variable").frame(width: 42, height: 42) }
+                        Button { select(.manual) } label: { Image(systemName: "scribble.variable").frame(width: 44, height: 44) }
                             .accessibilityLabel("Select manually")
                     }
               }
-            }.frame(height: 42)
-            HStack(spacing: 5) {
+            }.frame(minHeight: 44)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 5) {
                 ForEach(EditorMode.allCases) { item in
                     Button { select(item) } label: {
                         VStack(spacing: 4) {
                             Image(systemName: item.symbol).font(.system(size: 18, weight: .medium))
-                                .symbolEffect(.bounce, value: mode == item)
-                            Text(item.rawValue).font(.caption2.weight(.medium)).lineLimit(1)
+                            Text(item.label).font(.caption.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
                         }
-                        .foregroundStyle(mode == item ? Color.accentColor : Color.secondary)
-                        .frame(maxWidth: .infinity).frame(height: 50)
-                        .background(mode == item ? Color.accentColor.opacity(0.11) : .clear, in: Capsule())
+                        .foregroundStyle(mode == item ? Color.primary : Color.secondary)
+                        .frame(maxWidth: .infinity).frame(minHeight: 56)
+                        .background(mode == item ? Color(uiColor: .tertiarySystemFill) : .clear, in: Capsule())
                         .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(VeilModePressStyle())
+                    .accessibilityAddTraits(mode == item ? .isSelected : [])
                     .accessibilityIdentifier("mode_\(item.rawValue.lowercased())")
                 }
             }
             .padding(5)
-            .background(.thinMaterial, in: Capsule())
+            .modifier(VeilGlassSurface(panel: dynamicTypeSize.isAccessibilitySize))
         }
-        .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 28)
-        .background(.bar)
+        .padding(.horizontal, 16).padding(.vertical, 12)
     }
 
-    private var strengthControl: some View {
+    @ViewBuilder private var strengthControl: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            Menu {
+                ForEach(BlurStrength.allCases) { option in
+                    Button(option.rawValue) {
+                        guard strength != option else { return }
+                        pushUndo(); strength = option; rerender()
+                    }
+                }
+            } label: {
+                Label(strength.rawValue, systemImage: "slider.horizontal.3").font(.body).frame(minHeight: 44)
+            }
+            .accessibilityLabel("Blur strength")
+            .accessibilityValue(strength.rawValue)
+        } else {
         HStack(spacing: 0) {
             ForEach(BlurStrength.allCases) { option in
                 Button(option.rawValue) {
@@ -277,12 +294,13 @@ struct PhotoVeilHome: View {
                 }
                 .font(.caption.weight(strength == option ? .semibold : .regular))
                 .foregroundStyle(strength == option ? Color.primary : Color.secondary)
-                .padding(.horizontal, 11).frame(height: 36)
+                .padding(.horizontal, 11).frame(minHeight: 44)
                 .background(strength == option ? Color(uiColor: .tertiarySystemFill) : .clear, in: Capsule())
                 .accessibilityIdentifier("strength_\(option.rawValue.lowercased())")
             }
         }
-        .padding(3).background(.thinMaterial, in: Capsule())
+        .padding(3).modifier(VeilGlassSurface())
+        }
     }
 
     @MainActor private func load(_ item: PhotosPickerItem?) async {
@@ -318,6 +336,7 @@ struct PhotoVeilHome: View {
     }
 
     @MainActor private func loadFixtureIfRequested() {
+        #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         func argument(_ key: String) -> String? {
             guard let index = arguments.firstIndex(of: key), arguments.indices.contains(index + 1) else { return nil }
@@ -336,6 +355,7 @@ struct PhotoVeilHome: View {
            let requested = EditorMode.allCases.first(where: { $0.rawValue.lowercased() == arguments[index + 1] }) {
             select(requested)
         }
+        #endif
     }
 
     private func select(_ newMode: EditorMode) {
@@ -343,6 +363,7 @@ struct PhotoVeilHome: View {
             if newMode == .manual || newMode == .plate { manualDraws = true }
             return
         }
+        UISelectionFeedbackGenerator().selectionChanged()
         pushUndo()
         renderRevision += 1
         mode = newMode
@@ -418,6 +439,7 @@ struct PhotoVeilHome: View {
                 guard sessionID == session else { return }
                 didAnalyzePlates = true
                 plateSuggestions = (try? result.get()) ?? []
+                selectedPlates = Set(plateSuggestions.indices)
                 if mode == .plate { rerender() }
             }
         }
@@ -425,6 +447,7 @@ struct PhotoVeilHome: View {
 
     private func toggleFace(_ index: Int) {
         guard faceRegions.indices.contains(index) else { return }
+        UISelectionFeedbackGenerator().selectionChanged()
         pushUndo()
         if selectedFaces.contains(index) { selectedFaces.remove(index) } else { selectedFaces.insert(index) }
         rerender()
@@ -432,15 +455,20 @@ struct PhotoVeilHome: View {
 
     private func togglePlate(_ index: Int) {
         guard plateSuggestions.indices.contains(index) else { return }
+        UISelectionFeedbackGenerator().selectionChanged()
         pushUndo()
         if selectedPlates.contains(index) { selectedPlates.remove(index) } else { selectedPlates.insert(index) }
         rerender()
     }
 
-    private func toggleAllFaces() {
-        guard !faceRegions.isEmpty else { return }
+    private var allDetectionsSelected: Bool {
+        mode == .faces ? selectedFaces.count == faceRegions.count : selectedPlates.count == plateSuggestions.count
+    }
+
+    private func toggleAllDetections() {
         pushUndo()
-        selectedFaces = selectedFaces.count == faceRegions.count ? [] : Set(faceRegions.indices)
+        if mode == .faces { selectedFaces = allDetectionsSelected ? [] : Set(faceRegions.indices) }
+        else { selectedPlates = allDetectionsSelected ? [] : Set(plateSuggestions.indices) }
         rerender()
     }
 
@@ -580,11 +608,13 @@ struct PhotoVeilHome: View {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("Veil-\(UUID().uuidString).jpg")
             do {
                 try data.write(to: url, options: .atomic)
+                #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing"), let rendered {
                     let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     try rendered.pngData()?.write(to: directory.appendingPathComponent("export-\(currentMode?.rawValue.lowercased() ?? "none")-\(Self.testFixtureName).png"))
                     try rendered.pngData()?.write(to: directory.appendingPathComponent("evidence-export-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")-\(Self.testFixtureName).png"))
                 }
+                #endif
                 await MainActor.run {
                     guard sessionID == session else { return }
                     working = false; exportURL = url; showingShare = true
@@ -602,11 +632,13 @@ struct PhotoVeilHome: View {
     }
 
     private func captureTestRender(_ image: UIImage, name: String) {
+        #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") else { return }
         if let data = image.pngData() { testRenderFingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         try? image.pngData()?.write(to: directory.appendingPathComponent("\(name)-\(Self.testFixtureName).png"))
         try? previewSource?.pngData()?.write(to: directory.appendingPathComponent("original-\(Self.testFixtureName).png"))
+        #endif
     }
 }
 

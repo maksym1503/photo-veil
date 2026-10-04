@@ -2,7 +2,7 @@ name: PhotoVeil CI
 on: [push, pull_request]
 jobs:
   build-and-test:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Core Image and geometry tests
