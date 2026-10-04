@@ -16,7 +16,7 @@ Status: preparation only. Nothing submitted to App Store Connect. V3 must remain
 - Original untouched. Export uses the same `PrivacyImageRenderer` and image-space edit state as preview, at full source resolution; new high-quality JPEG omits source EXIF/GPS metadata. JPEG is opaque and lossy; HDR/wide-gamut fidelity is not guaranteed.
 - Native grouped Settings/About/Help and photo privacy explanation. Unconfigured legal/contact links are hidden, never replaced by fake destinations.
 - Native toolbar, Share symbol, system sheets/menus, glass styles on iOS 26, material/bordered fallbacks on iOS 17–25. Neutral selected treatment plus accessibility selected traits; detection on/off differs by solid/dashed corners and actual blur rather than color alone.
-- Dynamic Type text, scrolling landing/legal screens, minimum 44-point control targets, Reduce Motion handling for press/landing animation, opaque Reduce Transparency control fallback. Detected face/plate accessibility elements have actual activation callbacks.
+- Dynamic Type text, two-column tool layout at larger text and a native tool menu at the largest accessibility sizes, scrolling landing/legal screens, minimum 44-point control targets, Reduce Motion handling for press/landing animation, opaque Reduce Transparency control fallback. Detected face/plate accessibility elements have actual activation callbacks.
 - Debug fixture loading and image evidence output gated by `DEBUG`; Debug explicitly defines it. Release excludes the three UI test JPEG fixtures. See QA report for runtime coverage and limits.
 
 ## Needs developer input

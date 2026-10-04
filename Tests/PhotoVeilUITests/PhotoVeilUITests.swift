@@ -9,9 +9,32 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["settings"].tap()
         XCTAssertTrue(app.staticTexts["Version / Build"].waitForExistence(timeout: 5))
         attach(app, "settings")
+        app.buttons["About Veil"].tap()
+        XCTAssertTrue(app.staticTexts["Share the moment. Keep the details."].waitForExistence(timeout: 5))
+        attach(app, "about")
+        app.buttons["BackButton"].tap()
         app.buttons["photoPrivacy"].tap()
         XCTAssertTrue(app.staticTexts["Photo processing happens entirely on this iPhone. Photos are not uploaded to Veil servers."].waitForExistence(timeout: 5))
         attach(app, "privacy")
+    }
+
+    @MainActor func testLargestTextToolAndStrengthMenus() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-mode", "plate", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        waitForRender(app)
+        XCTAssertTrue(app.buttons["toolMenu"].waitForExistence(timeout: 10))
+        attach(app, "largest-text-plates")
+        app.buttons["Blur strength"].tap()
+        app.buttons["Strong"].tap()
+        waitForRender(app)
+        XCTAssertEqual(app.buttons["Blur strength"].value as? String, "Strong")
+        app.buttons["toolMenu"].tap()
+        app.buttons["mode_manual"].tap()
+        waitForRender(app)
+        XCTAssertEqual(app.buttons["toolMenu"].value as? String, "Manual")
+        XCTAssertTrue(app.buttons["manualBrush"].exists)
+        attach(app, "largest-text-manual")
     }
 
     @MainActor func testFacesDetectionSelectionAndStableCanvas() {

@@ -8,6 +8,7 @@ Scope: presentation, Faces/Plates interaction, release hygiene, privacy and obvi
 - Detection rendering now shares one neutral solid/dashed corner routine. Manual outlines no longer tint the photo orange.
 - Both modes use the same Clear all / Blur all action and selection haptics. `Plate` remains the internal raw value so UI identifiers and diagnostic filenames stay compatible; the user-visible label is `Plates`.
 - Native toolbar replaced duplicated custom navigation circles. Glass/material fallbacks and mode press motion live in `VeilPresentation.swift`.
+- Largest accessibility text sizes cramped the compact row. Secondary controls now stack vertically and tools use a native menu at sizes 3–5, with menu interaction regression coverage.
 - Detected-region VoiceOver button activation was missing; dedicated accessibility elements now call the existing selection actions.
 - Debug builds explicitly define `DEBUG`. Fixture loading/evidence output are compiled out of Release; the Release resource exclusion removes UI test JPEGs. Signing-team edits remain local.
 - Version/build now resolve from Xcode settings rather than duplicate hard-coded Info.plist values.

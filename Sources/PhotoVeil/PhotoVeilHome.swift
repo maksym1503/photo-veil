@@ -210,12 +210,14 @@ struct PhotoVeilHome: View {
         }
     }
 
+    private var usesExpandedControls: Bool { dynamicTypeSize >= .accessibility3 }
+
     private var editorControls: some View {
         VStack(spacing: 9) {
-            HStack(spacing: 10) {
+            (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))) {
               if let mode {
                     strengthControl
-                    Spacer(minLength: 6)
+                    if !usesExpandedControls { Spacer(minLength: 6) }
                     if (mode == .faces && !faceRegions.isEmpty) || (mode == .plate && !plateSuggestions.isEmpty) {
                         Button { toggleAllDetections() } label: {
                             Label(allDetectionsSelected ? "Clear all" : "Blur all", systemImage: "checkmark.rectangle.stack")
@@ -226,6 +228,7 @@ struct PhotoVeilHome: View {
                         .accessibilityLabel("\(allDetectionsSelected ? "Clear all" : "Blur all") \(mode == .faces ? "faces" : "plates")")
                     }
                     if mode == .manual {
+                        HStack(spacing: 10) {
                         Button {
                             paintsStrokes.toggle(); manualDraws = true
                         } label: {
@@ -241,6 +244,7 @@ struct PhotoVeilHome: View {
                         }
                         .accessibilityLabel(manualDraws ? "Move photo" : "Draw blur region")
                         .accessibilityIdentifier("canvasGestureMode")
+                        }
                     }
                     if (mode == .faces && faceRegions.isEmpty) || (mode == .plate && didAnalyzePlates && plateSuggestions.isEmpty) {
                         Button { select(.manual) } label: { Image(systemName: "scribble.variable").frame(width: 44, height: 44) }
@@ -248,6 +252,23 @@ struct PhotoVeilHome: View {
                     }
               }
             }.frame(minHeight: 44)
+            if usesExpandedControls {
+                Menu {
+                    ForEach(EditorMode.allCases) { item in
+                        Button { select(item) } label: {
+                            Label(item.label, systemImage: mode == item ? "checkmark" : item.symbol)
+                        }.accessibilityIdentifier("mode_\(item.rawValue.lowercased())")
+                    }
+                } label: {
+                    Text(mode?.label ?? "Choose tool")
+                        .font(.subheadline.weight(.semibold)).multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.horizontal, 8)
+                }
+                .modifier(VeilActionStyle())
+                .accessibilityLabel("Editing tool")
+                .accessibilityValue(mode?.label ?? "None selected")
+                .accessibilityIdentifier("toolMenu")
+            } else {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 5) {
                 ForEach(EditorMode.allCases) { item in
                     Button { select(item) } label: {
@@ -267,6 +288,7 @@ struct PhotoVeilHome: View {
             }
             .padding(5)
             .modifier(VeilGlassSurface(panel: dynamicTypeSize.isAccessibilitySize))
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
     }
