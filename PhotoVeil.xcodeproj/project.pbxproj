@@ -150,6 +150,8 @@
 				<string>B30000000000000000000002</string>
 				<string>C74081E286D004B8AF426B69</string>
 				<string>1FB78E7BEC2079B3486F8AD3</string>
+				<string>999C7F34D8640B1366F11E3D</string>
+				<string>F16A6AF55834919A81429C40</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -734,6 +736,8 @@
 				<string>B30000000000000000000101</string>
 				<string>7AF83B45B2EB6A63D25EF1FE</string>
 				<string>030A6BD783D1D1762409AD04</string>
+				<string>230805C7B4D3B915AAFEAB7F</string>
+				<string>065905340617E350F43DE944</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -825,6 +829,42 @@
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
 			<string>030A6BD783D1D1762409AD04</string>
+		</dict>
+		<key>230805C7B4D3B915AAFEAB7F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/GalleryStore.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>999C7F34D8640B1366F11E3D</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>230805C7B4D3B915AAFEAB7F</string>
+		</dict>
+		<key>065905340617E350F43DE944</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/VeilLibrary.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>F16A6AF55834919A81429C40</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>065905340617E350F43DE944</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>
