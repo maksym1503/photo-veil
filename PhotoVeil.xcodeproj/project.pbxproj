@@ -95,6 +95,7 @@
 				<string>6A8B3942F54EEC3771AD2A18</string>
 				<string>BB774E63608D7B6D7F3836C8</string>
 				<string>5449264550971F7E368BE212</string>
+				<string>B40000000000000000000300</string>
 			</array>
 			<key>buildRules</key>
 			<array/>
@@ -165,6 +166,9 @@
 				<string>D82AB6BDE28CB58478D1A22C</string>
 				<string>B3F7838DFABF0D6DB9D1CAE3</string>
 				<string>EA68FADA29623D1737D920C9</string>
+				<string>7519993661C0A1199D8A0267</string>
+				<string>B33EFE6E9F440F6A184DC272</string>
+				<string>5A8CA0ED3ADFF88A9C0BD8A4</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -297,7 +301,7 @@
 				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
 				<string>PhotoVeilIcon</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>3</string>
+				<string>4</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>NO</string>
 				<key>INFOPLIST_FILE</key>
@@ -317,7 +321,7 @@
 				<key>TARGETED_DEVICE_FAMILY</key>
 				<string>1</string>
 				<key>MARKETING_VERSION</key>
-				<string>1.0</string>
+				<string>4.0</string>
 				<key>ALWAYS_SEARCH_USER_PATHS</key>
 				<string>NO</string>
 				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
@@ -711,7 +715,7 @@
 				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
 				<string>PhotoVeilIcon</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>3</string>
+				<string>4</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>NO</string>
 				<key>INFOPLIST_FILE</key>
@@ -731,7 +735,7 @@
 				<key>TARGETED_DEVICE_FAMILY</key>
 				<string>1</string>
 				<key>MARKETING_VERSION</key>
-				<string>1.0</string>
+				<string>4.0</string>
 				<key>ALWAYS_SEARCH_USER_PATHS</key>
 				<string>NO</string>
 				<key>EXCLUDED_SOURCE_FILE_NAMES</key>
@@ -776,6 +780,9 @@
 				<string>585BF57F699742E93FD6A7FD</string>
 				<string>8FF566DFBE415998BF97F9EC</string>
 				<string>BB9D401203FDA709D631E1D6</string>
+				<string>5938AD7F92E244ABF08D155D</string>
+				<string>C6DA8A3296CC2FC19F02821C</string>
+				<string>AC8B83CC03C7402FE4241084</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -1124,6 +1131,92 @@
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
 			<string>BB9D401203FDA709D631E1D6</string>
+		</dict>
+		<key>5938AD7F92E244ABF08D155D</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/CloudSync.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>7519993661C0A1199D8A0267</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>5938AD7F92E244ABF08D155D</string>
+		</dict>
+		<key>C6DA8A3296CC2FC19F02821C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/SupabaseGallery.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>B33EFE6E9F440F6A184DC272</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>C6DA8A3296CC2FC19F02821C</string>
+		</dict>
+		<key>AC8B83CC03C7402FE4241084</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/VeilAccount.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>5A8CA0ED3ADFF88A9C0BD8A4</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>AC8B83CC03C7402FE4241084</string>
+		</dict>
+		<key>B40000000000000000000300</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXShellScriptBuildPhase</string>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array/>
+			<key>inputPaths</key>
+			<array>
+				<string>$(SRCROOT)/Configuration</string>
+			</array>
+			<key>outputPaths</key>
+			<array>
+				<string>$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/VeilBackend.plist</string>
+			</array>
+			<key>name</key>
+			<string>Copy optional public backend configuration</string>
+			<key>shellPath</key>
+			<string>/bin/sh</string>
+			<key>shellScript</key>
+			<string>if [ -f "${SRCROOT}/Configuration/VeilBackend.plist" ]; then
+  cp "${SRCROOT}/Configuration/VeilBackend.plist" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/VeilBackend.plist"
+else
+  rm -f "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/VeilBackend.plist"
+fi
+</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+			<key>alwaysOutOfDate</key>
+			<string>1</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>

@@ -1,0 +1,8 @@
+project_id = "veil-local"
+[functions.apple-credential]
+verify_jwt = false
+[functions.delete-account]
+verify_jwt = false
+[functions.delete-gallery-item]
+verify_jwt = false
+# Every function independently validates the bearer via Auth getUser before accessing admin capabilities.

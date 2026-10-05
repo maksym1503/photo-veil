@@ -34,8 +34,8 @@ final class BackendTransport: @unchecked Sendable {
         _ = try await request(path: "functions/v1/\(name)", method: "POST", token: token, data: JSONEncoder().encode(body))
     }
     func profile(user: UUID, displayName: String, token: String) async throws {
-        let body = ["id": user.uuidString, "display_name": String(displayName.prefix(80))]
-        _ = try await request(path: "rest/v1/profiles", method: "POST", token: token,
-                             data: JSONEncoder().encode(body), headers: ["Prefer": "resolution=merge-duplicates"])
+        let body = ["display_name": String(displayName.prefix(80))]
+        _ = try await request(path: "rest/v1/profiles", method: "PATCH", token: token,
+                             data: JSONEncoder().encode(body), query: [URLQueryItem(name: "id", value: "eq.\(user.uuidString)")])
     }
 }
