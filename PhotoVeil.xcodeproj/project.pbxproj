@@ -110,6 +110,10 @@
 			<string>77B7CE37EFD49D2ABCD6BE67</string>
 			<key>productType</key>
 			<string>com.apple.product-type.application</string>
+			<key>packageProductDependencies</key>
+			<array>
+				<string>B40000000000000000000101</string>
+			</array>
 		</dict>
 		<key>5449264550971F7E368BE212</key>
 		<dict>
@@ -156,6 +160,11 @@
 				<string>F16A6AF55834919A81429C40</string>
 				<string>1482201450FFE4A0A819FA9A</string>
 				<string>E56F5843D8F3C27A40F09189</string>
+				<string>D382486394B7C490B9CA5328</string>
+				<string>D3995EDB0672923C0AADEB0E</string>
+				<string>D82AB6BDE28CB58478D1A22C</string>
+				<string>B3F7838DFABF0D6DB9D1CAE3</string>
+				<string>EA68FADA29623D1737D920C9</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -276,6 +285,10 @@
 				<string>pl</string>
 				<string>Base</string>
 			</array>
+			<key>packageReferences</key>
+			<array>
+				<string>B40000000000000000000100</string>
+			</array>
 		</dict>
 		<key>8D0F68AD4BAA454011C498D5</key>
 		<dict>
@@ -309,6 +322,8 @@
 				<string>NO</string>
 				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
 				<string>$(inherited) DEBUG</string>
+				<key>CODE_SIGN_ENTITLEMENTS</key>
+				<string>$(VEIL_ENTITLEMENTS_FILE)</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -636,7 +651,9 @@
 			<key>buildActionMask</key>
 			<string>2147483647</string>
 			<key>files</key>
-			<array/>
+			<array>
+				<string>B40000000000000000000102</string>
+			</array>
 			<key>isa</key>
 			<string>PBXFrameworksBuildPhase</string>
 			<key>runOnlyForDeploymentPostprocessing</key>
@@ -719,6 +736,8 @@
 				<string>NO</string>
 				<key>EXCLUDED_SOURCE_FILE_NAMES</key>
 				<string>two-faces.jpg two-people-car.jpg background-person.jpg</string>
+				<key>CODE_SIGN_ENTITLEMENTS</key>
+				<string>$(VEIL_ENTITLEMENTS_FILE)</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -752,6 +771,11 @@
 				<string>FA3F697FC7DAE1D809633021</string>
 				<string>206D246B756BCF4E76CF9D8E</string>
 				<string>B40000000000000000000001</string>
+				<string>E3A7A570E0A14705C9DA129F</string>
+				<string>2E06B61E884FD4FE585F166A</string>
+				<string>585BF57F699742E93FD6A7FD</string>
+				<string>8FF566DFBE415998BF97F9EC</string>
+				<string>BB9D401203FDA709D631E1D6</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -980,6 +1004,126 @@
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
 			<string>B40000000000000000000001</string>
+		</dict>
+		<key>B40000000000000000000100</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/supabase/supabase-swift.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>exactVersion</string>
+				<key>version</key>
+				<string>2.55.3</string>
+			</dict>
+		</dict>
+		<key>B40000000000000000000101</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>B40000000000000000000100</string>
+			<key>productName</key>
+			<string>Auth</string>
+		</dict>
+		<key>B40000000000000000000102</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>B40000000000000000000101</string>
+		</dict>
+		<key>E3A7A570E0A14705C9DA129F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/AccountContracts.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>D382486394B7C490B9CA5328</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>E3A7A570E0A14705C9DA129F</string>
+		</dict>
+		<key>2E06B61E884FD4FE585F166A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/BackendConfiguration.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>D3995EDB0672923C0AADEB0E</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>2E06B61E884FD4FE585F166A</string>
+		</dict>
+		<key>585BF57F699742E93FD6A7FD</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/BackendTransport.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>D82AB6BDE28CB58478D1A22C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>585BF57F699742E93FD6A7FD</string>
+		</dict>
+		<key>8FF566DFBE415998BF97F9EC</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/SupabaseAuthentication.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>B3F7838DFABF0D6DB9D1CAE3</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>8FF566DFBE415998BF97F9EC</string>
+		</dict>
+		<key>BB9D401203FDA709D631E1D6</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/ProtectedAuthStorage.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>EA68FADA29623D1737D920C9</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>BB9D401203FDA709D631E1D6</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>

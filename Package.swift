@@ -5,7 +5,7 @@ let package = Package(
     name: "PhotoVeilGeometry",
     platforms: [.macOS(.v13)],
     targets: [
-        .target(name: "ImageGeometry", path: "Sources/PhotoVeil", exclude: ["Resources", "BlurRenderer.swift", "PhotoVeilApp.swift", "PhotoVeilHome.swift", "VeilPresentation.swift", "ZoomablePhotoCanvas.swift", "VeilLibrary.swift", "VeilGallery.swift", "PhotosSaver.swift"], sources: ["ImageGeometryMapper.swift", "PrivacyImageRenderer.swift", "FaceDetection.swift", "DocumentDetection.swift", "GalleryStore.swift", "PhotoSavePolicy.swift"]),
+        .target(name: "ImageGeometry", path: "Sources/PhotoVeil", exclude: ["Resources", "BlurRenderer.swift", "PhotoVeilApp.swift", "PhotoVeilHome.swift", "VeilPresentation.swift", "ZoomablePhotoCanvas.swift", "VeilLibrary.swift", "VeilGallery.swift", "PhotosSaver.swift", "BackendConfiguration.swift", "BackendTransport.swift", "SupabaseAuthentication.swift", "ProtectedAuthStorage.swift"], sources: ["ImageGeometryMapper.swift", "PrivacyImageRenderer.swift", "FaceDetection.swift", "DocumentDetection.swift", "GalleryStore.swift", "PhotoSavePolicy.swift", "AccountContracts.swift"]),
         .testTarget(name: "ImageGeometryTests", dependencies: ["ImageGeometry"], path: "Tests/PhotoVeilTests")
     ]
 )
