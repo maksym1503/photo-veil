@@ -1,6 +1,47 @@
-# V4 backend setup — owner-controlled, not provisioned
+# V4 / V4.1 backend setup — owner-controlled, not provisioned
 
 The default app compiles with no credentials, no account UI that pretends to sign in, and no Veil network client instantiated. Editor, gallery, Share and Photos saving work offline. Nothing was deployed by Codex. Do not merge or release until device/provider/backend validation is complete.
+
+## What the physically tested build means
+
+The inspected checkout has **no `Configuration/VeilBackend.plist`**. The default `VEIL_ENTITLEMENTS_FILE` is empty; the Apple entitlement source exists but is not applied automatically. The earlier "Cloud accounts aren't configured" message meant the client was deliberately not instantiated, rather than an unfinished login screen. Dashboard/provider provisioning cannot be verified from this checkout. If you have already created a project or credentials, reuse and verify them rather than creating replacements.
+
+V4.1 validates configuration with specific DEBUG diagnostics for absent/unreadable/malformed files and invalid fields. The normal account screen explains local-only availability and hides unavailable sign-in actions. With a valid URL/key/callback, Google appears; Apple additionally requires `AppleCapabilityEnabled=YES`. That flag alone cannot prove your portal/profile/provider setup is correct. DEBUG provider-control screenshots are disabled rendering previews, **not successful authentication tests**.
+
+### Already implemented; no owner code rewrite needed
+
+- Official Supabase Auth SDK, native Apple nonce/token flow and server authorization-code exchange, Google PKCE in `ASWebAuthenticationSession`, strict callback route validation, Keychain storage and local session restoration.
+- Local offline sign-out, optional profile updates, explicit per-account sync consent, owner-checked private image transport and retry/tombstones.
+- Both SQL migrations, ownership policies and three deletion/revocation Edge Functions. Deterministic tests cover mock identity lifecycle, configuration and ownership/deletion; live providers and a hosted Storage API still require the acceptance steps below.
+- `veil` URL scheme and `veil://auth/callback` registered in the existing app; no separate Google SDK/client-secret is needed in Xcode. Existing local signing-team edits are preserved.
+
+### Ordered owner checklist
+
+1. **Choose/reuse the project:** in Supabase Dashboard create a project only if none exists. Choose a region appropriate for your users and privacy/legal commitments; record pricing, retention and billing alerts. Region/legal decisions are yours.
+2. **Record public client values:** Project URL and an `sb_publishable_…` key. Do not choose a secret/service-role key. Keep provider/server secrets separate.
+3. **Validate migrations locally**, then link the intended project and apply `202610050001_veil_gallery.sql` and `202610050002_apple_revocation.sql` in that order. Commands and local-only policy checks are in section 1. Verify private bucket and Vault before proceeding.
+4. **Deploy all functions:** `apple-credential`, `delete-gallery-item`, `delete-account`. The managed service-role credentials remain server-side. Configure `APPLE_NATIVE_CLIENT_ID` and `APPLE_CLIENT_SECRET` as Supabase function secrets after the Apple setup below. Keep JWT verification inside the functions.
+5. **Configure Apple:** enable the capability for existing bundle `com.maksym1503.veil`; regenerate provisioning; configure Supabase Apple provider with that native audience. Configure the server secret and rotation/revocation as section 2 describes. An Apple Services ID is needed only for an additional web/client flow, not as a replacement native bundle audience.
+6. **Configure Google:** create/reuse a Google **web OAuth client**, configure consent/test users, register the exact HTTPS Auth callback displayed by your Supabase project's Google provider settings, and store the client ID/secret in that provider's dashboard. This is different from the final app callback.
+7. **Register final app redirect:** Supabase Auth → URL Configuration → Redirect URLs: add exactly `veil://auth/callback`. No wildcard. Confirm Google returns through Supabase to this route. Native Apple ID-token login does not use Google’s browser callback.
+8. **Create local public configuration:** the gitignored `Configuration/VeilBackend.plist`, with the four keys in section 4. Apple may initially be `NO` while testing Google; valid public configuration still enables Google.
+9. **Xcode/signing:** set `VEIL_ENTITLEMENTS_FILE=Configuration/Veil.entitlements` in your local build configuration only after the Apple capability/profile is ready. Preserve your existing DEVELOPMENT_TEAM. Clean/build and verify `VeilBackend.plist` is present in the built app. The optional copy build phase already exists; no additional URL scheme or source edit is needed.
+10. **Secrets/staging check:** never commit `.p8`, Apple secret JWTs, Google client secrets, Supabase secret/service-role keys, real session tokens or credential-bearing terminal output. Public app configuration is intentionally gitignored too. Supply public Privacy/Terms/Support links and update legal/data disclosures before releasing accounts.
+11. **Real device/provider checks:** Apple first/returning/Hide My Email; Google consent/cancellation; restore after relaunch; offline sign-out; opt-in sync; disable sync; cloud-only deletion and account deletion/revocation. See production acceptance below. A syntactically valid config is not evidence of a working provider.
+12. **Two-account isolation:** use A and B real test identities in a disposable/staging project. Save/sync one item per account. Run authenticated REST/Storage probes as described below, and verify both own-item access and denied foreign access. Never use the admin/service-role credential for these probes.
+
+## Two-account verification
+
+Use each account's short-lived access token locally; do not paste it into issues, screenshots, shell history or this repository. Use an ephemeral script/environment/HTTP client that does not log request headers. Test both directions (A→B and B→A):
+
+- `GET /rest/v1/gallery_items?id=eq.<foreign-item>` must return no foreign rows. SELECT denial may be an empty array rather than an HTTP error.
+- INSERT with a foreign `user_id` must fail; UPDATE/DELETE targeting foreign rows must affect zero rows. Verify the owner still sees the unchanged row afterward.
+- Authenticated download from `/storage/v1/object/authenticated/veil-gallery/<foreign-user>/<foreign-item>/processed.jpg` and thumbnail must return **no image bytes**. Upload/upsert/remove in that namespace must fail without changing the owner's objects. Exercise the official Storage API as well as SQL tests; response codes can vary by operation.
+- The same token must read its **own** row/image successfully, so a globally broken endpoint cannot masquerade as secure isolation. Without a token, neither metadata nor image is readable. The bucket's `public` flag must be false.
+- Test foreign prefixes in Edge Function deletion requests: functions resolve ownership from the bearer identity, never a supplied owner. B's object and metadata must survive A's request.
+- Delete A's account in the app; confirm A's Auth identity, profile, gallery, images and Vault material are gone and B remains intact. Test retry after simulated server/provider failure.
+
+Use real IDs discovered in staging. Do not run repository fixture SQL against production. Hosted provider/Storage/Vault validation remains owner-required; deterministic CI does not provision or prove those services.
 
 ## Dependency
 

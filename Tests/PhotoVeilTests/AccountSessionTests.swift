@@ -23,7 +23,8 @@ final class AccountSessionTests: XCTestCase {
         let expected = URL(string: "veil://auth/callback")!
         XCTAssertTrue(OAuthCallbackPolicy.accepts(URL(string: "veil://auth/callback?code=test-code")!, expected: expected))
         for text in ["other://auth/callback?code=x", "veil://other/callback?code=x", "veil://auth/other?code=x",
-                     "veil://auth/callback#access_token=x", "veil://auth/callback?code=", "veil://auth/callback?code=x&code=y"] {
+                     "veil://auth/callback#access_token=x", "veil://auth/callback?code=", "veil://auth/callback?code=x&code=y", "veil://user@auth/callback?code=x",
+                     "veil://auth:12/callback?code=x", "veil://auth/callback?code=x&error=denied"] {
             XCTAssertFalse(OAuthCallbackPolicy.accepts(URL(string: text)!, expected: expected))
         }
     }

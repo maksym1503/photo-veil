@@ -11,6 +11,7 @@ import Security
     @Published private(set) var lastSync: Date?
     @Published var message: String?
     let auth: SupabaseAuthentication?
+    let backendReadiness: BackendReadiness
     private let lifecycle: AccountSession?
     private let library: VeilLibrary
     private var syncTask: Task<Void, Never>?
@@ -22,7 +23,9 @@ import Security
 
     init(library: VeilLibrary) {
         self.library = library
-        if let configuration = BackendConfiguration.load() {
+        let readiness = BackendConfiguration.readiness()
+        backendReadiness = readiness
+        if let configuration = readiness.configuration {
             let adapter = SupabaseAuthentication(configuration: configuration)
             auth = adapter; lifecycle = AccountSession(auth: adapter)
         } else { auth = nil; lifecycle = nil }
@@ -177,6 +180,15 @@ struct VeilAccountView: View {
     @State private var confirmsSync = false
     @State private var confirmsDelete = false
     @State private var confirmsCloudDelete = false
+    // A disabled DEBUG-only rendering fixture exercises the real provider controls without
+    // provisioning fake credentials, instantiating an Auth client or simulating a login.
+    private var previewsProviderControls: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") && ProcessInfo.processInfo.arguments.contains("-veil-auth-controls-preview")
+        #else
+        false
+        #endif
+    }
     var body: some View {
         List {
             if let identity = account.identity {
@@ -197,29 +209,45 @@ struct VeilAccountView: View {
                     Text("Only processed outputs and thumbnails sync. Originals and recognized text stay on this iPhone. Cloud storage uses account access controls; it is not end-to-end encrypted.")
                 }
                 Section {
-                    if identity.provider == "apple" { appleButton }
+                    if identity.provider == "apple", account.auth?.configuration.appleSignInEnabled == true { appleButton }
                     Button("Sign out") { Task { await account.signOut() } }
                     Button("Delete account", role: .destructive) { confirmsDelete = true }
                 } footer: { Text("Signing out or deleting your account keeps local history. Delete local history separately in Settings.") }
-            } else {
+            } else if account.auth != nil || previewsProviderControls {
                 Section {
                     Label("Your gallery, across devices", systemImage: "photo.stack").font(.title3.weight(.semibold))
                     Text("Sign in to optionally sync processed photos. Editing and local history work without an account.")
-                    if account.auth != nil {
-                        appleButton
-                        Button { Task { await account.google() } } label: {
-                            Text("Continue with Google").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
-                        }.modifier(VeilActionStyle())
-                    } else {
-                        Label("Cloud accounts aren’t configured in this build", systemImage: "icloud.slash").foregroundStyle(.secondary)
-                    }
+                    if account.auth?.configuration.appleSignInEnabled == true || previewsProviderControls { appleButton.disabled(previewsProviderControls) }
+                    Button { Task { await account.google() } } label: {
+                        Text("Continue with Google").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                    }.modifier(VeilActionStyle()).accessibilityIdentifier("continueWithGoogle").disabled(previewsProviderControls)
+                    if previewsProviderControls { Text("Sign-in controls preview — authentication is disabled.").font(.footnote) }
+                }
+            } else {
+                Section {
+                    Label("On this iPhone", systemImage: "iphone").font(.title3.weight(.semibold))
+                        .accessibilityIdentifier("localGalleryAvailability")
+                    Text("Your private gallery stays on this iPhone. Keep, share and save photos without an account.")
+                    Text("Cloud sync isn’t available right now.").font(.footnote).foregroundStyle(.secondary)
                 }
             }
+            #if DEBUG
+            Section {
+                DisclosureGroup("Configuration details") {
+                    Text(account.backendReadiness.diagnostic).font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("backendDiagnostic")
+                }
+            }
+            #endif
         }
         .navigationTitle("Account").navigationBarTitleDisplayMode(.inline)
         .disabled(account.busy)
         .overlay { if account.busy { ProgressView().padding().background(.regularMaterial, in: Circle()) } }
         .onAppear { displayName = account.identity?.displayName ?? "" }
+        .onChange(of: account.identity?.id) { _, _ in displayName = account.identity?.displayName ?? "" }
+        .onChange(of: account.identity?.displayName) { old, new in
+            if displayName == (old ?? "") { displayName = new ?? "" }
+        }
         .confirmationDialog("Enable private sync? Processed photos already saved in your unlinked Veil gallery, thumbnails and edit metadata will upload to your account. Originals will not upload.", isPresented: $confirmsSync, titleVisibility: .visible) {
             Button("Enable sync") { Task { await account.setSync(true) } }
         }
@@ -232,7 +260,7 @@ struct VeilAccountView: View {
         .alert("Account", isPresented: Binding(get: { account.message != nil }, set: { if !$0 { account.message = nil } })) { Button("OK") { account.message = nil } } message: { Text(account.message ?? "") }
     }
     private var appleButton: some View {
-        SignInWithAppleButton(.signIn) { request in
+        SignInWithAppleButton(.continue) { request in
             var bytes = [UInt8](repeating: 0, count: 32)
             guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else { account.message = "Apple sign-in couldn’t start."; return }
             let raw = Data(bytes).base64EncodedString(); nonce = raw
@@ -241,6 +269,10 @@ struct VeilAccountView: View {
         } onCompletion: { result in
             guard let nonce else { return }
             self.nonce = nil
+            if case .failure(let error) = result {
+                if (error as? ASAuthorizationError)?.code != .canceled { account.message = "Apple sign-in couldn’t complete. Please try again." }
+                return
+            }
             guard case .success(let authorization) = result,
                   let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let token = credential.identityToken.flatMap({ String(data: $0, encoding: .utf8) }),
@@ -248,5 +280,6 @@ struct VeilAccountView: View {
             let name = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }.flatMap { $0.isEmpty ? nil : $0 }
             Task { await account.apple(AppleIdentityProof(idToken: token, nonce: nonce, authorizationCode: code, displayName: name)) }
         }.signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black).frame(height: 50)
+        .accessibilityIdentifier("continueWithApple")
     }
 }

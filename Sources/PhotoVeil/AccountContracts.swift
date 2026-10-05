@@ -36,7 +36,8 @@ enum AccountFailure: Error { case unconfigured, invalidIdentity, unavailable, in
 enum OAuthCallbackPolicy {
     static func accepts(_ url: URL, expected: URL) -> Bool {
         guard url.scheme == expected.scheme, url.host == expected.host, url.path == expected.path,
-              url.fragment == nil, let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
+              url.fragment == nil, url.user == nil, url.password == nil, url.port == nil, let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
+        guard !(components.queryItems ?? []).contains(where: { $0.name == "error" || $0.name == "error_description" }) else { return false }
         let codes = (components.queryItems ?? []).filter { $0.name == "code" }
         return codes.count == 1 && !(codes[0].value ?? "").isEmpty
     }
