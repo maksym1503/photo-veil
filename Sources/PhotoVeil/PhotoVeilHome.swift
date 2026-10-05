@@ -32,6 +32,9 @@ enum EditorMode: String, CaseIterable, Identifiable {
 }
 
 struct PhotoVeilHome: View {
+    @EnvironmentObject private var library: VeilLibrary
+    @State private var showingGallery = false
+    @State private var successMessage: String?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showingSettings = false
     @State private var pickerItem: PhotosPickerItem?
@@ -90,7 +93,14 @@ struct PhotoVeilHome: View {
             Button("OK", role: .cancel) { errorMessage = nil }
         } message: { Text(errorMessage ?? "Please choose another image.") }
         .sheet(isPresented: $showingSettings) { VeilSettings() }
-        .sheet(isPresented: $showingShare) {
+        .sheet(isPresented: $showingGallery) { VeilGallery() }
+        .alert("Saved", isPresented: Binding(get: { successMessage != nil }, set: { if !$0 { successMessage = nil } })) {
+            Button("OK") { successMessage = nil }
+        } message: { Text(successMessage ?? "") }
+        .sheet(isPresented: $showingShare, onDismiss: {
+            if let exportURL { try? FileManager.default.removeItem(at: exportURL) }
+            exportURL = nil
+        }) {
             if let exportURL { ShareSheet(items: [exportURL]) }
         }
     }
@@ -120,6 +130,10 @@ struct PhotoVeilHome: View {
 
     @ToolbarContentBuilder private var navigationControls: some ToolbarContent {
         if original == nil {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Private Gallery", systemImage: "photo.stack") { showingGallery = true }
+                    .labelStyle(.iconOnly).accessibilityIdentifier("gallery")
+            }
             ToolbarItem(placement: .principal) { Text("Veil").font(.headline) }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Settings", systemImage: "gearshape") { showingSettings = true }
@@ -146,6 +160,12 @@ struct PhotoVeilHome: View {
             }
             if showingFinalPreview {
                 ToolbarItem(placement: .topBarTrailing) {
+                    Menu("Save photo", systemImage: "square.and.arrow.down") {
+                        Button("Save to Veil", systemImage: "photo.stack") { prepareExport(destination: .gallery) }
+                            .accessibilityIdentifier("saveToVeil")
+                        Button("Save to Photos", systemImage: "photo") { prepareExport(destination: .photos) }
+                            .accessibilityIdentifier("saveToPhotos")
+                    }.labelStyle(.iconOnly).disabled(working).accessibilityIdentifier("saveMenu")
                     Button("Export", systemImage: "square.and.arrow.up") { prepareExport() }
                         .labelStyle(.iconOnly).modifier(VeilActionStyle(prominent: true))
                         .disabled(working).accessibilityIdentifier("export")
@@ -694,7 +714,9 @@ struct PhotoVeilHome: View {
         strokes = []; draftStroke = nil; showingFinalPreview = false; undoStack = []; pickerItem = nil; showingOriginal = false; zoomed = false; working = false
     }
 
-    private func prepareExport() {
+    private enum ExportDestination { case share, gallery, photos }
+
+    private func prepareExport(destination: ExportDestination = .share) {
         guard let original else { errorMessage = "The image couldn’t be prepared."; return }
         working = true
         if let preview {
@@ -716,9 +738,8 @@ struct PhotoVeilHome: View {
                 await MainActor.run { working = false; errorMessage = "The edited image couldn’t be exported." }
                 return
             }
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("Veil-\(UUID().uuidString).jpg")
             do {
-                try data.write(to: url, options: .atomic)
+                let url = destination == .share ? try TemporaryPhoto.create(data) : nil
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing"), let rendered {
                     let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -726,9 +747,22 @@ struct PhotoVeilHome: View {
                     try rendered.pngData()?.write(to: directory.appendingPathComponent("evidence-export-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")-\(Self.testFixtureName).png"))
                 }
                 #endif
-                await MainActor.run {
-                    guard sessionID == session else { return }
-                    working = false; exportURL = url; showingShare = true
+                guard await MainActor.run(body: { sessionID == session }) else {
+                    if let url { try? FileManager.default.removeItem(at: url) }; return
+                }
+                switch destination {
+                case .share:
+                    await MainActor.run { working = false; exportURL = url; showingShare = true }
+                case .gallery:
+                    try await library.save(data, effect: currentEffect.rawValue)
+                    await MainActor.run { working = false; successMessage = "Saved to Private Gallery on this iPhone" }
+                case .photos:
+                    do {
+                        try await PhotosSaver.save(data)
+                        await MainActor.run { working = false; successMessage = "Saved to Photos" }
+                    } catch {
+                        await MainActor.run { working = false; errorMessage = PhotosSaver.message(for: error) }
+                    }
                 }
             } catch {
                 await MainActor.run { working = false; errorMessage = "The edited image couldn’t be exported." }
@@ -753,7 +787,7 @@ struct PhotoVeilHome: View {
     }
 }
 
-private struct ShareSheet: UIViewControllerRepresentable {
+struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)

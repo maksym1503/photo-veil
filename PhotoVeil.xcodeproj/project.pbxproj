@@ -122,6 +122,7 @@
 				<string>A20000000000000000000020</string>
 				<string>A2000000000000000000000B</string>
 				<string>B30000000000000000000102</string>
+				<string>B40000000000000000000002</string>
 			</array>
 			<key>isa</key>
 			<string>PBXResourcesBuildPhase</string>
@@ -151,7 +152,10 @@
 				<string>C74081E286D004B8AF426B69</string>
 				<string>1FB78E7BEC2079B3486F8AD3</string>
 				<string>999C7F34D8640B1366F11E3D</string>
+				<string>4D7FEBAE587A214C00C6EB81</string>
 				<string>F16A6AF55834919A81429C40</string>
+				<string>1482201450FFE4A0A819FA9A</string>
+				<string>E56F5843D8F3C27A40F09189</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -265,6 +269,12 @@
 			<array>
 				<string>4D12E90DD8AA33456686B704</string>
 				<string>A20000000000000000000016</string>
+			</array>
+			<key>knownRegions</key>
+			<array>
+				<string>en</string>
+				<string>pl</string>
+				<string>Base</string>
 			</array>
 		</dict>
 		<key>8D0F68AD4BAA454011C498D5</key>
@@ -737,7 +747,11 @@
 				<string>7AF83B45B2EB6A63D25EF1FE</string>
 				<string>030A6BD783D1D1762409AD04</string>
 				<string>230805C7B4D3B915AAFEAB7F</string>
+				<string>A3A3A387887E3A40A8C3CEE4</string>
 				<string>065905340617E350F43DE944</string>
+				<string>FA3F697FC7DAE1D809633021</string>
+				<string>206D246B756BCF4E76CF9D8E</string>
+				<string>B40000000000000000000001</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -848,6 +862,24 @@
 			<key>fileRef</key>
 			<string>230805C7B4D3B915AAFEAB7F</string>
 		</dict>
+		<key>A3A3A387887E3A40A8C3CEE4</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/VeilGallery.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>4D7FEBAE587A214C00C6EB81</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>A3A3A387887E3A40A8C3CEE4</string>
+		</dict>
 		<key>065905340617E350F43DE944</key>
 		<dict>
 			<key>isa</key>
@@ -865,6 +897,89 @@
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
 			<string>065905340617E350F43DE944</string>
+		</dict>
+		<key>FA3F697FC7DAE1D809633021</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/PhotoSavePolicy.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>1482201450FFE4A0A819FA9A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>FA3F697FC7DAE1D809633021</string>
+		</dict>
+		<key>206D246B756BCF4E76CF9D8E</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/PhotosSaver.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>E56F5843D8F3C27A40F09189</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>206D246B756BCF4E76CF9D8E</string>
+		</dict>
+		<key>B40000000000000000000010</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>text.plist.strings</string>
+			<key>name</key>
+			<string>en</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/Resources/en.lproj/InfoPlist.strings</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>B40000000000000000000011</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>text.plist.strings</string>
+			<key>name</key>
+			<string>pl</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/Resources/pl.lproj/InfoPlist.strings</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>B40000000000000000000001</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXVariantGroup</string>
+			<key>children</key>
+			<array>
+				<string>B40000000000000000000010</string>
+				<string>B40000000000000000000011</string>
+			</array>
+			<key>name</key>
+			<string>InfoPlist.strings</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B40000000000000000000002</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>B40000000000000000000001</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>
