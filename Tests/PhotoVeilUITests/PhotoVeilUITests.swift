@@ -273,6 +273,12 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["mode_manual"].tap(); waitForRender(app)
         let camera = transform(app)
         app.buttons["shapeMenu"].tap(); app.buttons["Ellipse"].tap()
+        XCTAssertEqual(app.buttons["shapeMenu"].value as? String, "Ellipse")
+        app.buttons["manualBrush"].tap()
+        XCTAssertEqual(app.buttons["shapeMenu"].value as? String, "Brush")
+        XCTAssertEqual(app.buttons["manualBrush"].label, "Ellipse selection")
+        app.buttons["manualBrush"].tap()
+        XCTAssertEqual(app.buttons["shapeMenu"].value as? String, "Ellipse")
         drag(canvas, from: CGVector(dx: 0.3, dy: 0.35), to: CGVector(dx: 0.65, dy: 0.6)); waitForRender(app)
         let gaussian = app.otherElements["processingComplete"].value as? String
         app.buttons["effectMenu"].tap(); app.buttons["Pixelate"].tap(); waitForRender(app)

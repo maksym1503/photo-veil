@@ -294,14 +294,16 @@ struct PhotoVeilHome: View {
                             Button("Brush") { paintsStrokes = true }
                         } label: {
                             Image(systemName: paintsStrokes ? "paintbrush.pointed" : manualShape == .oval ? "oval" : "rectangle.dashed").font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44)
-                        }.accessibilityLabel("Selection shape").accessibilityIdentifier("shapeMenu")
+                        }.accessibilityLabel("Selection shape")
+                        .accessibilityValue(paintsStrokes ? "Brush" : manualShape == .oval ? "Ellipse" : "Rectangle")
+                        .accessibilityIdentifier("shapeMenu")
                         Button {
                             paintsStrokes.toggle(); manualDraws = true
                         } label: {
-                            Image(systemName: paintsStrokes ? "rectangle.dashed" : "paintbrush.pointed")
+                            Image(systemName: paintsStrokes ? (manualShape == .oval ? "oval" : "rectangle.dashed") : "paintbrush.pointed")
                                 .font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).background(.thinMaterial, in: Circle())
                         }
-                        .accessibilityLabel(paintsStrokes ? "Rectangle selection" : "Paint blur")
+                        .accessibilityLabel(paintsStrokes ? (manualShape == .oval ? "Ellipse selection" : "Rectangle selection") : "Paint blur")
                         .accessibilityIdentifier("manualBrush")
                         Button { manualDraws.toggle() } label: {
                             Image(systemName: manualDraws ? "hand.raised" : "pencil.tip.crop.circle")
