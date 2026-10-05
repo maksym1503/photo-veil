@@ -265,7 +265,8 @@ struct VeilAccountView: View {
             guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else { account.message = "Apple sign-in couldn’t start."; return }
             let raw = Data(bytes).base64EncodedString(); nonce = raw
             request.nonce = SHA256.hash(data: Data(raw.utf8)).map { String(format: "%02x", $0) }.joined()
-            request.requestedScopes = [.fullName]
+            // Provider email/relay is used by Auth; no duplicate email profile is created.
+            request.requestedScopes = [.email, .fullName]
         } onCompletion: { result in
             guard let nonce else { return }
             self.nonce = nil
