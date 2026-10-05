@@ -1,6 +1,74 @@
 import XCTest
 
 final class PhotoVeilUITests: XCTestCase {
+    @MainActor func testV41RenderedControlsAndGallery() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history"]
+        app.launch(); waitForRender(app)
+        attach(app, "v41-photo-loaded")
+        for tool in ["background", "faces", "plate", "documents", "manual"] {
+            app.buttons["mode_\(tool)"].tap(); waitForRender(app, timeout: 120)
+            attach(app, "v41-tool-\(tool)")
+        }
+        for style in ["Pixelate", "Redact", "Blur"] {
+            app.buttons["effectMenu"].tap(); app.buttons[style].tap(); waitForRender(app)
+            attach(app, "v41-effect-\(style.lowercased())")
+        }
+        app.buttons["shapeMenu"].tap(); app.buttons["Ellipse"].tap()
+        attach(app, "v41-manual-shape")
+        let analysisBefore = app.otherElements["analysisCounts"].value as? String
+        XCTAssertEqual(analysisBefore, "background=1,faces=1,plates=1,documents=1")
+        let baseline = ["background", "faces", "plate", "documents", "manual"].map { app.buttons["mode_\($0)"].frame }
+        for round in 0..<8 {
+            for tool in ["faces", "plate", "documents", "manual", "background", "manual"] {
+                app.buttons["mode_\(tool)"].tap()
+                for (index, name) in ["background", "faces", "plate", "documents", "manual"].enumerated() {
+                    let frame = app.buttons["mode_\(name)"].frame
+                    XCTAssertEqual(frame.minX, baseline[index].minX, accuracy: 1)
+                    XCTAssertEqual(frame.width, baseline[index].width, accuracy: 1)
+                    XCTAssertEqual(frame.minY, baseline[index].minY, accuracy: 1)
+                }
+                if tool != "background" { XCTAssertTrue(app.buttons["mode_\(tool)"].isSelected) }
+            }
+            for style in ["Pixelate", "Redact", "Blur"] {
+                app.buttons["effectMenu"].tap(); app.buttons[style].tap()
+            }
+            waitForRender(app, timeout: 120)
+            for (index, tool) in ["background", "faces", "plate", "documents", "manual"].enumerated() {
+                let frame = app.buttons["mode_\(tool)"].frame
+                XCTAssertEqual(frame.minX, baseline[index].minX, accuracy: 1)
+                XCTAssertEqual(frame.width, baseline[index].width, accuracy: 1)
+                XCTAssertEqual(frame.minY, baseline[index].minY, accuracy: 1)
+            }
+            XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, analysisBefore)
+            XCTAssertTrue(app.buttons["mode_manual"].isSelected)
+            XCTAssertLessThanOrEqual(app.buttons["effectMenu"].frame.maxX, app.buttons["strength_low"].frame.minX)
+            XCTAssertLessThanOrEqual(app.buttons["strength_low"].frame.maxX, app.buttons["strength_medium"].frame.minX)
+            XCTAssertLessThanOrEqual(app.buttons["strength_medium"].frame.maxX, app.buttons["strength_strong"].frame.minX)
+            if round == 0 || round == 7 { attach(app, "v41-stress-\(round)") }
+        }
+        app.buttons["finalPreview"].tap()
+        for _ in 0..<2 {
+            app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+            XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        }
+        app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
+        attach(app, "v41-gallery-normal")
+        app.buttons["Select"].tap()
+        let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10))
+        let photos = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_"))
+        XCTAssertEqual(photos.count, 2)
+        photos.element(boundBy: 0).tap(); photos.element(boundBy: 1).tap()
+        attach(app, "v41-gallery-selection")
+        XCTAssertTrue(app.buttons["galleryDeleteSelected"].isEnabled)
+        XCTAssertGreaterThan(app.buttons["galleryDeleteSelected"].frame.midY, app.frame.height * 0.75)
+        XCTAssertLessThan(app.buttons["gallerySelect"].frame.midY, app.frame.height * 0.25)
+        XCTAssertEqual(app.staticTexts["gallerySelectionStatus"].label, "2 selected")
+        app.buttons["galleryDeleteSelected"].tap(); app.buttons["Delete photos"].tap()
+        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+    }
+
     @MainActor func testFirstLaunchSettingsAndPrivacy() {
         let app = XCUIApplication()
         app.launch()
@@ -35,6 +103,13 @@ final class PhotoVeilUITests: XCTestCase {
         XCTAssertEqual(app.buttons["toolMenu"].value as? String, "Manual")
         XCTAssertTrue(app.buttons["manualBrush"].exists)
         attach(app, "largest-text-manual")
+        for style in ["Pixelate", "Redact", "Blur"] {
+            app.buttons["effectMenu"].tap(); app.buttons[style].tap(); waitForRender(app)
+            attach(app, "v41-largest-text-\(style.lowercased())")
+            let parameter = app.buttons["effectParameterMenu"]
+            XCTAssertLessThanOrEqual(app.buttons["effectMenu"].frame.maxY, parameter.frame.minY)
+            XCTAssertLessThanOrEqual(parameter.frame.maxY, app.buttons["shapeMenu"].frame.minY)
+        }
     }
 
     @MainActor func testFacesDetectionSelectionAndStableCanvas() {
@@ -317,8 +392,24 @@ final class PhotoVeilUITests: XCTestCase {
     @MainActor func testOptionalAccountUnconfigured() {
         let app = XCUIApplication(); app.launch()
         app.buttons["settings"].tap(); app.buttons["account"].tap()
-        XCTAssertTrue(app.staticTexts["Cloud accounts aren’t configured in this build"].waitForExistence(timeout: 10))
-        attach(app, "v4-account-unconfigured")
+        XCTAssertTrue(app.staticTexts["localGalleryAvailability"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["continueWithApple"].exists)
+        XCTAssertFalse(app.buttons["continueWithGoogle"].exists)
+        attach(app, "v41-account-local-only")
+        app.buttons["Configuration details"].tap()
+        XCTAssertTrue(app.staticTexts["backendDiagnostic"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor func testConfiguredProviderControlsPreview() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-empty", "-veil-auth-controls-preview"]
+        app.launch(); app.buttons["settings"].tap(); app.buttons["account"].tap()
+        XCTAssertTrue(app.buttons["continueWithApple"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["continueWithGoogle"].exists)
+        XCTAssertFalse(app.buttons["continueWithApple"].isEnabled)
+        XCTAssertFalse(app.buttons["continueWithGoogle"].isEnabled)
+        XCTAssertFalse(app.staticTexts["localGalleryAvailability"].exists)
+        attach(app, "v41-account-provider-controls-preview")
     }
 
     @MainActor func testPhotosPickerWithoutReadAuthorization() {
