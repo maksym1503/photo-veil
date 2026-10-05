@@ -4,7 +4,7 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 
 struct BlurRegion: Equatable, Identifiable {
-    enum Shape: Equatable { case oval, roundedRectangle }
+    enum Shape: String, Codable, Equatable { case oval, roundedRectangle }
     let id: String
     var rect: CGRect
     var shape: Shape
@@ -43,6 +43,17 @@ enum BlurStrength: String, CaseIterable, Identifiable {
     }
 }
 
+enum PrivacyEffect: String, Codable, CaseIterable, Identifiable {
+    case blur = "Blur", pixelate = "Pixelate", redact = "Redact"
+    var id: String { rawValue }
+}
+
+enum RedactionColor: String, Codable, CaseIterable, Identifiable {
+    case black = "Black", white = "White"
+    var id: String { rawValue }
+    var ciColor: CIColor { self == .black ? .black : .white }
+}
+
 /// Shared Core Image pipeline used by both the live canvas preview and full-resolution export.
 enum PrivacyImageRenderer {
     private static let context = CIContext(options: [.useSoftwareRenderer: false])
@@ -52,14 +63,30 @@ enum PrivacyImageRenderer {
         regions: [BlurRegion],
         strength: BlurStrength,
         foregroundMask: CIImage? = nil,
-        strokes: [BlurStroke] = []
+        strokes: [BlurStroke] = [],
+        effect: PrivacyEffect = .blur,
+        redactionColor: RedactionColor = .black
     ) -> CGImage? {
         let original = CIImage(cgImage: source)
         let extent = original.extent
-        let filter = CIFilter.gaussianBlur()
-        filter.inputImage = original.clampedToExtent()
-        filter.radius = strength.radius(for: CGSize(width: extent.width, height: extent.height))
-        guard let blurred = filter.outputImage?.cropped(to: extent) else { return nil }
+        let effected: CIImage
+        switch effect {
+        case .blur:
+            let filter = CIFilter.gaussianBlur()
+            filter.inputImage = original.clampedToExtent()
+            filter.radius = strength.radius(for: extent.size)
+            guard let output = filter.outputImage?.cropped(to: extent) else { return nil }
+            effected = output
+        case .pixelate:
+            let filter = CIFilter.pixellate()
+            filter.inputImage = original.clampedToExtent()
+            filter.center = CGPoint(x: extent.midX, y: extent.midY)
+            filter.scale = strength.radius(for: extent.size) * 1.5
+            guard let output = filter.outputImage?.cropped(to: extent) else { return nil }
+            effected = output
+        case .redact:
+            effected = CIImage(color: redactionColor.ciColor).cropped(to: extent)
+        }
 
         let mask: CIImage?
         if let foregroundMask {
@@ -78,15 +105,16 @@ enum PrivacyImageRenderer {
         let feather = CIFilter.gaussianBlur()
         feather.inputImage = mask.clampedToExtent()
         feather.radius = Float(3 * max(extent.width, extent.height) / 900)
-        let softenedMask = feather.outputImage?.cropped(to: extent) ?? mask
+        // Solid redaction must not blend readable source detail through a feathered edge.
+        let softenedMask = effect == .redact ? mask : (feather.outputImage?.cropped(to: extent) ?? mask)
         let blend = CIFilter.blendWithMask()
         if foregroundMask != nil {
             // White foreground pixels select the sharp original; black background pixels select blur.
             blend.inputImage = original
-            blend.backgroundImage = blurred
+            blend.backgroundImage = effected
         } else {
             // White selected-region pixels select blur; black pixels retain the original.
-            blend.inputImage = blurred
+            blend.inputImage = effected
             blend.backgroundImage = original
         }
         blend.maskImage = softenedMask

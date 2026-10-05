@@ -87,6 +87,40 @@ final class PrivacyImageRendererTests: XCTestCase {
         XCTAssertEqual(pixel(empty, x: 152, y: 88), pixel(source, x: 152, y: 88))
     }
 
+    func testEveryEffectAndShapePreservesUnselectedPixels() throws {
+        let source = try checkerboard(width: 240, height: 160)
+        for effect in PrivacyEffect.allCases {
+            for shape in [BlurRegion.Shape.roundedRectangle, .oval] {
+                let region = BlurRegion(rect: CGRect(x: 0.2, y: 0.2, width: 0.5, height: 0.5), shape: shape)
+                let result = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [region], strength: .strong, effect: effect))
+                XCTAssertEqual(pixel(result, x: 228, y: 150), pixel(source, x: 228, y: 150))
+                if effect == .redact { XCTAssertEqual(Array(pixel(result, x: 100, y: 65).prefix(3)), [0, 0, 0]) }
+                else { XCTAssertNotEqual(pixel(result, x: 100, y: 65), pixel(source, x: 100, y: 65)) }
+            }
+        }
+    }
+
+    func testSolidRedactionDoesNotFeatherAndSupportsWhiteBrush() throws {
+        let source = try checkerboard(width: 240, height: 160)
+        let region = BlurRegion(rect: CGRect(x: 0.2, y: 0.2, width: 0.5, height: 0.5), shape: .roundedRectangle)
+        let output = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [region], strength: .low, effect: .redact))
+        XCTAssertEqual(Array(pixel(output, x: 49, y: 65).prefix(3)), [0, 0, 0])
+        XCTAssertEqual(pixel(output, x: 46, y: 65), pixel(source, x: 46, y: 65))
+        let stroke = BlurStroke(points: [CGPoint(x: 0.2, y: 0.3), CGPoint(x: 0.8, y: 0.3)], width: 0.2)
+        let brushed = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [], strength: .strong, strokes: [stroke], effect: .redact, redactionColor: .white))
+        XCTAssertEqual(Array(pixel(brushed, x: 90, y: 48).prefix(3)), [255, 255, 255])
+    }
+
+    func testSolidPreviewAndExportMaskSemanticsAtDifferentResolutions() throws {
+        let region = BlurRegion(rect: CGRect(x: 0.25, y: 0.25, width: 0.5, height: 0.5), shape: .oval)
+        let preview = try XCTUnwrap(PrivacyImageRenderer.render(source: checkerboard(width: 240, height: 160), regions: [region], strength: .medium, effect: .redact))
+        let export = try XCTUnwrap(PrivacyImageRenderer.render(source: checkerboard(width: 480, height: 320), regions: [region], strength: .medium, effect: .redact))
+        for point in [CGPoint(x: 0.5, y: 0.5), CGPoint(x: 0.5, y: 0.3)] {
+            XCTAssertEqual(pixel(preview, x: Int(point.x * 240), y: Int(point.y * 160)),
+                           pixel(export, x: Int(point.x * 480), y: Int(point.y * 320)))
+        }
+    }
+
     private func checkerboard(width: Int, height: Int) throws -> CGImage {
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else {

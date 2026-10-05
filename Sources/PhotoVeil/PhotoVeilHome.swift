@@ -10,6 +10,8 @@ private struct EditSnapshot {
     let selectedFaces: Set<Int>
     let selectedPlates: Set<Int>
     let strength: BlurStrength
+    let effect: PrivacyEffect
+    let redactionColor: RedactionColor
 }
 
 enum EditorMode: String, CaseIterable, Identifiable {
@@ -36,6 +38,9 @@ struct PhotoVeilHome: View {
     @State private var backgroundMask: CIImage?
     @State private var mode: EditorMode?
     @State private var strength: BlurStrength = .medium
+    @State private var effect: PrivacyEffect = .blur
+    @State private var redactionColor: RedactionColor = .black
+    @State private var manualShape: BlurRegion.Shape = .roundedRectangle
     @State private var faceRegions: [CGRect] = []
     @State private var selectedFaces = Set<Int>()
     @State private var plateSuggestions: [CGRect] = []
@@ -154,6 +159,7 @@ struct PhotoVeilHome: View {
                         plates: plateSuggestions,
                         selectedPlates: selectedPlates,
                         regions: manualRegions,
+                        newRegionShape: manualShape,
                         drawsRegions: manualDraws,
                         paintsStrokes: paintsStrokes,
                         strokes: strokes,
@@ -217,7 +223,8 @@ struct PhotoVeilHome: View {
         VStack(spacing: 9) {
             (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))) {
               if let mode {
-                    strengthControl
+                    effectControl
+                    if effect != .redact { strengthControl }
                     if !usesExpandedControls { Spacer(minLength: 6) }
                     if (mode == .faces && !faceRegions.isEmpty) || (mode == .plate && !plateSuggestions.isEmpty) {
                         Button { toggleAllDetections() } label: {
@@ -230,6 +237,13 @@ struct PhotoVeilHome: View {
                     }
                     if mode == .manual {
                         HStack(spacing: 10) {
+                        Menu {
+                            Button("Rectangle") { paintsStrokes = false; manualShape = .roundedRectangle }
+                            Button("Ellipse") { paintsStrokes = false; manualShape = .oval }
+                            Button("Brush") { paintsStrokes = true }
+                        } label: {
+                            Image(systemName: paintsStrokes ? "paintbrush.pointed" : manualShape == .oval ? "oval" : "rectangle.dashed").frame(width: 44, height: 44)
+                        }.accessibilityLabel("Selection shape").accessibilityIdentifier("shapeMenu")
                         Button {
                             paintsStrokes.toggle(); manualDraws = true
                         } label: {
@@ -294,6 +308,22 @@ struct PhotoVeilHome: View {
         .padding(.horizontal, 16).padding(.vertical, 12)
     }
 
+    private var effectControl: some View {
+        Menu {
+            ForEach(PrivacyEffect.allCases) { option in
+                Button(option.rawValue) { pushUndo(); effect = option; rerender() }
+            }
+            if effect == .redact {
+                ForEach(RedactionColor.allCases) { color in
+                    Button(color.rawValue) { pushUndo(); redactionColor = color; rerender() }
+                }
+            }
+        } label: {
+            Text(effect == .redact ? "\(effect.rawValue) · \(redactionColor.rawValue)" : effect.rawValue)
+                .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+        }.modifier(VeilActionStyle()).accessibilityIdentifier("effectMenu")
+    }
+
     @ViewBuilder private var strengthControl: some View {
         if dynamicTypeSize.isAccessibilitySize {
             Menu {
@@ -353,7 +383,7 @@ struct PhotoVeilHome: View {
         self.strokes = []; self.draftStroke = nil; self.paintsStrokes = false; self.showingFinalPreview = false
         self.undoStack = []
         self.didAnalyzePlates = false; self.didAnalyzeFaces = false
-        self.strength = .medium
+        self.strength = .medium; self.effect = .blur; self.redactionColor = .black; self.manualShape = .roundedRectangle
         self.showingOriginal = false
         self.manualDraws = true
     }
@@ -546,14 +576,14 @@ struct PhotoVeilHome: View {
         guard mode != .background || backgroundMask != nil else { return }
         working = true; renderRevision += 1
         let revision = renderRevision, currentMode = mode, currentStrength = strength, isDraft = draftStroke != nil
-        let strokes = renderStrokes
+        let strokes = renderStrokes, currentEffect = effect, currentColor = redactionColor
         let regions = regionsForCurrentMode(), mask = currentMode == .background ? backgroundMask : nil
         Task.detached(priority: .userInitiated) {
             let output: UIImage?
             if currentMode == .background, let mask {
-                output = BlurRenderer.render(previewSource, regions: [], strength: currentStrength, foregroundMask: mask, strokes: strokes)
+                output = BlurRenderer.render(previewSource, regions: [], strength: currentStrength, foregroundMask: mask, strokes: strokes, effect: currentEffect, redactionColor: currentColor)
             } else {
-                output = BlurRenderer.render(previewSource, regions: regions, strength: currentStrength, strokes: strokes)
+                output = BlurRenderer.render(previewSource, regions: regions, strength: currentStrength, strokes: strokes, effect: currentEffect, redactionColor: currentColor)
             }
             await MainActor.run {
                 defer {
@@ -583,14 +613,14 @@ struct PhotoVeilHome: View {
 
     private func pushUndo() {
         undoStack.append(EditSnapshot(mode: mode, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
-                                      selectedPlates: selectedPlates, strength: strength))
+                                      selectedPlates: selectedPlates, strength: strength, effect: effect, redactionColor: redactionColor))
         if undoStack.count > 30 { undoStack.removeFirst() }
     }
 
     private func undo() {
         guard let snapshot = undoStack.popLast() else { return }
         mode = snapshot.mode; manualRegions = snapshot.regions; strokes = snapshot.strokes; draftStroke = nil; selectedFaces = snapshot.selectedFaces
-        selectedPlates = snapshot.selectedPlates; strength = snapshot.strength
+        selectedPlates = snapshot.selectedPlates; strength = snapshot.strength; effect = snapshot.effect; redactionColor = snapshot.redactionColor
         rerender()
     }
 
@@ -617,10 +647,11 @@ struct PhotoVeilHome: View {
         }
         let currentMode = mode, regions = regionsForCurrentMode(), currentStrength = strength, strokes = renderStrokes
         let mask = currentMode == .background ? backgroundMask : nil, session = sessionID
+        let currentEffect = effect, currentColor = redactionColor
         Task.detached(priority: .userInitiated) {
             let rendered: UIImage?
             if let source = original.cgImage,
-               let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: currentStrength, foregroundMask: mask, strokes: strokes) {
+               let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: currentStrength, foregroundMask: mask, strokes: strokes, effect: currentEffect, redactionColor: currentColor) {
                 rendered = UIImage(cgImage: output, scale: 1, orientation: .up)
             } else {
                 rendered = nil

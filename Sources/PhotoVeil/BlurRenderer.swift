@@ -24,9 +24,9 @@ struct BlurRenderer {
         return UIImage(cgImage: thumbnail, scale: 1, orientation: .up)
     }
 
-    static func render(_ image: UIImage, regions: [BlurRegion], strength: BlurStrength, foregroundMask: CIImage? = nil, strokes: [BlurStroke] = []) -> UIImage? {
+    static func render(_ image: UIImage, regions: [BlurRegion], strength: BlurStrength, foregroundMask: CIImage? = nil, strokes: [BlurStroke] = [], effect: PrivacyEffect = .blur, redactionColor: RedactionColor = .black) -> UIImage? {
         guard let source = image.cgImage,
-              let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: strength, foregroundMask: foregroundMask, strokes: strokes) else { return nil }
+              let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: strength, foregroundMask: foregroundMask, strokes: strokes, effect: effect, redactionColor: redactionColor) else { return nil }
         return UIImage(cgImage: output, scale: image.scale, orientation: .up)
     }
 
