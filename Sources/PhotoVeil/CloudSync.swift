@@ -49,11 +49,11 @@ enum CloudSync {
             if item.deletedAt != nil {
                 // Apply a remote tombstone only to a local copy bound to this identity.
                 let local = await store.items().first { $0.id == item.id && $0.cloudUserID == user }
-                if local != nil { try await store.delete([item.id], propagate: false) }
+                if let local, local.retainsLocalAfterCloudDeletion != true { try await store.delete([item.id], propagate: false) }
             }
         }
         let deleted = Set(remote.filter { $0.deletedAt != nil }.map(\.id))
-        for item in await store.items() where !item.uploaded && (item.cloudUserID == nil || item.cloudUserID == user) && !deleted.contains(item.id) {
+        for item in await store.items() where !item.uploaded && item.retainsLocalAfterCloudDeletion != true && (item.cloudUserID == nil || item.cloudUserID == user) && !deleted.contains(item.id) {
             try await check()
             try await store.bind(item.id, to: user)
             let processed = try await store.data(for: item.id), thumbnail = try await store.data(for: item.id, thumbnail: true)

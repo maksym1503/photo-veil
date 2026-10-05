@@ -125,8 +125,12 @@ import Security
         await setSync(false)
         do {
             let cloud = SupabaseGallery(auth: auth)
-            for item in try await cloud.list(user: user) { try await cloud.delete(user: user, id: item.id) }
-            message = "Cloud copies deleted. Local photos kept."
+            for item in try await cloud.list(user: user) {
+                // Persist the explicit keep-local intent before any server-side deletion.
+                try await library.store?.retainLocalCopyForCloudDeletion(item.id, for: user)
+                try await cloud.delete(user: user, id: item.id)
+            }
+            message = "Cloud copies deleted. These local photos stay on this iPhone, even if you enable sync again."
         } catch { message = "Cloud deletion couldn’t finish. Retry online; sync remains off." }
     }
     func setActive(_ value: Bool) {

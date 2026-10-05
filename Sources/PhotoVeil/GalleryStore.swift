@@ -12,6 +12,8 @@ struct GalleryItem: Codable, Identifiable, Equatable, Sendable {
     let byteCount: Int
     var cloudUserID: UUID?
     var uploaded: Bool
+    // Optional for backward-compatible decoding of earlier version-1 local indexes.
+    var retainsLocalAfterCloudDeletion: Bool? = nil
 }
 
 struct GalleryDeletion: Codable, Equatable, Sendable {
@@ -108,6 +110,12 @@ actor GalleryStore {
         var next = index
         guard let i = next.items.firstIndex(where: { $0.id == id }), next.items[i].cloudUserID == nil || next.items[i].cloudUserID == user else { return }
         next.items[i].cloudUserID = user; try persist(next)
+    }
+    func retainLocalCopyForCloudDeletion(_ id: UUID, for user: UUID) throws {
+        var next = index
+        guard let i = next.items.firstIndex(where: { $0.id == id && $0.cloudUserID == user }) else { return }
+        next.items[i].retainsLocalAfterCloudDeletion = true
+        try persist(next)
     }
     func markUploaded(_ id: UUID, for user: UUID) throws {
         var next = index

@@ -74,4 +74,27 @@ final class CloudSyncTests: XCTestCase {
         try await CloudSync.run(store: store, cloud: cloud, user: a)
         let empty = await store.items(); XCTAssertTrue(empty.isEmpty)
     }
+    func testExplicitCloudOnlyDeletionKeepsLocalCopyAcrossRelaunchAndSync() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try GalleryStore(root: root), user = UUID(), data = try image(), cloud = CloudMock(image: data)
+        let kept = try await store.save(processed: data, effect: "Blur", cloudUserID: user, uploaded: false)
+        let removed = try await store.save(processed: data, effect: "Blur", cloudUserID: user, uploaded: true)
+        // A different identity cannot mark this owner's item as retained.
+        try await store.retainLocalCopyForCloudDeletion(removed.id, for: UUID())
+        try await store.retainLocalCopyForCloudDeletion(kept.id, for: user)
+        let records = [kept, removed].map { item in
+            CloudGalleryItem(id: item.id, userID: user, createdAt: item.createdAt, updatedAt: Date(), width: 64, height: 64,
+                effect: item.effect, processedPath: CloudGalleryItem.path(user: user, item: item.id),
+                thumbnailPath: CloudGalleryItem.path(user: user, item: item.id, thumbnail: true), deletedAt: Date())
+        }
+        await cloud.setRecords(records)
+        let reloaded = try GalleryStore(root: root)
+        try await reloaded.setSync(true, for: user)
+        try await CloudSync.run(store: reloaded, cloud: cloud, user: user)
+        let items = await reloaded.items(); XCTAssertEqual(items.map(\.id), [kept.id])
+        let saved = try await reloaded.data(for: kept.id); XCTAssertEqual(saved, data)
+        let uploads = await cloud.uploads(); XCTAssertTrue(uploads.isEmpty)
+    }
+
 }

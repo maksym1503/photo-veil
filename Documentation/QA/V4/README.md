@@ -4,7 +4,7 @@ Branch: `feature/veil-v4`, based on approved V3 `72bdcb2`. **Draft only; do not 
 
 ## Automated checks
 
-- macOS Swift suite: 34 tests, 33 deterministic passed, one real-Vision benchmark intentionally opt-in/skipped in ordinary CI. Geometry, mask/effect parity, bounded face tiles/NMS, document geometry, protected gallery persistence, permission states, mocked auth and sync behavior.
+- macOS Swift suite: 35 tests, 34 deterministic passed, one real-Vision benchmark intentionally opt-in/skipped in ordinary CI. Geometry, mask/effect parity, bounded face tiles/NMS, document geometry, protected gallery persistence, permission states, mocked auth and sync behavior.
 - iPhone 17 Pro / iOS 26.5 Simulator: full 17-test suite, preserving all ten V3 tests and adding Pixelate/ellipse/undo/export, Documents, local Gallery relaunch/share/delete, zoom-independent small-face detection, safe unconfigured account, PhotosPicker and add-only Save to Photos.
 - Additional dark-mode accessibility run: six targeted UI tests with Reduce Motion and Reduce Transparency enabled, including Accessibility XXXL tool/strength menus. Screenshot review caught and corrected wrapping strength text and oversized manual icons.
 - Unsigned generic-device Release build. This validates compilation/resources, not owner provisioning or App Store submission.
