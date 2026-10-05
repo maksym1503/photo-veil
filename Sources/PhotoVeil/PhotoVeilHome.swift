@@ -84,6 +84,7 @@ struct PhotoVeilHome: View {
     @State private var testRenderFingerprint = ""
     #if DEBUG
     @State private var analysisCounts: [String: Int] = [:]
+    @State private var rapidStressState = "Waiting"
     #endif
 
     var body: some View {
@@ -236,6 +237,8 @@ struct PhotoVeilHome: View {
                     Color.clear.frame(width: 1, height: 1).accessibilityElement()
                         .accessibilityIdentifier("analysisCounts")
                         .accessibilityValue(["background", "faces", "plates", "documents"].map { "\($0)=\(analysisCounts[$0, default: 0])" }.joined(separator: ","))
+                    Color.clear.frame(width: 1, height: 1).accessibilityElement()
+                        .accessibilityIdentifier("rapidSelectionStress").accessibilityValue(rapidStressState)
                 }
                 #endif
                 if working && draftStroke == nil {
@@ -362,7 +365,7 @@ struct PhotoVeilHome: View {
         Menu {
             if effect == .redact {
                 ForEach(RedactionColor.allCases) { color in
-                    Button { guard redactionColor != color else { return }; pushUndo(); redactionColor = color; rerender() } label: {
+                    Button { setRedactionColor(color) } label: {
                         if redactionColor == color { Label(color.rawValue, systemImage: "checkmark") }
                         else { Text(color.rawValue) }
                     }
@@ -443,6 +446,10 @@ struct PhotoVeilHome: View {
         guard effect != option else { return }
         pushUndo(); effect = option; rerender()
     }
+    private func setRedactionColor(_ option: RedactionColor) {
+        guard redactionColor != option else { return }
+        pushUndo(); redactionColor = option; rerender()
+    }
     private func setStrength(_ option: BlurStrength) {
         guard strength != option else { return }
         pushUndo(); strength = option; rerender()
@@ -512,8 +519,37 @@ struct PhotoVeilHome: View {
            let requested = EditorMode.allCases.first(where: { $0.rawValue.lowercased() == arguments[index + 1] }) {
             select(requested)
         }
+        if arguments.contains("-veil-rapid-selection-stress") {
+            let stressSession = sessionID
+            Task { await runRapidSelectionStress(session: stressSession) }
+        }
         #endif
     }
+
+    #if DEBUG
+    /// Rendered UI state stress complements native menu/press tests, whose taps wait for idle.
+    /// Uses the same actions at 40 ms intervals; no fake detection or account state.
+    @MainActor private func runRapidSelectionStress(session: UUID) async {
+        try? await Task.sleep(for: .seconds(5))
+        for _ in 0..<12 {
+            guard !Task.isCancelled, sessionID == session else { return }
+            for tool in EditorMode.allCases {
+                select(tool); try? await Task.sleep(for: .milliseconds(40))
+            }
+            for style in PrivacyEffect.allCases {
+                setEffect(style); try? await Task.sleep(for: .milliseconds(40))
+                if style == .redact {
+                    for color in RedactionColor.allCases { setRedactionColor(color); try? await Task.sleep(for: .milliseconds(40)) }
+                } else {
+                    for intensity in [BlurStrength.low, .strong] { setStrength(intensity); try? await Task.sleep(for: .milliseconds(40)) }
+                }
+            }
+        }
+        guard sessionID == session else { return }
+        select(.manual); setEffect(.blur); setStrength(.medium)
+        rapidStressState = "Complete"
+    }
+    #endif
 
     private func select(_ newMode: EditorMode) {
         guard mode != newMode else {
@@ -871,6 +907,9 @@ struct PhotoVeilHome: View {
     private func captureTestRender(_ image: UIImage, name: String) {
         #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") else { return }
+        // Rapid layout stress captures XCTest screenshots, not preview/export parity.
+        // Keep PNG encoding, hashing and disk writes out of its main-thread actions.
+        guard !ProcessInfo.processInfo.arguments.contains("-veil-rapid-selection-stress") else { return }
         if let data = image.pngData() { testRenderFingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         try? image.pngData()?.write(to: directory.appendingPathComponent("\(name)-\(Self.testFixtureName).png"))

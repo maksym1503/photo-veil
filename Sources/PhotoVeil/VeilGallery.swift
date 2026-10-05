@@ -4,6 +4,7 @@ struct VeilGallery: View {
     @EnvironmentObject private var account: VeilAccount
     @EnvironmentObject private var library: VeilLibrary
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selected = Set<UUID>()
     @State private var selecting = false
     @State private var confirmsDelete = false
@@ -14,14 +15,16 @@ struct VeilGallery: View {
                     ContentUnavailableView("Private Gallery", systemImage: "photo.stack", description: Text("Save a finished photo to Veil. Stored on this iPhone."))
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 145))], spacing: 16) {
+                        LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 145))], spacing: 16) {
                             ForEach(library.items) { item in
                                 if selecting {
                                     Button { if selected.contains(item.id) { selected.remove(item.id) } else { selected.insert(item.id) } } label: {
                                         tile(item).overlay(alignment: .topTrailing) {
-                                            Image(systemName: selected.contains(item.id) ? "checkmark.circle.fill" : "circle").padding(8).background(.regularMaterial, in: Circle())
+                                            Image(systemName: selected.contains(item.id) ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 20, weight: .medium)).padding(8).background(.regularMaterial, in: Circle()).accessibilityHidden(true)
                                         }
                                     }.buttonStyle(.plain).accessibilityLabel("Select photo from \(item.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                                        .accessibilityAddTraits(selected.contains(item.id) ? .isSelected : [])
                                 } else {
                                     NavigationLink { GalleryPhoto(item: item) } label: { tile(item) }.buttonStyle(.plain)
                                 }
@@ -31,6 +34,7 @@ struct VeilGallery: View {
                 }
             }
             .navigationTitle("Private Gallery")
+            .navigationBarTitleDisplayMode(dynamicTypeSize.isAccessibilitySize ? .inline : .large)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Close", systemImage: "xmark") { dismiss() } }
                 ToolbarItem(placement: .topBarTrailing) { Button(selecting ? "Cancel" : "Select") { selecting.toggle(); selected = [] }

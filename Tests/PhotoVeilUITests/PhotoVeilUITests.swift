@@ -102,6 +102,55 @@ final class PhotoVeilUITests: XCTestCase {
         attach(app, "v41-parameter-stress-final")
     }
 
+    @MainActor func testGallerySelectionWithLargestText() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch(); waitForRender(app)
+        app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
+        attach(app, "v41-largest-gallery-normal")
+        app.buttons["gallerySelect"].tap()
+        let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.tap()
+        XCTAssertEqual(app.staticTexts["gallerySelectionStatus"].label, "1 selected")
+        XCTAssertTrue(app.buttons["galleryDeleteSelected"].isEnabled)
+        XCTAssertGreaterThan(app.buttons["galleryDeleteSelected"].frame.midY, app.frame.height * 0.75)
+        attach(app, "v41-largest-gallery-selection")
+        // Native toolbar AX bounds describe the visible control. Verify activation at the
+        // edge of a 44-point target instead of mistaking symbol bounds for hit-test bounds.
+        let trash = app.buttons["galleryDeleteSelected"].frame
+        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: trash.midX + 21, dy: trash.midY)).tap()
+        XCTAssertTrue(app.buttons["Delete photos"].waitForExistence(timeout: 5))
+        app.buttons["Delete photos"].tap()
+        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+    }
+
+    @MainActor func testRapidRenderedStateChangesWithoutIdleBetweenSelections() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-mode", "manual", "-veil-rapid-selection-stress"]
+        app.launch(); waitForRender(app)
+        let tools = ["background", "faces", "plate", "documents", "manual"]
+        let before = tools.map { app.buttons["mode_\($0)"].frame }
+        let camera = transform(app)
+        attach(app, "v41-rapid-state-initial")
+        let completed = expectation(for: NSPredicate(format: "value == %@", "Complete"), evaluatedWith: app.otherElements["rapidSelectionStress"])
+        wait(for: [completed], timeout: 120); waitForRender(app, timeout: 120)
+        for (index, tool) in tools.enumerated() {
+            let frame = app.buttons["mode_\(tool)"].frame
+            XCTAssertEqual(frame.minX, before[index].minX, accuracy: 1)
+            XCTAssertEqual(frame.width, before[index].width, accuracy: 1)
+            XCTAssertEqual(frame.minY, before[index].minY, accuracy: 1)
+        }
+        XCTAssertTrue(app.buttons["mode_manual"].isSelected)
+        XCTAssertTrue(app.buttons["strength_medium"].isSelected)
+        XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, "background=1,faces=1,plates=1,documents=1")
+        assertCamera(app, camera)
+        XCTAssertLessThanOrEqual(app.buttons["effectMenu"].frame.maxX, app.buttons["strength_low"].frame.minX)
+        attach(app, "v41-rapid-state-final")
+    }
+
     @MainActor func testFirstLaunchSettingsAndPrivacy() {
         let app = XCUIApplication()
         app.launch()
