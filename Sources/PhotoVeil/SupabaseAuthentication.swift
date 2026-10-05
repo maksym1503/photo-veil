@@ -31,7 +31,9 @@ final class SupabaseAuthentication: VeilAuthentication, @unchecked Sendable {
     }
     func signInGoogle() async throws -> VeilIdentity {
         let session = try await client.signInWithOAuth(provider: .google, redirectTo: configuration.redirect,
-                                                       scopes: "openid email profile")
+                                                       scopes: "openid email profile", launchFlow: { [configuration] url in
+            try await GoogleOAuthPresentation.authenticate(url, callback: configuration.redirect)
+        })
         let result = identity(session.user)
         if let name = result.displayName { try await transport.profile(user: result.id, displayName: name, token: session.accessToken) }
         return result

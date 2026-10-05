@@ -1,43 +1,28 @@
-# Veil — App Store preparation
+# Veil V4 — App Store preparation
 
-Status: preparation only. Nothing submitted to App Store Connect. V3 must remain unmerged until the owner completes physical-iPhone visual QA.
+Draft only; no submission. V3 is approved/merged. **V4 must remain a Draft PR until physical-device and configured-backend validation.**
 
-## Ready
+## Ready in code
 
-- Identity retained: `com.maksym1503.veil`, display name **Veil**, `veil://` launch scheme. iPhone only, iOS 17+, portrait orientation explicitly declared.
-- Version/build have one source: Xcode `MARKETING_VERSION=1.0`, `CURRENT_PROJECT_VERSION=3`; Info.plist resolves those values. Increment build for subsequent uploads.
-- Existing local `DEVELOPMENT_TEAM` edits preserved, excluded from V3 commits. No provisioning credentials or signing team added to repository.
-- Existing universal 1024 × 1024 app icon is opaque; asset compilation succeeds. Native launch screen, immediate photo picker entry, no account/onboarding gate.
-- Picker-scoped import (`PhotosPicker`, `.images`). No broad Photos authorization, camera, microphone, location or photo-library usage descriptions are required by the current code. System sharing exports a new image; the app does not call PhotoKit to save directly.
-- Apple-only runtime frameworks: SwiftUI, UIKit, PhotosUI, Vision, Core Image, ImageIO, CryptoKit. No runtime package dependencies, ad SDKs, analytics, tracking, networking client or backend.
-- Source audit: processing and detection are on-device. No photos uploaded to Veil servers. iCloud Photos may download a selected original through Apple's picker; destinations selected in the share sheet may upload the exported copy. These are not Veil uploads.
-- Bundled `PrivacyInfo.xcprivacy`: no tracking, tracking domains or collected data. No required-reason APIs were identified in app source (no UserDefaults/AppStorage, file timestamp queries, disk-space queries, boot-time queries or active keyboard queries). Normal image file reads/writes do not justify adding invented required reasons. Repeat the audit if dependencies or storage behavior change.
-- Suggested App Privacy response: **Data Not Collected**, subject to developer verification of the final distributed binary and configured public website practices.
-- Original untouched. Export uses the same `PrivacyImageRenderer` and image-space edit state as preview, at full source resolution; new high-quality JPEG omits source EXIF/GPS metadata. JPEG is opaque and lossy; HDR/wide-gamut fidelity is not guaranteed.
-- Native grouped Settings/About/Help and photo privacy explanation. Unconfigured legal/contact links are hidden, never replaced by fake destinations.
-- Native toolbar, Share symbol, system sheets/menus, glass styles on iOS 26, material/bordered fallbacks on iOS 17–25. Neutral selected treatment plus accessibility selected traits; detection on/off differs by solid/dashed corners and actual blur rather than color alone.
-- Dynamic Type text, two-column tool layout at larger text and a native tool menu at the largest accessibility sizes, scrolling landing/legal screens, minimum 44-point control targets, Reduce Motion handling for press/landing animation, opaque Reduce Transparency control fallback. Detected face/plate accessibility elements have actual activation callbacks.
-- Debug fixture loading and image evidence output gated by `DEBUG`; Debug explicitly defines it. Release excludes the three UI test JPEG fixtures. See QA report for runtime coverage and limits.
+- Bundle `com.maksym1503.veil`, display Veil, iPhone/iOS 17+/portrait, existing opaque icon and native launch. V4 sets marketing version 4.0/build 4; confirm the intended public version before uploading. Owner DEVELOPMENT_TEAM remains local.
+- No login wall. PhotosPicker selection-scoped import needs no broad Photos read permission. Save to Photos invokes `.addOnly`, with English/Polish `NSPhotoLibraryAddUsageDescription`; denied/restricted states retain local save/Share.
+- Gaussian/Pixelate/Solid and region masks use one preview/export renderer. Face analysis reads the normalized original, independent of viewport. Documents uses on-device Vision; OCR strings do not persist/upload/log.
+- Explicit local history: protected processed JPEGs/thumbnails, versioned metadata, backup exclusion, file deletion and failure-safe corrupt/unknown-schema handling. No sensitive original cache. Temporary share cleanup on dismissal/next launch.
+- Optional Supabase Auth SDK with device-bound Keychain, native Apple nonce-bound token exchange, Google OAuth/PKCE with exact callback validation. Private SQL/Storage ownership policies, retryable local-first sync and server account-deletion/revocation code supplied. **External setup/live integration remains required.**
+- Settings includes account/sync, storage count/usage, independent local/cloud deletion. Privacy copy distinguishes local processing from optional cloud uploads and does not claim end-to-end encryption.
+- PrivacyInfo manifest conservatively declares optional account user ID/name/email and synced photos as linked-to-user, app-functionality collection, never tracking. No new app/Auth-product required-reason API use identified; Swift Crypto supplies its own manifest. Final archive privacy report still required.
+- Adaptive native tool menu at accessibility text sizes, labeled controls, neutral detection vocabulary and minimum touch targets. V3 landing Reduce Motion/Transparency behavior retained. App-switcher shielding added; physical snapshot/VoiceOver review required.
+- Release excludes all test JPEG fixtures and DEBUG fixture/evidence/history-reset logic. Unsigned build/tests do not validate distribution signing or provider entitlement correctness.
 
-## Needs developer input
+## Needs developer input / release gates
 
-- Publish the reviewed Privacy Policy at a real public HTTPS URL; set `VeilPublicLinks.privacyPolicy` in `Sources/PhotoVeil/VeilPresentation.swift`, and enter it in App Store Connect.
-- Supply real support website/contact, set `VeilPublicLinks.support`. App Store support URL must provide a usable contact method. No email/domain/legal entity has been invented.
-- Decide whether to publish separate Terms. If used, review the draft, publish it and set `VeilPublicLinks.terms`. Separate terms are not a substitute for the applicable App Store license agreement.
-- Confirm developer/legal entity name, jurisdiction, effective dates, applicable consumer rights and support contact; obtain legal review of drafts as needed.
-- Confirm availability of the App Store name (recommendation: **Veil: Photo Privacy Blur**), final category (recommendation: Photo & Video), age-rating questionnaire, pricing, territories, copyright and content rights.
-- Confirm build/version history in App Store Connect, app registration, signing/provisioning, distribution certificate and team. Perform a signed device archive, Xcode Validate App and final privacy report before uploading. Unsigned Simulator/Release builds do not validate distribution signing.
-- Prepare actual iPhone screenshots from the approved physical-device design; review blur strength and detections on real photos. Do not represent illustration/fixtures as a guarantee of automatic anonymization.
-- Complete VoiceOver hands-on device review, maximum accessibility text sizes, oldest supported iOS/device behavior and physical-device background Vision coverage. iOS 26 Simulator lacks some foreground-model support.
-- Confirm export/sharing destinations, metadata omission, offline operation and memory behavior with very large photos on physical iPhone.
-- No App Store Connect submission, account system, purchases or analytics were added.
+- Complete [backend setup](../Backend/BACKEND_SETUP.md): project/region, private bucket, migrations, provider IDs/secrets, Apple capability/provisioning, redirects, function deployment, two-account API isolation and deletion/revocation validation. No backend has been provisioned or deployed by this work.
+- Publish reviewed Privacy Policy, optional Terms and usable support contact/URL; fill `VeilPublicLinks`. Confirm legal owner, jurisdiction, lawful basis, processors/DPA, cross-border transfers, retention/backups/tombstones/orphan cleanup, privacy-request process and support website practices. Drafts are not legal advice.
+- **Replace V3's “Data Not Collected” answer.** A cloud-enabled V4 distribution needs App Privacy disclosure for account user ID, name/email and user photos, linked to identity, App Functionality, no tracking. Confirm actual managed-service logging/security data and any additional category with the configured deployment. Optional collection still belongs in the distributed app's answers.
+- Confirm public version/build, App Store name/category, pricing/territories, age rating, rights, distribution signing, Xcode Validate App and privacy report. Do not commit a team or secret.
+- Give App Review working backend/provider access/instructions. Core editor works without login; Account is in Settings; sync defaults off and needs consent. Delete account is inside Account. Provide a reviewer test account where appropriate; do not put its credentials in the repository. Explain add-only Photos use, no Photos/Drive account scope, no universal document detector and no card-compliance certification.
+- Complete [physical-device checklist](../QA/V4/PHYSICAL_DEVICE_CHECKLIST.md), VoiceOver/largest text, older supported iOS/device, real Background Vision, distant faces, rotated/multi-country documents, JPEG metadata behavior, 12/48 MP memory/latency, app-switcher snapshots and configured cloud/offline lifecycle.
+- Screenshots must show actual app behavior with approved/licensed photos. Keep cloud claims/screenshots unavailable until configured and tested. Never represent fixture recall as guaranteed detection.
 
-## References reviewed
-
-- [Apple HIG: Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
-- [Apple: Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)
-- [Apple: Privacy manifest files](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files)
-- [Apple: Required reason APIs](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)
-- [Apple: Photos picker privacy](https://developer.apple.com/videos/play/wwdc2023/10107/)
-
-Draft documents are preparation material, not legal advice. Do not publish placeholders.
+## References
+[Apple Photos picker](https://developer.apple.com/videos/play/wwdc2023/10107/), [manifest data types](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype), [required reason APIs](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api), [Apple deletion/revocation](https://developer.apple.com/documentation/technotes/tn3194-handling-account-deletions-and-revoking-tokens-for-sign-in-with-apple).

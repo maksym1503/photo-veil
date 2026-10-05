@@ -31,3 +31,13 @@ enum AccountFailure: Error { case unconfigured, invalidIdentity, unavailable, in
     func signOut() async throws { try await auth.signOut(); identity = nil }
     func delete() async throws { try await auth.deleteAccount(); identity = nil }
 }
+
+/// The public URL scheme never accepts arbitrary authentication payloads through onOpenURL.
+enum OAuthCallbackPolicy {
+    static func accepts(_ url: URL, expected: URL) -> Bool {
+        guard url.scheme == expected.scheme, url.host == expected.host, url.path == expected.path,
+              url.fragment == nil, let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
+        let codes = (components.queryItems ?? []).filter { $0.name == "code" }
+        return codes.count == 1 && !(codes[0].value ?? "").isEmpty
+    }
+}

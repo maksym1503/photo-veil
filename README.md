@@ -13,3 +13,7 @@ Background blur uses Vision foreground instance masking (people, vehicles and ot
 ## V3 review
 
 V3 adopts native navigation, glass controls on iOS 26 with iOS 17+ fallbacks, consistent Faces/Plates selection, a visual landing screen and native Settings. App Store preparation and missing owner inputs are tracked in [the checklist](Documentation/AppStore/APP_STORE_CHECKLIST.md). Public links are centralized in `VeilPublicLinks` and omitted until configured. No login or analytics is included.
+
+## V4 draft
+
+V4 adds original-image tiled face analysis, Pixelate/Solid/ellipse masks, heuristic Documents, protected local Private Gallery and add-only Save to Photos. Optional Apple/Google accounts and private processed-output sync require owner setup; the default build remains local-only. See [architecture](Documentation/Architecture/V4_ARCHITECTURE.md), [backend setup](Documentation/Backend/BACKEND_SETUP.md) and [device checklist](Documentation/QA/V4/PHYSICAL_DEVICE_CHECKLIST.md). Do not merge V4 before physical acceptance.

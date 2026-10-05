@@ -10,3 +10,5 @@ If detection misses a detail, use Manual. If Background cannot identify a subjec
 If a photo cannot open or export, try another image and report the iPhone model, iOS version, Veil version/build and steps that failed. **Do not send sensitive photos by default.** The developer must confirm how support messages and voluntarily supplied attachments are retained before publishing this page.
 
 Processing occurs on-device; there is no Veil account or server photo library.
+
+V4 support topics: local vs cloud gallery, add-only Photos permission, optional Apple/Google login, sync failure/retry, independent local/cloud/account deletion and incomplete automatic face/document detection. Do not request sensitive source photos, OCR strings or tokens for routine support. **[CONFIRM SECURE SUPPORT PROCESS AND RETENTION]**.

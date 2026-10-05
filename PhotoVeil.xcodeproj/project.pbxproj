@@ -128,6 +128,11 @@
 				<string>A2000000000000000000000B</string>
 				<string>B30000000000000000000102</string>
 				<string>B40000000000000000000002</string>
+				<string>00367703F4792F528E20B174</string>
+				<string>9B10DB7AA7B9F9B5C2E368F2</string>
+				<string>D71FBFC6FB52E49CE9B18A26</string>
+				<string>E7DA42304ACC1B5612DDCD72</string>
+				<string>C378399D4CD14FE6C115BA91</string>
 			</array>
 			<key>isa</key>
 			<string>PBXResourcesBuildPhase</string>
@@ -169,6 +174,7 @@
 				<string>7519993661C0A1199D8A0267</string>
 				<string>B33EFE6E9F440F6A184DC272</string>
 				<string>5A8CA0ED3ADFF88A9C0BD8A4</string>
+				<string>1563786605C6EBDBA941D0A8</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -747,7 +753,7 @@
 				<key>ALWAYS_SEARCH_USER_PATHS</key>
 				<string>NO</string>
 				<key>EXCLUDED_SOURCE_FILE_NAMES</key>
-				<string>two-faces.jpg two-people-car.jpg background-person.jpg</string>
+				<string>two-faces.jpg faces-small-landscape.jpg two-people-car.jpg faces-edges-partial.jpg background-person.jpg sample-card.jpg faces-large-medium.jpg faces-small-portrait.jpg</string>
 				<key>CODE_SIGN_ENTITLEMENTS</key>
 				<string>$(VEIL_ENTITLEMENTS_FILE)</string>
 			</dict>
@@ -791,6 +797,12 @@
 				<string>5938AD7F92E244ABF08D155D</string>
 				<string>C6DA8A3296CC2FC19F02821C</string>
 				<string>AC8B83CC03C7402FE4241084</string>
+				<string>72EE8519B0B5650BB6309DAC</string>
+				<string>11542297B83FEA98F0034E83</string>
+				<string>826961430A23D8004EDA5363</string>
+				<string>29599A38BA13162B775EBC16</string>
+				<string>6365AA3EF64329B8166B716E</string>
+				<string>E1904B9F4B75F5A6959E0ED9</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -1225,6 +1237,114 @@ fi
 			<string>0</string>
 			<key>alwaysOutOfDate</key>
 			<string>1</string>
+		</dict>
+		<key>72EE8519B0B5650BB6309DAC</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>image.jpeg</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/Fixtures/faces-edges-partial.jpg</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>00367703F4792F528E20B174</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>72EE8519B0B5650BB6309DAC</string>
+		</dict>
+		<key>11542297B83FEA98F0034E83</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>image.jpeg</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/Fixtures/faces-large-medium.jpg</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>9B10DB7AA7B9F9B5C2E368F2</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>11542297B83FEA98F0034E83</string>
+		</dict>
+		<key>826961430A23D8004EDA5363</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>image.jpeg</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/Fixtures/faces-small-landscape.jpg</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>D71FBFC6FB52E49CE9B18A26</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>826961430A23D8004EDA5363</string>
+		</dict>
+		<key>29599A38BA13162B775EBC16</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>image.jpeg</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/Fixtures/faces-small-portrait.jpg</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>E7DA42304ACC1B5612DDCD72</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>29599A38BA13162B775EBC16</string>
+		</dict>
+		<key>6365AA3EF64329B8166B716E</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>image.jpeg</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/Fixtures/sample-card.jpg</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>C378399D4CD14FE6C115BA91</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>6365AA3EF64329B8166B716E</string>
+		</dict>
+		<key>E1904B9F4B75F5A6959E0ED9</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/OAuthPresentation.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>1563786605C6EBDBA941D0A8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>E1904B9F4B75F5A6959E0ED9</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>

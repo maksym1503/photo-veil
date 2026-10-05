@@ -3,7 +3,7 @@ Deno.serve(async (req) => {
   try {
     const { admin, user } = await context(req);
     // Close the write gate before deleting anything. Persisted on failure; retry is safe.
-    const { error: gate } = await admin.from("profiles").update({ deletion_requested: true }).eq("id", user.id);
+    const { error: gate } = await admin.from("profiles").upsert({ id: user.id, deletion_requested: true });
     if (gate) return reply(503, "retry");
     if (user.identities?.some((i) => i.provider === "apple")) {
       const { data: refresh, error } = await admin.rpc("veil_apple_refresh", { owner_id: user.id });

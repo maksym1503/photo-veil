@@ -17,7 +17,7 @@ struct PhotoVeilApp: App {
             PhotoVeilHome().environmentObject(library).environmentObject(account)
                 .task { await library.open(); await library.reload(); await account.restore(); await account.checkAppleCredential() }
                 .onReceive(NotificationCenter.default.publisher(for: ASAuthorizationAppleIDProvider.credentialRevokedNotification)) { _ in Task { await account.checkAppleCredential() } }
-                .onChange(of: scenePhase) { _, value in account.setActive(value == .active); if value == .active { account.requestSync(); Task { await account.checkAppleCredential() } } }
+                .onChange(of: scenePhase) { _, value in PrivacyShield.cover(value != .active); account.setActive(value == .active); if value == .active { account.requestSync(); Task { await account.checkAppleCredential() } } }
         }
     }
 }

@@ -83,9 +83,9 @@ private struct GalleryPhoto: View {
         GalleryImage(id: item.id).padding().navigationTitle(item.createdAt.formatted(date: .abbreviated, time: .omitted))
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
-                    Button("Save to Photos", systemImage: "square.and.arrow.down") { Task { await saveToPhotos() } }
+                    Button("Save to Photos", systemImage: "square.and.arrow.down") { Task { await saveToPhotos() } }.accessibilityIdentifier("gallerySaveToPhotos")
                     Spacer()
-                    Button("Share", systemImage: "square.and.arrow.up") { Task { await share() } }
+                    Button("Share", systemImage: "square.and.arrow.up") { Task { await share() } }.accessibilityIdentifier("galleryShare")
                     Spacer()
                     Button("Delete", systemImage: "trash", role: .destructive) { confirmsDelete = true }
                 }

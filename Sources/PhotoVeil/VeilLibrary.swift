@@ -8,7 +8,19 @@ import SwiftUI
     private var opening: Task<GalleryStore, Error>?
     func open() async {
         guard store == nil else { return }
-        if opening == nil { opening = Task.detached(priority: .utility) { try GalleryStore(root: GalleryStore.defaultRoot()) } }
+        if opening == nil {
+            opening = Task.detached(priority: .utility) {
+                var root = GalleryStore.defaultRoot()
+                #if DEBUG
+                let arguments = ProcessInfo.processInfo.arguments
+                if arguments.contains("-veil-ui-testing") {
+                    root = root.deletingLastPathComponent().appendingPathComponent("UITestHistory")
+                    if arguments.contains("-veil-reset-history") { try? FileManager.default.removeItem(at: root) }
+                }
+                #endif
+                return try GalleryStore(root: root)
+            }
+        }
         do { store = try await opening?.value }
         catch { message = "Private Gallery couldn’t be opened. Your existing files were left in place." }
         opening = nil

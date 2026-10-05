@@ -19,6 +19,14 @@ private actor AuthMock: VeilAuthentication {
     func deleteAccount() throws { if unavailable { throw AccountFailure.unavailable }; user = nil }
 }
 final class AccountSessionTests: XCTestCase {
+    func testOAuthCallbackRouteAndCodeValidation() {
+        let expected = URL(string: "veil://auth/callback")!
+        XCTAssertTrue(OAuthCallbackPolicy.accepts(URL(string: "veil://auth/callback?code=test-code")!, expected: expected))
+        for text in ["other://auth/callback?code=x", "veil://other/callback?code=x", "veil://auth/other?code=x",
+                     "veil://auth/callback#access_token=x", "veil://auth/callback?code=", "veil://auth/callback?code=x&code=y"] {
+            XCTAssertFalse(OAuthCallbackPolicy.accepts(URL(string: text)!, expected: expected))
+        }
+    }
     @MainActor func testOptionalIdentityLifecycleAndMinimalAppleProfile() async throws {
         let auth = AuthMock(), session = AccountSession(auth: AuthMock())
         try await session.restore(); XCTAssertNil(session.identity)

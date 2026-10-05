@@ -14,6 +14,7 @@ import Security
     private let lifecycle: AccountSession?
     private let library: VeilLibrary
     private var syncTask: Task<Void, Never>?
+    private var authEvents: Task<Void, Never>?
     private var retryTask: Task<Void, Never>?
     private var syncID = UUID()
     private var pendingSync = false
@@ -29,7 +30,19 @@ import Security
     }
     func restore() async {
         guard let lifecycle else { return }
-        do { try await lifecycle.restore(); await refreshIdentity() }
+        do {
+            try await lifecycle.restore(); await refreshIdentity()
+            if authEvents == nil, let auth {
+                authEvents = Task { [weak self] in
+                    for await (event, _) in auth.client.authStateChanges {
+                        if event == .signedOut {
+                            self?.stopSync(); self?.identity = nil; self?.syncEnabled = false
+                            self?.syncStatus = "Sign in to resume sync"
+                        }
+                    }
+                }
+            }
+        }
         catch { message = "Account couldn’t be restored. The editor and local gallery remain available." }
     }
     private func refreshIdentity() async {
@@ -38,6 +51,14 @@ import Security
         else { syncEnabled = false }
         syncStatus = syncEnabled ? "Ready to sync" : "Stored on this iPhone"
         setActive(active); requestSync()
+        if let auth, let user = identity?.id {
+            Task {
+                if let session = try? await auth.client.session,
+                   let name = try? await auth.transport.profileName(user: user, token: session.accessToken), identity?.id == user {
+                    identity?.displayName = name
+                }
+            }
+        }
     }
     func checkAppleCredential() async {
         guard identity?.provider == "apple", let providerIdentity = auth?.client.currentUser?.identities?.first(where: { $0.provider == "apple" }),

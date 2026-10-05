@@ -1,5 +1,8 @@
 begin;
 create extension if not exists supabase_vault with schema vault;
+revoke all on schema vault from public, anon, authenticated;
+revoke all on all tables in schema vault from public, anon, authenticated;
+revoke all on all functions in schema vault from public, anon, authenticated;
 create schema if not exists veil_private;
 revoke all on schema veil_private from public, anon, authenticated;
 create table veil_private.apple_credentials (

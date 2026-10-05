@@ -102,7 +102,7 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
         imageView.image = preview
         self.onZoomChanged = onZoomChanged
         overlay.configure(imageSize: photoContent.bounds.size, mode: mode, faces: mode == .faces ? faces : [], selectedFaces: selectedFaces,
-                          plates: mode == .plate ? plates : [], selectedPlates: selectedPlates, regions: mode == .manual ? regions : [], newRegionShape: newRegionShape,
+                          plates: mode == .plate || mode == .documents ? plates : [], selectedPlates: selectedPlates, regions: mode == .manual ? regions : [], newRegionShape: newRegionShape,
                           drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: mode == .manual ? strokes : [], onStroke: onStroke, onFaces: onFaces, onPlate: onPlate, onRegions: onRegions)
         let canvasInteractive = mode == .manual
         // One finger edits; two fingers can always navigate while drawing.
@@ -223,7 +223,7 @@ private final class PhotoRegionOverlay: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     @objc private func selectPlate(_ gesture: UITapGestureRecognizer) {
-        guard mode == .plate, gesture.state == .ended else { return }
+        guard mode == .plate || mode == .documents, gesture.state == .ended else { return }
         let point = gesture.location(in: self)
         if let index = plates.indices.first(where: { pixelRect(plates[$0]).contains(point) }) {
             onPlate?(index)
@@ -244,7 +244,7 @@ private final class PhotoRegionOverlay: UIView {
         self.imageSize = imageSize; self.mode = mode; self.faces = faces; self.selectedFaces = selectedFaces
         self.plates = plates; self.selectedPlates = selectedPlates; self.regions = regions; self.newRegionShape = newRegionShape; self.drawsRegions = drawsRegions
         self.paintsStrokes = paintsStrokes; self.strokes = strokes; self.onStroke = onStroke
-        plateTap.isEnabled = mode == .plate
+        plateTap.isEnabled = mode == .plate || mode == .documents
         self.onFaces = onFaces; self.onPlate = onPlate; self.onRegions = onRegions
         isUserInteractionEnabled = mode != nil
         accessibilityIdentifier = "photoRegions"
@@ -269,7 +269,7 @@ private final class PhotoRegionOverlay: UIView {
             let element = DetectionAccessibilityElement(accessibilityContainer: self)
             element.activate = { [weak self] in self?.onFaces?(index) }
             element.accessibilityLabel = selectedFaces.contains(index) ? "Blurred face \(index + 1)" : "Face \(index + 1)"
-            element.accessibilityHint = "Double-tap to toggle blur"
+            element.accessibilityHint = "Double-tap to toggle privacy effect"
             element.accessibilityValue = selectedFaces.contains(index) ? "Blur on" : "Blur off"
             element.accessibilityIdentifier = "face_\(index)"
             element.accessibilityTraits = .button
@@ -279,10 +279,12 @@ private final class PhotoRegionOverlay: UIView {
         for (index, rect) in plates.enumerated() {
             let element = DetectionAccessibilityElement(accessibilityContainer: self)
             element.activate = { [weak self] in self?.onPlate?(index) }
-            element.accessibilityLabel = selectedPlates.contains(index) ? "Blurred plate suggestion" : "Plate suggestion"
-            element.accessibilityHint = "Double-tap to toggle blur"
+            element.accessibilityLabel = mode == .documents
+                ? "\(selectedPlates.contains(index) ? "Hidden" : "Visible") document region \(index + 1)"
+                : (selectedPlates.contains(index) ? "Blurred plate suggestion" : "Plate suggestion")
+            element.accessibilityHint = "Double-tap to toggle privacy effect"
             element.accessibilityValue = selectedPlates.contains(index) ? "Blur on" : "Blur off"
-            element.accessibilityIdentifier = "plate_\(index)"
+            element.accessibilityIdentifier = "\(mode == .documents ? "document" : "plate")_\(index)"
             element.accessibilityTraits = .button
             element.accessibilityFrameInContainerSpace = pixelRect(rect)
             elements.append(element)

@@ -161,14 +161,14 @@ struct PhotoVeilHome: View {
                 }.id(showingFinalPreview).disabled(working).accessibilityIdentifier("finalPreview")
             }
             if showingFinalPreview {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     Menu("Save photo", systemImage: "square.and.arrow.down") {
                         Button("Save to Veil", systemImage: "photo.stack") { prepareExport(destination: .gallery) }
                             .accessibilityIdentifier("saveToVeil")
                         Button("Save to Photos", systemImage: "photo") { prepareExport(destination: .photos) }
                             .accessibilityIdentifier("saveToPhotos")
                     }.labelStyle(.iconOnly).disabled(working).accessibilityIdentifier("saveMenu")
-                    Button("Export", systemImage: "square.and.arrow.up") { prepareExport() }
+                    Button("Share", systemImage: "square.and.arrow.up") { prepareExport() }
                         .labelStyle(.iconOnly).modifier(VeilActionStyle(prominent: true))
                         .disabled(working).accessibilityIdentifier("export")
                 }
@@ -183,7 +183,7 @@ struct PhotoVeilHome: View {
                     ZoomablePhotoCanvas(
                         original: original,
                         preview: showingOriginal ? previewSource : preview,
-                        mode: showingOriginal || showingFinalPreview ? nil : mode == .documents ? .plate : mode,
+                        mode: showingOriginal || showingFinalPreview ? nil : mode,
                         faces: faceRegions,
                         selectedFaces: selectedFaces,
                         plates: mode == .documents ? currentDocumentRegions : plateSuggestions,
@@ -255,7 +255,7 @@ struct PhotoVeilHome: View {
                 effectControl
                 Spacer(minLength: 6)
                 if effect != .redact { strengthControl }
-            }.frame(minHeight: 44).opacity(mode == nil ? 0 : 1).disabled(mode == nil)
+            }.frame(minHeight: 44).opacity(mode == nil ? 0 : 1).disabled(mode == nil).accessibilityHidden(mode == nil)
             (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))) {
               if let mode {
                     if !usesExpandedControls { Spacer(minLength: 6) }
@@ -381,7 +381,7 @@ struct PhotoVeilHome: View {
             } label: {
                 Label(strength.rawValue, systemImage: "slider.horizontal.3").font(.body).frame(minHeight: 44)
             }
-            .accessibilityLabel("Blur strength")
+            .accessibilityLabel(effect == .pixelate ? "Pixel size" : "Blur strength")
             .accessibilityValue(strength.rawValue)
         } else {
         HStack(spacing: 0) {
@@ -441,6 +441,7 @@ struct PhotoVeilHome: View {
     @MainActor private func loadFixtureIfRequested() {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
+        guard !arguments.contains("-veil-empty") else { return }
         func argument(_ key: String) -> String? {
             guard let index = arguments.firstIndex(of: key), arguments.indices.contains(index + 1) else { return nil }
             return arguments[index + 1]

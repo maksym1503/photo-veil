@@ -31,7 +31,7 @@ grant select, insert, update, delete on public.gallery_items to authenticated;
 create policy profile_select on public.profiles for select to authenticated using (id = (select auth.uid()));
 create policy profile_insert on public.profiles for insert to authenticated with check (id = (select auth.uid()));
 create policy profile_update on public.profiles for update to authenticated using (id = (select auth.uid()) and not deletion_requested) with check (id = (select auth.uid()));
-create policy profile_delete on public.profiles for delete to authenticated using (id = (select auth.uid()));
+create policy profile_delete on public.profiles for delete to authenticated using (id = (select auth.uid()) and not deletion_requested);
 create policy gallery_select on public.gallery_items for select to authenticated using (user_id = (select auth.uid()));
 create policy gallery_insert on public.gallery_items for insert to authenticated with check (
   user_id = (select auth.uid()) and exists(select 1 from public.profiles where id = (select auth.uid()) and not deletion_requested));
