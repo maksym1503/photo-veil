@@ -14,7 +14,7 @@ final class PhotoVeilUITests: XCTestCase {
         attach(app, "about")
         app.buttons["BackButton"].tap()
         app.buttons["photoPrivacy"].tap()
-        XCTAssertTrue(app.staticTexts["Photo processing happens on this iPhone. The system picker shares only photos you select; Save to Photos asks only to add your chosen output."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Photo processing happens on this iPhone.")).firstMatch.waitForExistence(timeout: 5))
         attach(app, "privacy")
     }
 
@@ -248,6 +248,94 @@ final class PhotoVeilUITests: XCTestCase {
 
     @MainActor func testBackgroundPersonMaskOrManualFallback() { checkBackground(fixture: "background-person", name: "person") }
     @MainActor func testBackgroundCarMaskOrManualFallback() { checkBackground(fixture: "two-people-car", name: "car") }
+
+    @MainActor func testLocalGallerySaveRelaunchShareAndDelete() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history"]
+        app.launch(); waitForRender(app)
+        app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        app.terminate(); app.launchArguments = ["-veil-ui-testing", "-veil-empty"]; app.launch()
+        app.buttons["gallery"].tap()
+        let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); attach(app, "v4-gallery-local-reloaded")
+        photo.tap(); attach(app, "v4-gallery-photo")
+        app.buttons["galleryShare"].tap(); XCTAssertTrue(app.staticTexts["Copy"].waitForExistence(timeout: 10)); attach(app, "v4-gallery-share")
+        app.terminate(); app.launch(); app.buttons["gallery"].tap(); photo.tap()
+        app.buttons["Delete"].tap(); app.buttons["Delete photo"].tap()
+        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+        attach(app, "v4-gallery-empty")
+    }
+
+    @MainActor func testPixelateEllipseUndoAndExport() {
+        let app = launch(fixture: "two-people-car")
+        let canvas = app.scrollViews["photoCanvas"]
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        let camera = transform(app)
+        app.buttons["shapeMenu"].tap(); app.buttons["Ellipse"].tap()
+        drag(canvas, from: CGVector(dx: 0.3, dy: 0.35), to: CGVector(dx: 0.65, dy: 0.6)); waitForRender(app)
+        let gaussian = app.otherElements["processingComplete"].value as? String
+        app.buttons["effectMenu"].tap(); app.buttons["Pixelate"].tap(); waitForRender(app)
+        XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, gaussian)
+        assertCamera(app, camera); attach(app, "v4-pixelate-ellipse")
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, gaussian)
+        app.buttons["effectMenu"].tap(); app.buttons["Pixelate"].tap(); waitForRender(app)
+        app.buttons["finalPreview"].tap(); export(app, "v4-pixelate-clean-share")
+    }
+
+    @MainActor func testDocumentDetailsAndWholeRedaction() {
+        let app = launch(fixture: "sample-card")
+        let before = transform(app)
+        app.buttons["mode_documents"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["document_0"].waitForExistence(timeout: 10))
+        attach(app, "v4-document-details")
+        app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
+        app.buttons["documentCoverage"].tap(); app.buttons["Hide entire document"].tap(); waitForRender(app)
+        assertCamera(app, before); attach(app, "v4-document-whole-redact")
+        app.buttons["document_0"].tap(); waitForRender(app)
+        app.buttons["document_0"].tap(); waitForRender(app)
+        app.buttons["finalPreview"].tap(); export(app, "v4-document-clean-share")
+    }
+
+    @MainActor func testSmallFacesRemainIndependentOfZoom() {
+        let app = launch(fixture: "faces-small-landscape")
+        let canvas = app.scrollViews["photoCanvas"]
+        canvas.pinch(withScale: 2, velocity: 1); let before = transform(app)
+        app.buttons["mode_faces"].tap(); waitForRender(app, timeout: 120)
+        XCTAssertTrue(app.buttons["face_0"].exists); XCTAssertTrue(app.buttons["face_1"].exists)
+        assertCamera(app, before); attach(app, "v4-small-faces-zoom-preserved")
+        app.buttons["fitPhoto"].tap(); attach(app, "v4-small-faces-fit")
+    }
+
+    @MainActor func testOptionalAccountUnconfigured() {
+        let app = XCUIApplication(); app.launch()
+        app.buttons["settings"].tap(); app.buttons["account"].tap()
+        XCTAssertTrue(app.staticTexts["Cloud accounts aren’t configured in this build"].waitForExistence(timeout: 10))
+        attach(app, "v4-account-unconfigured")
+    }
+
+    @MainActor func testPhotosPickerWithoutReadAuthorization() {
+        let app = XCUIApplication(); app.launch(); app.buttons["choosePhoto"].tap()
+        XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 10))
+        XCTAssertFalse(XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch.exists)
+        attach(app, "v4-picker-selection-scoped"); app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["choosePhoto"].exists)
+    }
+
+    @MainActor func testSaveToPhotosAddOnly() {
+        let app = launch(fixture: "two-faces")
+        app.buttons["mode_faces"].tap(); waitForRender(app)
+        app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToPhotos"].tap()
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if system.alerts.firstMatch.waitForExistence(timeout: 5) {
+            attach(system, "v4-photos-add-only-permission")
+            let allow = system.alerts.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label CONTAINS %@", "Allow", "Don’t")).firstMatch
+            if allow.exists { allow.tap() }
+        }
+        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); attach(app, "v4-saved-to-photos")
+        app.alerts.buttons["OK"].tap(); XCTAssertTrue(app.buttons["export"].exists)
+    }
 
     @MainActor private func checkBackground(fixture: String, name: String) {
         let app = launch(fixture: fixture)

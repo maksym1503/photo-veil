@@ -38,6 +38,8 @@ reset role;
 update public.profiles set deletion_requested=true where id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 set local role authenticated;
 do $$ begin
+  delete from public.profiles where id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  if found then raise exception 'client can remove closed deletion gate'; end if;
   begin
     insert into storage.objects(bucket_id,name) values('veil-gallery','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/44444444-4444-4444-4444-444444444444/processed.jpg');
     raise exception 'upload allowed after deletion requested';

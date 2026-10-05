@@ -17,3 +17,41 @@ jobs:
         with:
           name: veil-runtime-results
           path: /tmp/veil-ci.xcresult
+  backend-policy-and-deletion-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: veil_policy_ci
+          POSTGRES_PASSWORD: veil-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Ownership and Vault privilege tests on a disposable database
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: veil_policy_ci
+          PGUSER: postgres
+          PGPASSWORD: veil-test-only
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/backend_shim.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610050001_veil_gallery.sql
+          sed '/create extension if not exists supabase_vault/d' supabase/migrations/202610050002_apple_revocation.sql | psql -v ON_ERROR_STOP=1
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/ownership.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/vault_privileges.sql
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check server code and deterministic deletion behavior
+        run: |
+          deno check supabase/functions/apple-credential/index.ts supabase/functions/delete-account/index.ts supabase/functions/delete-gallery-item/index.ts
+          deno test --allow-env supabase/functions/tests

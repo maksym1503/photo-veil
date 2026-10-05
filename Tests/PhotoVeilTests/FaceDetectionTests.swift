@@ -5,7 +5,7 @@ final class FaceDetectionTests: XCTestCase {
     func testBoundedOverlappingTilesCoverPortraitAndLandscape() {
         for size in [CGSize(width: 4032, height: 3024), CGSize(width: 3024, height: 4032)] {
             let tiles = FaceDetection.tiles(for: size)
-            XCTAssertEqual(tiles.count, 6)
+            XCTAssertEqual(tiles.count, 20)
             for y in stride(from: 0.0, through: 1.0, by: 0.1) {
                 for x in stride(from: 0.0, through: 1.0, by: 0.1) {
                     XCTAssertTrue(tiles.contains { $0.insetBy(dx: -0.001, dy: -0.001).contains(CGPoint(x: x, y: y)) })

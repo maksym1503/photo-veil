@@ -205,10 +205,17 @@ struct PhotoVeilHome: View {
                 if !showingFinalPreview {
                     HStack(spacing: 8) {
                         Button { showingOriginal.toggle() } label: {
-                            Label(showingOriginal ? "Edited" : "Original", systemImage: showingOriginal ? "slider.horizontal.3" : "eye")
-                                .font(.caption.weight(.semibold)).padding(.horizontal, 12).frame(minHeight: 44)
-                                .modifier(VeilGlassSurface())
+                            if usesExpandedControls {
+                                Image(systemName: showingOriginal ? "slider.horizontal.3" : "eye")
+                                    .font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44)
+                                    .modifier(VeilGlassSurface())
+                            } else {
+                                Label(showingOriginal ? "Edited" : "Original", systemImage: showingOriginal ? "slider.horizontal.3" : "eye")
+                                    .font(.caption.weight(.semibold)).padding(.horizontal, 12).frame(minHeight: 44)
+                                    .modifier(VeilGlassSurface())
+                            }
                         }
+                        .accessibilityLabel(showingOriginal ? "Show edited photo" : "Show original photo")
                         .accessibilityIdentifier("originalToggle")
                         if zoomed {
                             Button { NotificationCenter.default.post(name: .photoVeilFitPhoto, object: nil) } label: {
@@ -251,9 +258,9 @@ struct PhotoVeilHome: View {
 
     private var editorControls: some View {
         VStack(spacing: 9) {
-            HStack(spacing: 12) {
+            (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 12))) {
                 effectControl
-                Spacer(minLength: 6)
+                if !usesExpandedControls { Spacer(minLength: 6) }
                 if effect != .redact { strengthControl }
             }.frame(minHeight: 44).opacity(mode == nil ? 0 : 1).disabled(mode == nil).accessibilityHidden(mode == nil)
             (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))) {
@@ -286,13 +293,13 @@ struct PhotoVeilHome: View {
                             Button("Ellipse") { paintsStrokes = false; manualShape = .oval }
                             Button("Brush") { paintsStrokes = true }
                         } label: {
-                            Image(systemName: paintsStrokes ? "paintbrush.pointed" : manualShape == .oval ? "oval" : "rectangle.dashed").frame(width: 44, height: 44)
+                            Image(systemName: paintsStrokes ? "paintbrush.pointed" : manualShape == .oval ? "oval" : "rectangle.dashed").font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44)
                         }.accessibilityLabel("Selection shape").accessibilityIdentifier("shapeMenu")
                         Button {
                             paintsStrokes.toggle(); manualDraws = true
                         } label: {
                             Image(systemName: paintsStrokes ? "rectangle.dashed" : "paintbrush.pointed")
-                                .frame(width: 44, height: 44).background(.thinMaterial, in: Circle())
+                                .font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).background(.thinMaterial, in: Circle())
                         }
                         .accessibilityLabel(paintsStrokes ? "Rectangle selection" : "Paint blur")
                         .accessibilityIdentifier("manualBrush")

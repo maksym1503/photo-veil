@@ -15,15 +15,20 @@ enum FaceDetection {
     static func tiles(for size: CGSize) -> [CGRect] {
         guard max(size.width, size.height) >= 2000 else { return [] }
         let landscape = size.width >= size.height
-        let longCount = max(size.width, size.height) >= 3600 ? 3 : 2
-        let longSpan: CGFloat = longCount == 3 ? 0.45 : 0.6
+        // A modern 12 MP image gets ~1000-pixel crops, so distant faces occupy more detector pixels.
+        // Explicit work ceiling: 20 serial crops + one whole-image pass, never an unbounded grid.
+        let highResolution = max(size.width, size.height) >= 3600
+        let longCount = highResolution ? 5 : 2
+        let shortCount = highResolution ? 4 : 2
+        let longSpan: CGFloat = highResolution ? 0.25 : 0.6
+        let shortSpan: CGFloat = highResolution ? 0.34 : 0.6
         var result: [CGRect] = []
         for long in 0..<longCount {
-            for short in 0..<2 {
+            for short in 0..<shortCount {
                 let x = CGFloat(long) * (1 - longSpan) / CGFloat(longCount - 1)
-                let y = CGFloat(short) * 0.4
-                result.append(landscape ? CGRect(x: x, y: y, width: longSpan, height: 0.6)
-                              : CGRect(x: y, y: x, width: 0.6, height: longSpan))
+                let y = CGFloat(short) * (1 - shortSpan) / CGFloat(shortCount - 1)
+                result.append(landscape ? CGRect(x: x, y: y, width: longSpan, height: shortSpan)
+                              : CGRect(x: y, y: x, width: shortSpan, height: longSpan))
             }
         }
         return result
@@ -73,7 +78,7 @@ enum FaceDetection {
             guard let crop = image.cropping(to: pixels) else { continue }
             let actualTile = CGRect(x: pixels.minX / size.width, y: pixels.minY / size.height,
                                     width: pixels.width / size.width, height: pixels.height / size.height)
-            // Process one crop at a time, at most seven requests total; release each crop after use.
+            // Process one crop at a time, at most 21 requests total; release each crop after use.
             candidates += try autoreleasepool { try detect(crop).map { map($0, through: actualTile) } }
             count += 1
         }

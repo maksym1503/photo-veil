@@ -1,19 +1,19 @@
-# Veil
+# Veil — V4 draft
 
-A focused, private photo utility: choose a photo, blur sensitive areas, export. Image analysis and rendering run locally with PhotosUI, Vision and Core Image. No account, backend, analytics or persistent edit library is included.
+A photo privacy utility with on-device Vision/Core Image processing and native iPhone controls. Core editing, Share, Save to Photos and local Private Gallery work without an account. Optional Apple/Google accounts and processed-output cloud sync require real owner setup; signing in does not enable uploads.
 
 ## Build
 
-Open `PhotoVeil.xcodeproj`, choose the `PhotoVeil` scheme and an iPhone Simulator. The bundle identifier is `com.maksym1503.veil`; MaxLab uses `veil://` to detect and launch it.
+Open `PhotoVeil.xcodeproj`, select `PhotoVeil` and an iPhone Simulator. The default build needs no backend configuration. Existing local signing settings stay local. Bundle: `com.maksym1503.veil`; `veil://` remains the launch scheme. iOS 17+.
 
-## Current MVP
+## Capabilities
 
-Background blur uses Vision foreground instance masking (people, vehicles and other subjects) and falls back to manual selection when a subject mask cannot be made. Face detection uses Vision face rectangles. Likely plates come from recognized text boxes filtered by shape and blur automatically, with tap-to-toggle selection; manual drawing is always available. Export writes a high-quality JPEG and opens the iOS share sheet.
+Background, Faces, Plates, Manual rectangle/ellipse/brush and heuristic Documents use normalized image geometry and one Gaussian/Pixelate/Solid preview/export renderer. Original-image face tiles improve recall without changing zoom; automatic detection remains fallible. Save to Veil keeps only explicit processed outputs in protected file-backed history. PhotosPicker remains selection-scoped; Save to Photos requests add-only permission on invocation.
 
-## V3 review
+## Review and setup
 
-V3 adopts native navigation, glass controls on iOS 26 with iOS 17+ fallbacks, consistent Faces/Plates selection, a visual landing screen and native Settings. App Store preparation and missing owner inputs are tracked in [the checklist](Documentation/AppStore/APP_STORE_CHECKLIST.md). Public links are centralized in `VeilPublicLinks` and omitted until configured. No login or analytics is included.
+[Architecture](Documentation/Architecture/V4_ARCHITECTURE.md), [backend setup](Documentation/Backend/BACKEND_SETUP.md), [App Store preparation](Documentation/AppStore/APP_STORE_CHECKLIST.md), [physical-device checklist](Documentation/QA/V4/PHYSICAL_DEVICE_CHECKLIST.md). Public legal/support links live in `VeilPublicLinks` and remain hidden until configured. No analytics, tracking, password system or original-image cloud uploads. Cloud storage is not end-to-end encrypted.
 
-## V4 draft
+Run `swift test` for deterministic core tests, the Xcode scheme for UI regressions, `python3 scripts/test_backend_policies.py` for isolated PostgreSQL policy tests, and `deno test --allow-env supabase/functions/tests` for mocked server deletion behavior. Real Supabase/provider integration is a separate owner validation gate. See backend setup for exact commands.
 
-V4 adds original-image tiled face analysis, Pixelate/Solid/ellipse masks, heuristic Documents, protected local Private Gallery and add-only Save to Photos. Optional Apple/Google accounts and private processed-output sync require owner setup; the default build remains local-only. See [architecture](Documentation/Architecture/V4_ARCHITECTURE.md), [backend setup](Documentation/Backend/BACKEND_SETUP.md) and [device checklist](Documentation/QA/V4/PHYSICAL_DEVICE_CHECKLIST.md). Do not merge V4 before physical acceptance.
+**Do not merge V4** until owner physical acceptance and configured-backend review. V3 on main remains approved and stable.

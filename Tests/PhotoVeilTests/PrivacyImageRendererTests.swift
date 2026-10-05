@@ -121,6 +121,39 @@ final class PrivacyImageRendererTests: XCTestCase {
         }
     }
 
+    func testPixelateBrushAndBackgroundUseSharedMaskSemantics() throws {
+        let source = try checkerboard(width: 240, height: 160)
+        let stroke = BlurStroke(points: [CGPoint(x: 0.2, y: 0.2), CGPoint(x: 0.8, y: 0.2)], width: 0.15)
+        let brush = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [], strength: .strong, strokes: [stroke], effect: .pixelate))
+        XCTAssertNotEqual(pixel(brush, x: 80, y: 32), pixel(source, x: 80, y: 32))
+        XCTAssertEqual(pixel(brush, x: 80, y: 145), pixel(source, x: 80, y: 145))
+        let foreground = try mask(width: 120, height: 80, rect: CGRect(x: 36, y: 12, width: 48, height: 48))
+        for effect in [PrivacyEffect.pixelate, .redact] {
+            let output = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [], strength: .strong, foregroundMask: foreground, effect: effect))
+            XCTAssertEqual(pixel(output, x: 100, y: 50), pixel(source, x: 100, y: 50))
+            // Pixelation samples a block's source color, so individual pixels can remain equal.
+            let changedBackground = (8..<28).contains { x in
+                (8..<28).contains { y in pixel(output, x: x, y: y) != pixel(source, x: x, y: y) }
+            }
+            XCTAssertTrue(changedBackground)
+        }
+    }
+
+    func testNormalizedPixelGridScalesFromPreviewToExport() throws {
+        let source = try checkerboard(width: 240, height: 160)
+        let context = try XCTUnwrap(CGContext(data: nil, width: 480, height: 320, bitsPerComponent: 8, bytesPerRow: 1920,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue))
+        context.interpolationQuality = .none; context.draw(source, in: CGRect(x: 0, y: 0, width: 480, height: 320))
+        let region = BlurRegion(rect: CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7), shape: .rectangle)
+        let preview = try XCTUnwrap(PrivacyImageRenderer.render(source: source, regions: [region], strength: .medium, effect: .pixelate))
+        let export = try XCTUnwrap(PrivacyImageRenderer.render(source: XCTUnwrap(context.makeImage()), regions: [region], strength: .medium, effect: .pixelate))
+        for point in [CGPoint(x: 0.3, y: 0.3), CGPoint(x: 0.5, y: 0.5), CGPoint(x: 0.7, y: 0.6)] {
+            let p = pixel(preview, x: Int(point.x * 240), y: Int(point.y * 160))
+            let e = pixel(export, x: Int(point.x * 480), y: Int(point.y * 320))
+            for channel in 0..<3 { XCTAssertEqual(Double(p[channel]), Double(e[channel]), accuracy: 2) }
+        }
+    }
+
     private func checkerboard(width: Int, height: Int) throws -> CGImage {
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else {

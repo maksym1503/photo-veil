@@ -39,5 +39,13 @@ enum TemporaryPhoto {
         let url = folder.appendingPathComponent("Veil-\(UUID().uuidString).jpg")
         try data.write(to: url, options: [.atomic, .completeFileProtection]); return url
     }
-    static func clearPreviousSession() { try? FileManager.default.removeItem(at: folder) }
+    static func clearPreviousSession() {
+        try? FileManager.default.removeItem(at: folder)
+        // V3 exports used the temporary root. Only remove Veil's legacy filenames on a fresh launch.
+        let temporary = FileManager.default.temporaryDirectory
+        for file in (try? FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil)) ?? []
+        where file.lastPathComponent.hasPrefix("Veil-") && file.pathExtension == "jpg" {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
 }
