@@ -58,12 +58,8 @@ struct BlurRenderer {
 
     static func detectFaces(in image: UIImage) async throws -> [CGRect] {
         guard let cg = image.cgImage else { throw BlurError.unavailable }
-        let request = VNDetectFaceRectanglesRequest()
-        #if targetEnvironment(simulator)
-        request.usesCPUOnly = true
-        #endif
-        try VNImageRequestHandler(cgImage: cg, orientation: .up).perform([request])
-        return (request.results ?? []).map { expand(ImageGeometryMapper.topLeftRect(fromVision: $0.boundingBox), x: 0.23, y: 0.28) }
+        let report = try FaceDetection.analyze(cg)
+        return report.regions.map { expand($0, x: 0.23, y: 0.28) }
     }
 
     static func detectPlateSuggestions(in image: UIImage) async throws -> [CGRect] {

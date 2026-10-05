@@ -57,6 +57,7 @@ struct PhotoVeilHome: View {
     @State private var exportURL: URL?
     @State private var renderRevision = 0
     @State private var didAnalyzePlates = false
+    @State private var didAnalyzeFaces = false
     @State private var sessionID = UUID()
     @State private var backgroundUnavailable = false
     @State private var testRenderFingerprint = ""
@@ -351,7 +352,7 @@ struct PhotoVeilHome: View {
         self.manualRegions = []
         self.strokes = []; self.draftStroke = nil; self.paintsStrokes = false; self.showingFinalPreview = false
         self.undoStack = []
-        self.didAnalyzePlates = false
+        self.didAnalyzePlates = false; self.didAnalyzeFaces = false
         self.strength = .medium
         self.showingOriginal = false
         self.manualDraws = true
@@ -396,7 +397,7 @@ struct PhotoVeilHome: View {
         case .background:
             if backgroundMask == nil { runBackground() } else { rerender() }
         case .faces:
-            if faceRegions.isEmpty { runFaces() } else { rerender() }
+            if !didAnalyzeFaces { runFaces() } else { rerender() }
         case .plate:
             if !didAnalyzePlates { runPlate() } else { rerender() }
         case .manual: rerender()
@@ -428,15 +429,16 @@ struct PhotoVeilHome: View {
     }
 
     private func runFaces() {
-        guard let previewSource else { return }
+        guard let original else { return }
         working = true
         let session = sessionID
         Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
-            do { result = .success(try await BlurRenderer.detectFaces(in: previewSource)) }
+            do { result = .success(try await BlurRenderer.detectFaces(in: original)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
+                didAnalyzeFaces = true
                 switch result {
                 case .success(let faces):
                     faceRegions = faces; selectedFaces = Set(faces.indices)

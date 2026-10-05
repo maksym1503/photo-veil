@@ -148,6 +148,7 @@
 				<string>A20000000000000000000002</string>
 				<string>A20000000000000000000005</string>
 				<string>B30000000000000000000002</string>
+				<string>C74081E286D004B8AF426B69</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -730,6 +731,7 @@
 				<string>A20000000000000000000018</string>
 				<string>B30000000000000000000001</string>
 				<string>B30000000000000000000101</string>
+				<string>7AF83B45B2EB6A63D25EF1FE</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -785,6 +787,24 @@
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
 			<string>B30000000000000000000101</string>
+		</dict>
+		<key>7AF83B45B2EB6A63D25EF1FE</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/FaceDetection.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>C74081E286D004B8AF426B69</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>7AF83B45B2EB6A63D25EF1FE</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>
