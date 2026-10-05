@@ -24,6 +24,15 @@ final class BackendConfigurationTests: XCTestCase {
         google["AppleCapabilityEnabled"] = false
         XCTAssertNotNil(try parse(google).configuration)
     }
+    func testSessionStorageSeparatesProjectsButNormalizesHostCase() throws {
+        let original = try XCTUnwrap(parse(fields).configuration)
+        var otherFields = fields; otherFields["SupabaseURL"] = "https://other.example.invalid"
+        let other = try XCTUnwrap(parse(otherFields).configuration)
+        XCTAssertNotEqual(original.authStorageKey, other.authStorageKey)
+        otherFields["SupabaseURL"] = "https://PROJECT.example.invalid/"
+        XCTAssertEqual(original.authStorageKey, try XCTUnwrap(parse(otherFields).configuration).authStorageKey)
+        XCTAssertFalse(original.authStorageKey.contains(original.publishableKey))
+    }
     func testInvalidFieldsAndSecretKeysNeverCreateClientConfiguration() throws {
         for field in ["SupabaseURL", "PublishableKey", "RedirectURL"] {
             var changed = fields; changed.removeValue(forKey: field)

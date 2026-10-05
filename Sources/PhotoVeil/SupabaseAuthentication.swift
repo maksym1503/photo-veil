@@ -11,7 +11,7 @@ final class SupabaseAuthentication: VeilAuthentication, @unchecked Sendable {
         transport = BackendTransport(configuration: configuration)
         client = AuthClient(configuration: .init(url: configuration.url.appendingPathComponent("auth/v1"),
             headers: ["apikey": configuration.publishableKey], flowType: .pkce, redirectToURL: configuration.redirect,
-            localStorage: ProtectedAuthStorage(), fetch: { [transport] request in try await transport.authRequest(request) },
+            storageKey: configuration.authStorageKey, localStorage: ProtectedAuthStorage(), fetch: { [transport] request in try await transport.authRequest(request) },
             emitLocalSessionAsInitialSession: true))
     }
     func restore() async throws -> VeilIdentity? {

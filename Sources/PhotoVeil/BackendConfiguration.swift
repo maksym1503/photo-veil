@@ -5,6 +5,8 @@ struct BackendConfiguration: Equatable, Sendable {
     let publishableKey: String
     let redirect: URL
     let appleSignInEnabled: Bool
+    // Avoid restoring a staging session against a different configured project.
+    var authStorageKey: String { "veil.auth.\(url.host?.lowercased() ?? "unconfigured")" }
 
     static func readiness(bundle: Bundle = .main) -> BackendReadiness {
         guard let file = bundle.url(forResource: "VeilBackend", withExtension: "plist") else { return .missingFile }

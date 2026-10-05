@@ -10,7 +10,7 @@ V4.1 validates configuration with specific DEBUG diagnostics for absent/unreadab
 
 ### Already implemented; no owner code rewrite needed
 
-- Official Supabase Auth SDK, native Apple nonce/token flow and server authorization-code exchange, Google PKCE in `ASWebAuthenticationSession`, strict callback route validation, Keychain storage and local session restoration.
+- Official Supabase Auth SDK, native Apple nonce/token flow and server authorization-code exchange, Google PKCE in `ASWebAuthenticationSession`, strict callback route validation, project-scoped Keychain storage and local session restoration.
 - Local offline sign-out, optional profile updates, explicit per-account sync consent, owner-checked private image transport and retry/tombstones.
 - Both SQL migrations, ownership policies and three deletion/revocation Edge Functions. Deterministic tests cover mock identity lifecycle, configuration and ownership/deletion; live providers and a hosted Storage API still require the acceptance steps below.
 - `veil` URL scheme and `veil://auth/callback` registered in the existing app; no separate Google SDK/client-secret is needed in Xcode. Existing local signing-team edits are preserved.
@@ -81,6 +81,8 @@ Create the **gitignored** `Configuration/VeilBackend.plist` containing string va
 | PublishableKey | Real `sb_publishable_…` client key; secret/service keys are rejected |
 | RedirectURL | `veil://auth/callback` |
 | AppleCapabilityEnabled | `YES` only after Apple capability/profile setup |
+
+Session storage is namespaced by project host: staging and production do not restore each other’s sessions. Changing projects requires a new sign-in; local history remains intact. No prior configured V4 account is present in the inspected build.
 
 The build copies this optional file into the app. It is public configuration; never insert secrets. Set **VEIL_ENTITLEMENTS_FILE = Configuration/Veil.entitlements** in your local build configuration after enabling the real capability. The default empty setting keeps local-only signing usable. Add the real public Privacy/Terms/Support URLs to `VeilPublicLinks`. Do a clean build when changing configuration. `Configuration/*.local.xcconfig`, `.env*`, `.p8` and `.p12` are ignored. Git ignore is not a secret scanner: inspect staged changes.
 
