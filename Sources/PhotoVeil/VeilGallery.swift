@@ -30,14 +30,22 @@ struct VeilGallery: View {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                Text(account.syncEnabled ? account.syncStatus : "Stored on this iPhone").font(.footnote).foregroundStyle(.secondary).padding(8)
-            }
             .navigationTitle("Private Gallery")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Close", systemImage: "xmark") { dismiss() } }
-                ToolbarItem(placement: .topBarTrailing) { Button(selecting ? "Cancel" : "Select") { selecting.toggle(); selected = [] }.disabled(library.items.isEmpty) }
-                if selecting { ToolbarItem(placement: .bottomBar) { Button("Delete selected", systemImage: "trash", role: .destructive) { confirmsDelete = true }.disabled(selected.isEmpty) } }
+                ToolbarItem(placement: .topBarTrailing) { Button(selecting ? "Cancel" : "Select") { selecting.toggle(); selected = [] }
+                    .disabled(library.items.isEmpty).accessibilityIdentifier("gallerySelect") }
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Text(selecting ? "\(selected.count) selected" : account.syncEnabled ? account.syncStatus : "Stored on this iPhone")
+                        .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: true, vertical: false)
+                        .accessibilityIdentifier("gallerySelectionStatus")
+                    Spacer()
+                    if selecting {
+                        Button("Delete selected", systemImage: "trash", role: .destructive) { confirmsDelete = true }
+                            .labelStyle(.iconOnly).tint(.red).disabled(selected.isEmpty)
+                            .accessibilityIdentifier("galleryDeleteSelected")
+                    }
+                }
             }
             .confirmationDialog("Delete selected photos? Synced copies will also be deleted when sync runs.", isPresented: $confirmsDelete, titleVisibility: .visible) {
                 Button("Delete photos", role: .destructive) { Task { await library.delete(selected); selected = []; selecting = false } }
@@ -75,8 +83,7 @@ private struct GalleryPhoto: View {
     @EnvironmentObject private var library: VeilLibrary
     @Environment(\.dismiss) private var dismiss
     let item: GalleryItem
-    @State private var shareURL: URL?
-    @State private var showingShare = false
+    @State private var shareItem: PhotoShareItem?
     @State private var confirmsDelete = false
     @State private var notice: String?
     var body: some View {
@@ -90,8 +97,8 @@ private struct GalleryPhoto: View {
                     Button("Delete", systemImage: "trash", role: .destructive) { confirmsDelete = true }
                 }
             }
-            .sheet(isPresented: $showingShare, onDismiss: { if let shareURL { try? FileManager.default.removeItem(at: shareURL) } }) {
-                if let shareURL { ShareSheet(items: [shareURL]) }
+            .sheet(item: $shareItem) { item in
+                ShareSheet(items: [item.url]).onDisappear { try? FileManager.default.removeItem(at: item.url) }
             }
             .confirmationDialog("Delete this photo? Synced copies will also be deleted when sync runs.", isPresented: $confirmsDelete, titleVisibility: .visible) {
                 Button("Delete photo", role: .destructive) { Task { await library.delete([item.id]); dismiss() } }
@@ -101,7 +108,7 @@ private struct GalleryPhoto: View {
     private func share() async {
         do {
             guard let data = try await library.store?.data(for: item.id) else { return }
-            shareURL = try TemporaryPhoto.create(data); showingShare = true
+            shareItem = PhotoShareItem(url: try TemporaryPhoto.create(data))
         } catch { notice = "This photo couldn’t be shared." }
     }
     private func saveToPhotos() async {

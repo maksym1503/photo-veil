@@ -49,3 +49,9 @@ enum TemporaryPhoto {
         }
     }
 }
+
+/// One presentation value prevents a sheet from opening before its URL is available.
+struct PhotoShareItem: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}

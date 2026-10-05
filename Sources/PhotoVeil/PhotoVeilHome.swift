@@ -66,19 +66,25 @@ struct PhotoVeilHome: View {
     @State private var undoStack: [EditSnapshot] = []
     @State private var working = false
     @State private var showingOriginal = false
-    @State private var showingShare = false
     @State private var manualDraws = true
     @State private var zoomed = false
     @State private var errorMessage: String?
-    @State private var exportURL: URL?
+    @State private var shareItem: PhotoShareItem?
     @State private var renderRevision = 0
     @State private var didAnalyzePlates = false
     @State private var didAnalyzeFaces = false
+    @State private var didAnalyzeBackground = false
+    @State private var backgroundAnalysis: Task<Void, Never>?
+    @State private var plateAnalysis: Task<Void, Never>?
+    @State private var previewRender: Task<Void, Never>?
     @State private var faceAnalysis: Task<Void, Never>?
     @State private var documentAnalysis: Task<Void, Never>?
     @State private var sessionID = UUID()
     @State private var backgroundUnavailable = false
     @State private var testRenderFingerprint = ""
+    #if DEBUG
+    @State private var analysisCounts: [String: Int] = [:]
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -99,11 +105,8 @@ struct PhotoVeilHome: View {
         .alert("Saved", isPresented: Binding(get: { successMessage != nil }, set: { if !$0 { successMessage = nil } })) {
             Button("OK") { successMessage = nil }
         } message: { Text(successMessage ?? "") }
-        .sheet(isPresented: $showingShare, onDismiss: {
-            if let exportURL { try? FileManager.default.removeItem(at: exportURL) }
-            exportURL = nil
-        }) {
-            if let exportURL { ShareSheet(items: [exportURL]) }
+        .sheet(item: $shareItem) { item in
+            ShareSheet(items: [item.url]).onDisappear { try? FileManager.default.removeItem(at: item.url) }
         }
     }
 
@@ -228,6 +231,13 @@ struct PhotoVeilHome: View {
                 }
                 .padding(12)
                 }
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") {
+                    Color.clear.frame(width: 1, height: 1).accessibilityElement()
+                        .accessibilityIdentifier("analysisCounts")
+                        .accessibilityValue(["background", "faces", "plates", "documents"].map { "\($0)=\(analysisCounts[$0, default: 0])" }.joined(separator: ","))
+                }
+                #endif
                 if working && draftStroke == nil {
                     ProgressView().controlSize(.regular).padding(13).background(.regularMaterial, in: Circle())
                         .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel("Processing").allowsHitTesting(false)
@@ -254,72 +264,27 @@ struct PhotoVeilHome: View {
         }
     }
 
-    private var usesExpandedControls: Bool { dynamicTypeSize.isAccessibilitySize }
+    private var usesExpandedControls: Bool { dynamicTypeSize > .large }
 
+    // Keep the same three layout slots for every tool/effect. Only their contents change.
     private var editorControls: some View {
-        VStack(spacing: 9) {
-            (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 12))) {
-                effectControl
-                if !usesExpandedControls { Spacer(minLength: 6) }
-                if effect != .redact { strengthControl }
-            }.frame(minHeight: 44).opacity(mode == nil ? 0 : 1).disabled(mode == nil).accessibilityHidden(mode == nil)
-            (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))) {
-              if let mode {
-                    if !usesExpandedControls { Spacer(minLength: 6) }
-                    if (mode == .faces && !faceRegions.isEmpty) || (mode == .plate && !plateSuggestions.isEmpty) {
-                        Button { toggleAllDetections() } label: {
-                            Label(allDetectionsSelected ? "Clear all" : "Blur all", systemImage: "checkmark.rectangle.stack")
-                                .font(.subheadline.weight(.semibold)).padding(.horizontal, 13).frame(minHeight: 44)
-                                .modifier(VeilGlassSurface())
-                        }
-                        .accessibilityIdentifier(mode == .faces ? "blurAllFaces" : "blurAllPlates")
-                        .accessibilityLabel("\(allDetectionsSelected ? "Clear all" : "Blur all") \(mode == .faces ? "faces" : "plates")")
-                    }
-                    if mode == .documents {
-                        if didAnalyzeDocuments {
-                            Text(documentBoundaries.isEmpty ? "No document found" : "Sensitive regions found")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Menu("Coverage", systemImage: "doc.text") {
-                            Button("Hide all details") { setDocumentCoverage(entire: false) }
-                            Button("Hide entire document") { setDocumentCoverage(entire: true) }
-                            Button("Clear selections") { pushUndo(); selectedDocuments = []; rerender() }
-                        }.accessibilityIdentifier("documentCoverage")
-                    }
-                    if mode == .manual {
-                        HStack(spacing: 10) {
-                        Menu {
-                            Button("Rectangle") { paintsStrokes = false; manualShape = .roundedRectangle }
-                            Button("Ellipse") { paintsStrokes = false; manualShape = .oval }
-                            Button("Brush") { paintsStrokes = true }
-                        } label: {
-                            Image(systemName: paintsStrokes ? "paintbrush.pointed" : manualShape == .oval ? "oval" : "rectangle.dashed").font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44)
-                        }.accessibilityLabel("Selection shape")
-                        .accessibilityValue(paintsStrokes ? "Brush" : manualShape == .oval ? "Ellipse" : "Rectangle")
-                        .accessibilityIdentifier("shapeMenu")
-                        Button {
-                            paintsStrokes.toggle(); manualDraws = true
-                        } label: {
-                            Image(systemName: paintsStrokes ? (manualShape == .oval ? "oval" : "rectangle.dashed") : "paintbrush.pointed")
-                                .font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).background(.thinMaterial, in: Circle())
-                        }
-                        .accessibilityLabel(paintsStrokes ? (manualShape == .oval ? "Ellipse selection" : "Rectangle selection") : "Paint blur")
-                        .accessibilityIdentifier("manualBrush")
-                        Button { manualDraws.toggle() } label: {
-                            Image(systemName: manualDraws ? "hand.raised" : "pencil.tip.crop.circle")
-                                .font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44)
-                                .background(.thinMaterial, in: Circle())
-                        }
-                        .accessibilityLabel(manualDraws ? "Move photo" : "Draw blur region")
-                        .accessibilityIdentifier("canvasGestureMode")
-                        }
-                    }
-                    if (mode == .faces && faceRegions.isEmpty) || (mode == .plate && didAnalyzePlates && plateSuggestions.isEmpty) {
-                        Button { select(.manual) } label: { Image(systemName: "scribble.variable").frame(width: 44, height: 44) }
-                            .accessibilityLabel("Select manually")
-                    }
-              }
-            }.frame(minHeight: 44)
+        VStack(spacing: 8) {
+            VStack(spacing: 4) {
+                if usesExpandedControls {
+                    VStack(alignment: .leading, spacing: 4) { effectControl; effectParameterMenu }
+                } else {
+                    HStack(spacing: 8) {
+                        effectControl.frame(width: 116)
+                        Divider().frame(height: 22)
+                        effectParameterControl.frame(maxWidth: .infinity)
+                    }.frame(height: 44)
+                }
+                contextualControls.frame(height: 44)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .modifier(VeilGlassSurface(panel: true))
+            .opacity(mode == nil ? 0 : 1).disabled(mode == nil).accessibilityHidden(mode == nil)
+
             if usesExpandedControls {
                 Menu {
                     ForEach(EditorMode.allCases) { item in
@@ -328,86 +293,159 @@ struct PhotoVeilHome: View {
                         }.accessibilityIdentifier("mode_\(item.rawValue.lowercased())")
                     }
                 } label: {
-                    Text(mode?.label ?? "Choose tool")
-                        .font(.subheadline.weight(.semibold)).multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity, minHeight: 44).padding(.horizontal, 8)
+                    Text(mode?.label ?? "Choose tool").font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .modifier(VeilActionStyle())
-                .accessibilityLabel("Editing tool")
-                .accessibilityValue(mode?.label ?? "None selected")
+                .accessibilityLabel("Editing tool").accessibilityValue(mode?.label ?? "None selected")
                 .accessibilityIdentifier("toolMenu")
             } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 5) {
-                ForEach(EditorMode.allCases) { item in
-                    Button { select(item) } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: item.symbol).font(.system(size: 18, weight: .medium))
-                            Text(item.label).font(.caption.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
+                HStack(spacing: 0) {
+                    ForEach(EditorMode.allCases) { item in
+                        Button { select(item) } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: item.symbol)
+                                    .font(.system(size: 19, weight: .medium)).frame(width: 26, height: 24)
+                                Text(item.label).font(.caption2.weight(.medium)).lineLimit(1)
+                                    .frame(maxWidth: .infinity).frame(height: 16)
+                            }
+                            .foregroundStyle(mode == item ? Color.primary : Color.secondary)
+                            .frame(maxWidth: .infinity).frame(height: 56)
+                            .background(mode == item ? Color(uiColor: .tertiarySystemFill) : .clear, in: RoundedRectangle(cornerRadius: 20))
+                            .contentShape(Rectangle())
                         }
-                        .foregroundStyle(mode == item ? Color.primary : Color.secondary)
-                        .frame(minWidth: 70, minHeight: 56)
-                        .background(mode == item ? Color(uiColor: .tertiarySystemFill) : .clear, in: Capsule())
-                        .contentShape(Capsule())
+                        .buttonStyle(VeilModePressStyle())
+                        .accessibilityAddTraits(mode == item ? .isSelected : [])
+                        .accessibilityIdentifier("mode_\(item.rawValue.lowercased())")
                     }
-                    .buttonStyle(VeilModePressStyle())
-                    .accessibilityAddTraits(mode == item ? .isSelected : [])
-                    .accessibilityIdentifier("mode_\(item.rawValue.lowercased())")
                 }
-            }
-            .padding(5)
-            }.modifier(VeilGlassSurface(panel: dynamicTypeSize.isAccessibilitySize))
+                .padding(4).modifier(VeilGlassSurface())
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
+        .padding(.horizontal, 12).padding(.vertical, 8)
     }
 
     private var effectControl: some View {
         Menu {
             ForEach(PrivacyEffect.allCases) { option in
-                Button(option.rawValue) { pushUndo(); effect = option; rerender() }
-            }
-            if effect == .redact {
-                ForEach(RedactionColor.allCases) { color in
-                    Button(color.rawValue) { pushUndo(); redactionColor = color; rerender() }
+                Button { setEffect(option) } label: {
+                    if effect == option { Label(option.rawValue, systemImage: "checkmark") }
+                    else { Text(option.rawValue) }
                 }
             }
         } label: {
-            Text(effect == .redact ? "\(effect.rawValue) · \(redactionColor.rawValue)" : effect.rawValue)
-                .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
-        }.modifier(VeilActionStyle()).accessibilityIdentifier("effectMenu")
+            HStack(spacing: 6) {
+                Text(effect.rawValue).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+            }.frame(maxWidth: .infinity, minHeight: 44)
+        }.buttonStyle(.plain).accessibilityIdentifier("effectMenu")
     }
 
-    @ViewBuilder private var strengthControl: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            Menu {
+    @ViewBuilder private var effectParameterControl: some View {
+        if effect == .redact { effectParameterMenu }
+        else {
+            HStack(spacing: 0) {
                 ForEach(BlurStrength.allCases) { option in
-                    Button(option.rawValue) {
-                        guard strength != option else { return }
-                        pushUndo(); strength = option; rerender()
+                    Button { setStrength(option) } label: {
+                        Text(option.rawValue).font(.caption.weight(strength == option ? .semibold : .regular))
+                            .lineLimit(1).frame(maxWidth: .infinity, minHeight: 44)
+                            .background(strength == option ? Color(uiColor: .tertiarySystemFill) : .clear, in: Capsule())
+                    }.buttonStyle(.plain).foregroundStyle(strength == option ? Color.primary : Color.secondary)
+                        .accessibilityAddTraits(strength == option ? .isSelected : [])
+                        .accessibilityIdentifier("strength_\(option.rawValue.lowercased())")
+                }
+            }
+        }
+    }
+
+    private var effectParameterMenu: some View {
+        Menu {
+            if effect == .redact {
+                ForEach(RedactionColor.allCases) { color in
+                    Button { guard redactionColor != color else { return }; pushUndo(); redactionColor = color; rerender() } label: {
+                        if redactionColor == color { Label(color.rawValue, systemImage: "checkmark") }
+                        else { Text(color.rawValue) }
                     }
                 }
-            } label: {
-                Label(strength.rawValue, systemImage: "slider.horizontal.3").font(.body).frame(minHeight: 44)
-            }
-            .accessibilityLabel(effect == .pixelate ? "Pixel size" : "Blur strength")
-            .accessibilityValue(strength.rawValue)
-        } else {
-        HStack(spacing: 0) {
-            ForEach(BlurStrength.allCases) { option in
-                Button(option.rawValue) {
-                    guard strength != option else { return }
-                    pushUndo(); strength = option; rerender()
+            } else {
+                ForEach(BlurStrength.allCases) { option in
+                    Button { setStrength(option) } label: {
+                        if strength == option { Label(option.rawValue, systemImage: "checkmark") }
+                        else { Text(option.rawValue) }
+                    }.accessibilityIdentifier("strength_\(option.rawValue.lowercased())")
                 }
-                .font(.caption.weight(strength == option ? .semibold : .regular))
-                .foregroundStyle(strength == option ? Color.primary : Color.secondary)
-                .padding(.horizontal, 11).frame(minHeight: 44)
-                .background(strength == option ? Color(uiColor: .tertiarySystemFill) : .clear, in: Capsule())
-                .accessibilityIdentifier("strength_\(option.rawValue.lowercased())")
             }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: effect == .redact ? "circle.lefthalf.filled" : "slider.horizontal.3")
+                    .font(.system(size: 17))
+                Text(effect == .redact ? redactionColor.rawValue : strength.rawValue).font(.subheadline).lineLimit(1)
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+            }.frame(maxWidth: .infinity, minHeight: 44)
+        }.buttonStyle(.plain)
+        .accessibilityLabel(effect == .redact ? "Redaction color" : effect == .pixelate ? "Pixel size" : "Blur strength")
+        .accessibilityValue(effect == .redact ? redactionColor.rawValue : strength.rawValue)
+        .accessibilityIdentifier("effectParameterMenu")
+    }
+
+    private var contextualControls: some View {
+        HStack(spacing: 8) {
+            Spacer(minLength: 0)
+            if mode == .faces || mode == .plate {
+                if (mode == .faces && !faceRegions.isEmpty) || (mode == .plate && !plateSuggestions.isEmpty) {
+                    Button { toggleAllDetections() } label: {
+                        Label(allDetectionsSelected ? "Clear all" : "Hide all", systemImage: "checkmark.rectangle.stack")
+                            .font(.subheadline).lineLimit(1).frame(minHeight: 44)
+                    }.buttonStyle(.plain)
+                    .accessibilityIdentifier(mode == .faces ? "blurAllFaces" : "blurAllPlates")
+                    .accessibilityLabel("\(allDetectionsSelected ? "Clear all" : "Hide all") \(mode == .faces ? "faces" : "plates")")
+                } else {
+                    Button { select(.manual) } label: { Label("Manual", systemImage: "scribble.variable").font(.subheadline).frame(minHeight: 44) }
+                        .buttonStyle(.plain).accessibilityLabel("Select manually")
+                }
+            } else if mode == .documents {
+                Menu {
+                    Button("Hide all details") { setDocumentCoverage(entire: false) }
+                    Button("Hide entire document") { setDocumentCoverage(entire: true) }
+                    Button("Clear selections") { pushUndo(); selectedDocuments = []; rerender() }
+                } label: {
+                    Label("Coverage", systemImage: "doc.text").font(.subheadline).frame(minHeight: 44)
+                }.buttonStyle(.plain).accessibilityIdentifier("documentCoverage")
+                .accessibilityValue(didAnalyzeDocuments && documentBoundaries.isEmpty ? "No document found" : hidesEntireDocument ? "Entire document" : "Details")
+            } else if mode == .manual {
+                Menu {
+                    Button("Rectangle") { paintsStrokes = false; manualShape = .roundedRectangle }
+                    Button("Ellipse") { paintsStrokes = false; manualShape = .oval }
+                    Button("Brush") { paintsStrokes = true }
+                } label: {
+                    Image(systemName: paintsStrokes ? "paintbrush.pointed" : manualShape == .oval ? "oval" : "rectangle.dashed")
+                        .font(.system(size: 18)).frame(width: 44, height: 44)
+                }.buttonStyle(.plain).accessibilityLabel("Selection shape")
+                .accessibilityValue(paintsStrokes ? "Brush" : manualShape == .oval ? "Ellipse" : "Rectangle")
+                .accessibilityIdentifier("shapeMenu")
+                Button { paintsStrokes.toggle(); manualDraws = true } label: {
+                    Image(systemName: paintsStrokes ? (manualShape == .oval ? "oval" : "rectangle.dashed") : "paintbrush.pointed")
+                        .font(.system(size: 18)).frame(width: 44, height: 44)
+                }.buttonStyle(.plain)
+                .accessibilityLabel(paintsStrokes ? (manualShape == .oval ? "Ellipse selection" : "Rectangle selection") : "Paint blur")
+                .accessibilityIdentifier("manualBrush")
+                Button { manualDraws.toggle() } label: {
+                    Image(systemName: manualDraws ? "hand.raised" : "pencil.tip.crop.circle")
+                        .font(.system(size: 18)).frame(width: 44, height: 44)
+                }.buttonStyle(.plain).accessibilityLabel(manualDraws ? "Move photo" : "Draw blur region")
+                .accessibilityIdentifier("canvasGestureMode")
+            }
+            Spacer(minLength: 0)
         }
-        .padding(3).modifier(VeilGlassSurface())
-        }
+    }
+
+    private func setEffect(_ option: PrivacyEffect) {
+        guard effect != option else { return }
+        pushUndo(); effect = option; rerender()
+    }
+    private func setStrength(_ option: BlurStrength) {
+        guard strength != option else { return }
+        pushUndo(); strength = option; rerender()
     }
 
     @MainActor private func load(_ item: PhotosPickerItem?) async {
@@ -427,6 +465,8 @@ struct PhotoVeilHome: View {
 
     @MainActor private func beginSession(original: UIImage, preview: UIImage) {
         faceAnalysis?.cancel(); faceAnalysis = nil; documentAnalysis?.cancel(); documentAnalysis = nil
+        backgroundAnalysis?.cancel(); backgroundAnalysis = nil; plateAnalysis?.cancel(); plateAnalysis = nil
+        previewRender?.cancel(); previewRender = nil; brushRenderInFlight = false; brushRenderPending = false
         sessionID = UUID(); renderRevision += 1; backgroundUnavailable = false
         self.original = original
         self.previewSource = preview
@@ -440,7 +480,11 @@ struct PhotoVeilHome: View {
         self.manualRegions = []
         self.strokes = []; self.draftStroke = nil; self.paintsStrokes = false; self.showingFinalPreview = false
         self.undoStack = []
-        self.didAnalyzePlates = false; self.didAnalyzeFaces = false
+
+        #if DEBUG
+        analysisCounts = [:]
+        #endif
+        self.didAnalyzeBackground = false; self.didAnalyzePlates = false; self.didAnalyzeFaces = false
         self.documentBoundaries = []; self.documentDetails = []; self.selectedDocuments = []; self.didAnalyzeDocuments = false; self.hidesEntireDocument = false
         self.strength = .medium; self.effect = .blur; self.redactionColor = .black; self.manualShape = .roundedRectangle
         self.showingOriginal = false
@@ -485,7 +529,9 @@ struct PhotoVeilHome: View {
         if newMode == .manual || newMode == .plate { manualDraws = true }
         switch newMode {
         case .background:
-            if backgroundMask == nil { runBackground() } else { rerender() }
+            if backgroundMask != nil { rerender() }
+            else if didAnalyzeBackground { backgroundUnavailable = true; mode = .manual; manualDraws = true; rerender() }
+            else { runBackground() }
         case .faces:
             if !didAnalyzeFaces { runFaces() } else { rerender() }
         case .plate:
@@ -497,15 +543,20 @@ struct PhotoVeilHome: View {
     }
 
     private func runBackground() {
+        guard backgroundAnalysis == nil else { return }
         guard let previewSource else { return }
         working = true
+        #if DEBUG
+        analysisCounts["background", default: 0] += 1
+        #endif
         let currentStrength = strength, session = sessionID
-        Task.detached(priority: .userInitiated) {
+        backgroundAnalysis = Task.detached(priority: .userInitiated) {
             let result: Result<(image: UIImage, mask: CIImage), Error>
             do { result = .success(try await BlurRenderer.renderBackground(previewSource, strength: currentStrength)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
+                backgroundAnalysis = nil; didAnalyzeBackground = true
                 switch result {
                 case .success(let output):
                     backgroundMask = output.mask; backgroundUnavailable = false
@@ -525,6 +576,9 @@ struct PhotoVeilHome: View {
         guard let original else { return }
         working = true
         let session = sessionID
+        #if DEBUG
+        analysisCounts["faces", default: 0] += 1
+        #endif
         faceAnalysis = Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
             do { result = .success(try await BlurRenderer.detectFaces(in: original)) }
@@ -545,16 +599,20 @@ struct PhotoVeilHome: View {
     }
 
     private func runPlate() {
+        guard plateAnalysis == nil else { return }
         guard let previewSource else { return }
         working = true
         let session = sessionID
-        Task.detached(priority: .userInitiated) {
+        #if DEBUG
+        analysisCounts["plates", default: 0] += 1
+        #endif
+        plateAnalysis = Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
             do { result = .success(try await BlurRenderer.detectPlateSuggestions(in: previewSource)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
-                didAnalyzePlates = true
+                plateAnalysis = nil; didAnalyzePlates = true
                 plateSuggestions = (try? result.get()) ?? []
                 selectedPlates = Set(plateSuggestions.indices)
                 if mode == .plate { rerender() }
@@ -581,6 +639,9 @@ struct PhotoVeilHome: View {
         guard let original, let cg = original.cgImage else { return }
         working = true
         let session = sessionID
+        #if DEBUG
+        analysisCounts["documents", default: 0] += 1
+        #endif
         documentAnalysis = Task.detached(priority: .userInitiated) {
             let analysis = BlurRenderer.previewImage(original, maxDimension: 3200)?.cgImage ?? cg
             let result = try? DocumentDetection.analyze(analysis)
@@ -679,7 +740,9 @@ struct PhotoVeilHome: View {
         let revision = renderRevision, currentMode = mode, currentStrength = strength, isDraft = draftStroke != nil
         let strokes = renderStrokes, currentEffect = effect, currentColor = redactionColor
         let regions = regionsForCurrentMode(), mask = currentMode == .background ? backgroundMask : nil
-        Task.detached(priority: .userInitiated) {
+        if !brushRenderInFlight { previewRender?.cancel() }
+        previewRender = Task.detached(priority: .userInitiated) {
+            guard !Task.isCancelled else { return }
             let output: UIImage?
             if currentMode == .background, let mask {
                 output = BlurRenderer.render(previewSource, regions: [], strength: currentStrength, foregroundMask: mask, strokes: strokes, effect: currentEffect, redactionColor: currentColor)
@@ -735,6 +798,8 @@ struct PhotoVeilHome: View {
 
     private func clearSession() {
         faceAnalysis?.cancel(); faceAnalysis = nil; documentAnalysis?.cancel(); documentAnalysis = nil
+        backgroundAnalysis?.cancel(); backgroundAnalysis = nil; plateAnalysis?.cancel(); plateAnalysis = nil
+        previewRender?.cancel(); previewRender = nil; brushRenderInFlight = false; brushRenderPending = false
         sessionID = UUID(); renderRevision += 1
         original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
         faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
@@ -779,7 +844,7 @@ struct PhotoVeilHome: View {
                 }
                 switch destination {
                 case .share:
-                    await MainActor.run { working = false; exportURL = url; showingShare = true }
+                    await MainActor.run { working = false; shareItem = url.map { PhotoShareItem(url: $0) } }
                 case .gallery:
                     try await library.save(data, effect: currentEffect.rawValue)
                     await MainActor.run { working = false; successMessage = "Saved to Private Gallery on this iPhone" }
