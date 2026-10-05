@@ -74,6 +74,8 @@ struct PhotoVeilHome: View {
     @State private var renderRevision = 0
     @State private var didAnalyzePlates = false
     @State private var didAnalyzeFaces = false
+    @State private var faceAnalysis: Task<Void, Never>?
+    @State private var documentAnalysis: Task<Void, Never>?
     @State private var sessionID = UUID()
     @State private var backgroundUnavailable = false
     @State private var testRenderFingerprint = ""
@@ -249,10 +251,13 @@ struct PhotoVeilHome: View {
 
     private var editorControls: some View {
         VStack(spacing: 9) {
+            HStack(spacing: 12) {
+                effectControl
+                Spacer(minLength: 6)
+                if effect != .redact { strengthControl }
+            }.frame(minHeight: 44).opacity(mode == nil ? 0 : 1).disabled(mode == nil)
             (usesExpandedControls ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))) {
               if let mode {
-                    effectControl
-                    if effect != .redact { strengthControl }
                     if !usesExpandedControls { Spacer(minLength: 6) }
                     if (mode == .faces && !faceRegions.isEmpty) || (mode == .plate && !plateSuggestions.isEmpty) {
                         Button { toggleAllDetections() } label: {
@@ -264,6 +269,10 @@ struct PhotoVeilHome: View {
                         .accessibilityLabel("\(allDetectionsSelected ? "Clear all" : "Blur all") \(mode == .faces ? "faces" : "plates")")
                     }
                     if mode == .documents {
+                        if didAnalyzeDocuments {
+                            Text(documentBoundaries.isEmpty ? "No document found" : "Sensitive regions found")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                         Menu("Coverage", systemImage: "doc.text") {
                             Button("Hide all details") { setDocumentCoverage(entire: false) }
                             Button("Hide entire document") { setDocumentCoverage(entire: true) }
@@ -398,13 +407,17 @@ struct PhotoVeilHome: View {
         defer { working = false }
         do {
             guard let data = try await item.loadTransferable(type: Data.self),
-                  let image = UIImage(data: data), let normalized = BlurRenderer.normalizedImage(image),
-                  let downsampled = BlurRenderer.previewImage(normalized) else { throw BlurError.unavailable }
-            beginSession(original: normalized, preview: downsampled)
+                  let pair = await Task.detached(priority: .userInitiated, operation: { () -> (UIImage, UIImage)? in
+                      guard let image = UIImage(data: data), let normalized = BlurRenderer.normalizedImage(image),
+                            let downsampled = BlurRenderer.previewImage(normalized) else { return nil }
+                      return (normalized, downsampled)
+                  }).value else { throw BlurError.unavailable }
+            beginSession(original: pair.0, preview: pair.1)
         } catch { errorMessage = "The photo couldn’t be loaded. Please try another one." }
     }
 
     @MainActor private func beginSession(original: UIImage, preview: UIImage) {
+        faceAnalysis?.cancel(); faceAnalysis = nil; documentAnalysis?.cancel(); documentAnalysis = nil
         sessionID = UUID(); renderRevision += 1; backgroundUnavailable = false
         self.original = original
         self.previewSource = preview
@@ -498,16 +511,17 @@ struct PhotoVeilHome: View {
     }
 
     private func runFaces() {
+        guard faceAnalysis == nil else { return }
         guard let original else { return }
         working = true
         let session = sessionID
-        Task.detached(priority: .userInitiated) {
+        faceAnalysis = Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
             do { result = .success(try await BlurRenderer.detectFaces(in: original)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
-                didAnalyzeFaces = true
+                faceAnalysis = nil; didAnalyzeFaces = true
                 switch result {
                 case .success(let faces):
                     faceRegions = faces; selectedFaces = Set(faces.indices)
@@ -553,14 +567,16 @@ struct PhotoVeilHome: View {
     }
 
     private func runDocuments() {
+        guard documentAnalysis == nil else { return }
         guard let original, let cg = original.cgImage else { return }
         working = true
         let session = sessionID
-        Task.detached(priority: .userInitiated) {
-            let result = try? DocumentDetection.analyze(cg)
+        documentAnalysis = Task.detached(priority: .userInitiated) {
+            let analysis = BlurRenderer.previewImage(original, maxDimension: 3200)?.cgImage ?? cg
+            let result = try? DocumentDetection.analyze(analysis)
             await MainActor.run {
                 guard sessionID == session else { return }
-                didAnalyzeDocuments = true
+                documentAnalysis = nil; didAnalyzeDocuments = true
                 documentBoundaries = result?.boundaries ?? []; documentDetails = result?.details ?? []
                 hidesEntireDocument = documentDetails.isEmpty
                 selectedDocuments = Set(currentDocumentRegions.indices)
@@ -638,7 +654,7 @@ struct PhotoVeilHome: View {
         case .documents:
             return selectedDocuments.sorted().compactMap { index in
                 guard currentDocumentRegions.indices.contains(index) else { return nil }
-                return BlurRegion(id: "document-\(index)", rect: currentDocumentRegions[index], shape: .roundedRectangle)
+                return BlurRegion(id: "document-\(index)", rect: currentDocumentRegions[index], shape: .rectangle)
             } + manualRegions
         case .manual: return manualRegions
         case .background, .none: return []
@@ -708,6 +724,7 @@ struct PhotoVeilHome: View {
     }
 
     private func clearSession() {
+        faceAnalysis?.cancel(); faceAnalysis = nil; documentAnalysis?.cancel(); documentAnalysis = nil
         sessionID = UUID(); renderRevision += 1
         original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
         faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []

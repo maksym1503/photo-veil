@@ -208,6 +208,8 @@
 				<string>NO</string>
 				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
 				<string>$(inherited) DEBUG</string>
+				<key>ONLY_ACTIVE_ARCH</key>
+				<string>YES</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -328,6 +330,8 @@
 				<string>$(inherited) DEBUG</string>
 				<key>CODE_SIGN_ENTITLEMENTS</key>
 				<string>$(VEIL_ENTITLEMENTS_FILE)</string>
+				<key>ONLY_ACTIVE_ARCH</key>
+				<string>YES</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -551,6 +555,8 @@
 				<string>NO</string>
 				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
 				<string>$(inherited) DEBUG</string>
+				<key>ONLY_ACTIVE_ARCH</key>
+				<string>YES</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -677,6 +683,8 @@
 				<string>NO</string>
 				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
 				<string>$(inherited) DEBUG</string>
+				<key>ONLY_ACTIVE_ARCH</key>
+				<string>YES</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>

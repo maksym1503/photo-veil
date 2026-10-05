@@ -45,6 +45,7 @@ begin
 end $$;
 revoke all on function public.veil_new_user() from public, anon, authenticated;
 create trigger veil_new_user after insert on auth.users for each row execute function public.veil_new_user();
+insert into public.profiles(id) select id from auth.users on conflict do nothing;
 create function public.veil_gallery_update() returns trigger language plpgsql set search_path = '' as $$
 begin
   if new.id <> old.id or new.user_id <> old.user_id or new.created_at <> old.created_at then raise exception 'immutable gallery identity'; end if;

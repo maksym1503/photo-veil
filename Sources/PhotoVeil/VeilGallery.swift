@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct VeilGallery: View {
+    @EnvironmentObject private var account: VeilAccount
     @EnvironmentObject private var library: VeilLibrary
     @Environment(\.dismiss) private var dismiss
     @State private var selected = Set<UUID>()
@@ -29,6 +30,9 @@ struct VeilGallery: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                Text(account.syncEnabled ? account.syncStatus : "Stored on this iPhone").font(.footnote).foregroundStyle(.secondary).padding(8)
+            }
             .navigationTitle("Private Gallery")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Close", systemImage: "xmark") { dismiss() } }
@@ -54,12 +58,14 @@ struct GalleryImage: View {
     let id: UUID
     var thumbnail = false
     @State private var image: UIImage?
+    @State private var unavailable = false
     var body: some View {
         Group {
             if let image { Image(uiImage: image).resizable().scaledToFit() }
+            else if unavailable { Label("Photo unavailable", systemImage: "photo.badge.exclamationmark").foregroundStyle(.secondary).frame(minHeight: 100) }
             else { ProgressView().frame(maxWidth: .infinity, minHeight: 100) }
         }.task(id: id) {
-            guard let data = try? await library.store?.data(for: id, thumbnail: thumbnail) else { return }
+            guard let data = try? await library.store?.data(for: id, thumbnail: thumbnail) else { unavailable = true; return }
             image = await Task.detached { UIImage(data: data) }.value
         }.accessibilityLabel("Processed photo")
     }

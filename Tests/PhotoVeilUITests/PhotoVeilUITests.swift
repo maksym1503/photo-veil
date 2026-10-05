@@ -14,7 +14,7 @@ final class PhotoVeilUITests: XCTestCase {
         attach(app, "about")
         app.buttons["BackButton"].tap()
         app.buttons["photoPrivacy"].tap()
-        XCTAssertTrue(app.staticTexts["Photo processing happens entirely on this iPhone. Photos are not uploaded to Veil servers."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Photo processing happens on this iPhone. The system picker shares only photos you select; Save to Photos asks only to add your chosen output."].waitForExistence(timeout: 5))
         attach(app, "privacy")
     }
 

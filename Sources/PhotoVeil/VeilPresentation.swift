@@ -98,6 +98,9 @@ struct VeilDemonstration: View {
 }
 
 struct VeilSettings: View {
+    @EnvironmentObject private var library: VeilLibrary
+    @EnvironmentObject private var account: VeilAccount
+    @State private var deletesHistory = false
     @Environment(\.dismiss) private var dismiss
     private var version: String {
         let info = Bundle.main.infoDictionary ?? [:]
@@ -112,6 +115,15 @@ struct VeilSettings: View {
                     }
                     LabeledContent("Version / Build", value: version)
                 }
+                Section("Private Gallery") {
+                    LabeledContent("Photos on this iPhone", value: "\(library.items.count)")
+                    LabeledContent("Storage used", value: ByteCountFormatter.string(fromByteCount: Int64(library.items.reduce(0) { $0 + $1.byteCount }), countStyle: .file))
+                    Button("Delete local history", role: .destructive) { deletesHistory = true }.disabled(library.items.isEmpty)
+                }
+                Section("Account & Sync") {
+                    NavigationLink(account.identity == nil ? "Account" : "Account & Sync") { VeilAccountView() }.accessibilityIdentifier("account")
+                    Text(account.syncEnabled ? account.syncStatus : "Cloud sync is off").font(.footnote).foregroundStyle(.secondary)
+                }
                 Section("Privacy") {
                     NavigationLink("How Veil handles photos") { photoPrivacy }
                         .accessibilityIdentifier("photoPrivacy")
@@ -120,17 +132,22 @@ struct VeilSettings: View {
                 }
                 Section("Support") {
                     NavigationLink("Help / Support") {
-                        VeilInformation(title: "Help / Support", symbol: "questionmark.circle", paragraphs: ["Choose a photo, then select Background, Faces, Plates or Manual. Faces and Plates blur detected regions immediately; tap a region to toggle it.", "In Manual, switch between rectangle and brush. Use two fingers to zoom; switch to Move photo to pan. Undo reverses your last edit.", "Choose Done to review, then Export to open the share sheet. Always check the whole photo: automatic detection can miss details, and blur does not guarantee anonymity."])
+                        VeilInformation(title: "Help / Support", symbol: "questionmark.circle", paragraphs: ["Choose a photo, then select Background, Faces, Plates or Manual. Faces and Plates blur detected regions immediately; tap a region to toggle it.", "In Manual, choose rectangle, ellipse or brush. Choose Blur, Pixelate or Redact for your selection. Use two fingers to zoom; switch to Move photo to pan. Undo reverses your last edit.", "Choose Done to review, then Share, Save to Veil or Save to Photos. Documents proposes text regions; hiding the entire document offers broader coverage. Always check the whole photo: automatic detection can miss details, and blur does not guarantee anonymity."])
                     }
                     if let url = VeilPublicLinks.support { Link("Contact Support", destination: url) }
                 }
             }
             .navigationTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }.task { await library.reload() }
+        .confirmationDialog("Delete local history? Cloud copies stay in your account and may download again if sync is enabled.", isPresented: $deletesHistory, titleVisibility: .visible) {
+            Button("Delete local history", role: .destructive) {
+                Task { await account.setSync(false); await library.delete(Set(library.items.map(\.id)), localOnly: true) }
+            }
         }
     }
     private var photoPrivacy: some View {
-        VeilInformation(title: "Your photos", symbol: "iphone", paragraphs: ["Photo processing happens entirely on this iPhone. Photos are not uploaded to Veil servers.", "Veil receives only the photo you choose through the system picker. It has no account, analytics, advertising or tracking.", "Edits stay in memory while the photo is open. Export creates a new JPEG in temporary storage and opens the system share sheet. Your original is unchanged. Exported images omit the original photo’s metadata.", "You choose where to share the result. The receiving app or service handles that copy under its own privacy policy."])
+        VeilInformation(title: "Your photos", symbol: "iphone", paragraphs: ["Photo processing happens on this iPhone. The system picker shares only photos you select; Save to Photos asks only to add your chosen output.", "Original photos and recognized text are never uploaded. Save to Veil stores processed outputs and thumbnails in protected local files, excluded from device backups. Removing the app removes local history.", "Accounts are optional. Only when you enable cloud sync do processed gallery images, thumbnails and edit metadata upload to private account storage. Authentication providers and the cloud operator also process account information. This is not end-to-end encryption.", "Signing out keeps local history. Account deletion removes your account and cloud gallery; local history is a separate Settings action. Provider/cloud backup retention needs the published policy.", "Share creates a temporary processed JPEG, cleaned up after sharing or on the next launch. Your original is unchanged; source EXIF/GPS metadata is not copied. Receiving apps handle shared copies under their own policies. No analytics or tracking is added."])
     }
 }
 

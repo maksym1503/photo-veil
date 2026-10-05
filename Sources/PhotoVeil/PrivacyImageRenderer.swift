@@ -4,7 +4,7 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 
 struct BlurRegion: Equatable, Identifiable {
-    enum Shape: String, Codable, Equatable { case oval, roundedRectangle }
+    enum Shape: String, Codable, Equatable { case oval, roundedRectangle, rectangle }
     let id: String
     var rect: CGRect
     var shape: Shape
@@ -96,7 +96,9 @@ enum PrivacyImageRenderer {
                 .transformed(by: CGAffineTransform(scaleX: extent.width / bounds.width, y: extent.height / bounds.height))
                 .cropped(to: extent)
         } else if !regions.isEmpty || !strokes.isEmpty {
-            mask = regionMask(size: CGSize(width: extent.width, height: extent.height), regions: regions, strokes: strokes)
+            mask = regionMask(size: CGSize(width: extent.width, height: extent.height), regions: effect == .redact ? regions.map {
+                BlurRegion(id: $0.id, rect: $0.rect, shape: $0.shape == .oval ? .oval : .rectangle)
+            } : regions, strokes: strokes)
         } else {
             mask = nil
         }
@@ -159,6 +161,8 @@ enum PrivacyImageRenderer {
             switch region.shape {
             case .oval:
                 bitmap.addEllipse(in: pixelRect)
+            case .rectangle:
+                bitmap.addRect(pixelRect)
             case .roundedRectangle:
                 bitmap.addPath(CGPath(roundedRect: pixelRect,
                                       cornerWidth: pixelRect.height * 0.16, cornerHeight: pixelRect.height * 0.16, transform: nil))
