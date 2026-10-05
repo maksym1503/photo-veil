@@ -69,6 +69,39 @@ final class PhotoVeilUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
     }
 
+    @MainActor func testRapidEffectParametersKeepControlFrames() {
+        let app = launch(fixture: "two-people-car")
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        let tools = ["background", "faces", "plate", "documents", "manual"]
+        let baseline = tools.map { app.buttons["mode_\($0)"].frame }
+        let effectFrame = app.buttons["effectMenu"].frame
+        for round in 0..<5 {
+            for style in ["Pixelate", "Redact", "Blur"] {
+                app.buttons["effectMenu"].tap(); app.buttons[style].tap()
+                if style == "Redact" {
+                    for color in ["White", "Black"] {
+                        app.buttons["effectParameterMenu"].tap(); app.buttons[color].tap()
+                    }
+                } else {
+                    app.buttons["strength_low"].tap(); app.buttons["strength_strong"].tap()
+                }
+                XCTAssertEqual(app.buttons["effectMenu"].frame.width, effectFrame.width, accuracy: 1)
+                XCTAssertEqual(app.buttons["effectMenu"].frame.minY, effectFrame.minY, accuracy: 1)
+            }
+            for tool in ["faces", "documents", "manual"] { app.buttons["mode_\(tool)"].tap() }
+            waitForRender(app, timeout: 120)
+            for (index, tool) in tools.enumerated() {
+                let frame = app.buttons["mode_\(tool)"].frame
+                XCTAssertEqual(frame.minX, baseline[index].minX, accuracy: 1)
+                XCTAssertEqual(frame.width, baseline[index].width, accuracy: 1)
+                XCTAssertEqual(frame.minY, baseline[index].minY, accuracy: 1)
+            }
+            XCTAssertTrue(app.buttons["mode_manual"].isSelected)
+            XCTAssertTrue(app.buttons["strength_strong"].isSelected)
+        }
+        attach(app, "v41-parameter-stress-final")
+    }
+
     @MainActor func testFirstLaunchSettingsAndPrivacy() {
         let app = XCUIApplication()
         app.launch()
