@@ -9,13 +9,15 @@ private struct EditSnapshot {
     let strokes: [BlurStroke]
     let selectedFaces: Set<Int>
     let selectedPlates: Set<Int>
+    let selectedDocuments: Set<Int>
+    let hidesEntireDocument: Bool
     let strength: BlurStrength
     let effect: PrivacyEffect
     let redactionColor: RedactionColor
 }
 
 enum EditorMode: String, CaseIterable, Identifiable {
-    case background = "Background", faces = "Faces", plate = "Plate", manual = "Manual"
+    case background = "Background", faces = "Faces", plate = "Plate", documents = "Documents", manual = "Manual"
     var id: String { rawValue }
     var label: String { self == .plate ? "Plates" : rawValue }
     var symbol: String {
@@ -23,6 +25,7 @@ enum EditorMode: String, CaseIterable, Identifiable {
         case .background: "person.crop.rectangle"
         case .faces: "face.smiling"
         case .plate: "rectangle.on.rectangle"
+        case .documents: "doc.text.viewfinder"
         case .manual: "scribble.variable"
         }
     }
@@ -45,6 +48,11 @@ struct PhotoVeilHome: View {
     @State private var selectedFaces = Set<Int>()
     @State private var plateSuggestions: [CGRect] = []
     @State private var selectedPlates = Set<Int>()
+    @State private var documentBoundaries: [CGRect] = []
+    @State private var documentDetails: [CGRect] = []
+    @State private var selectedDocuments = Set<Int>()
+    @State private var hidesEntireDocument = false
+    @State private var didAnalyzeDocuments = false
     @State private var manualRegions: [BlurRegion] = []
     @State private var strokes: [BlurStroke] = []
     @State private var brushRenderInFlight = false
@@ -153,11 +161,11 @@ struct PhotoVeilHome: View {
                     ZoomablePhotoCanvas(
                         original: original,
                         preview: showingOriginal ? previewSource : preview,
-                        mode: showingOriginal || showingFinalPreview ? nil : mode,
+                        mode: showingOriginal || showingFinalPreview ? nil : mode == .documents ? .plate : mode,
                         faces: faceRegions,
                         selectedFaces: selectedFaces,
-                        plates: plateSuggestions,
-                        selectedPlates: selectedPlates,
+                        plates: mode == .documents ? currentDocumentRegions : plateSuggestions,
+                        selectedPlates: mode == .documents ? selectedDocuments : selectedPlates,
                         regions: manualRegions,
                         newRegionShape: manualShape,
                         drawsRegions: manualDraws,
@@ -165,7 +173,7 @@ struct PhotoVeilHome: View {
                         strokes: strokes,
                         onStroke: updateStroke,
                         onFaces: toggleFace,
-                        onPlate: togglePlate,
+                        onPlate: { mode == .documents ? toggleDocument($0) : togglePlate($0) },
                         onRegions: replaceManualRegions,
                         onZoomChanged: { zoomed = $0 }
                     )
@@ -217,7 +225,7 @@ struct PhotoVeilHome: View {
         }
     }
 
-    private var usesExpandedControls: Bool { dynamicTypeSize >= .accessibility3 }
+    private var usesExpandedControls: Bool { dynamicTypeSize.isAccessibilitySize }
 
     private var editorControls: some View {
         VStack(spacing: 9) {
@@ -234,6 +242,13 @@ struct PhotoVeilHome: View {
                         }
                         .accessibilityIdentifier(mode == .faces ? "blurAllFaces" : "blurAllPlates")
                         .accessibilityLabel("\(allDetectionsSelected ? "Clear all" : "Blur all") \(mode == .faces ? "faces" : "plates")")
+                    }
+                    if mode == .documents {
+                        Menu("Coverage", systemImage: "doc.text") {
+                            Button("Hide all details") { setDocumentCoverage(entire: false) }
+                            Button("Hide entire document") { setDocumentCoverage(entire: true) }
+                            Button("Clear selections") { pushUndo(); selectedDocuments = []; rerender() }
+                        }.accessibilityIdentifier("documentCoverage")
                     }
                     if mode == .manual {
                         HStack(spacing: 10) {
@@ -284,7 +299,8 @@ struct PhotoVeilHome: View {
                 .accessibilityValue(mode?.label ?? "None selected")
                 .accessibilityIdentifier("toolMenu")
             } else {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 5) {
+            ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 5) {
                 ForEach(EditorMode.allCases) { item in
                     Button { select(item) } label: {
                         VStack(spacing: 4) {
@@ -292,7 +308,7 @@ struct PhotoVeilHome: View {
                             Text(item.label).font(.caption.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
                         }
                         .foregroundStyle(mode == item ? Color.primary : Color.secondary)
-                        .frame(maxWidth: .infinity).frame(minHeight: 56)
+                        .frame(minWidth: 70, minHeight: 56)
                         .background(mode == item ? Color(uiColor: .tertiarySystemFill) : .clear, in: Capsule())
                         .contentShape(Capsule())
                     }
@@ -302,7 +318,7 @@ struct PhotoVeilHome: View {
                 }
             }
             .padding(5)
-            .modifier(VeilGlassSurface(panel: dynamicTypeSize.isAccessibilitySize))
+            }.modifier(VeilGlassSurface(panel: dynamicTypeSize.isAccessibilitySize))
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
@@ -383,6 +399,7 @@ struct PhotoVeilHome: View {
         self.strokes = []; self.draftStroke = nil; self.paintsStrokes = false; self.showingFinalPreview = false
         self.undoStack = []
         self.didAnalyzePlates = false; self.didAnalyzeFaces = false
+        self.documentBoundaries = []; self.documentDetails = []; self.selectedDocuments = []; self.didAnalyzeDocuments = false; self.hidesEntireDocument = false
         self.strength = .medium; self.effect = .blur; self.redactionColor = .black; self.manualShape = .roundedRectangle
         self.showingOriginal = false
         self.manualDraws = true
@@ -430,6 +447,8 @@ struct PhotoVeilHome: View {
             if !didAnalyzeFaces { runFaces() } else { rerender() }
         case .plate:
             if !didAnalyzePlates { runPlate() } else { rerender() }
+        case .documents:
+            if !didAnalyzeDocuments { runDocuments() } else { rerender() }
         case .manual: rerender()
         }
     }
@@ -495,6 +514,37 @@ struct PhotoVeilHome: View {
                 plateSuggestions = (try? result.get()) ?? []
                 selectedPlates = Set(plateSuggestions.indices)
                 if mode == .plate { rerender() }
+            }
+        }
+    }
+
+    private var currentDocumentRegions: [CGRect] { hidesEntireDocument ? documentBoundaries : documentDetails }
+
+    private func setDocumentCoverage(entire: Bool) {
+        pushUndo(); hidesEntireDocument = entire
+        selectedDocuments = Set(currentDocumentRegions.indices); rerender()
+    }
+
+    private func toggleDocument(_ index: Int) {
+        guard currentDocumentRegions.indices.contains(index) else { return }
+        pushUndo()
+        if selectedDocuments.contains(index) { selectedDocuments.remove(index) } else { selectedDocuments.insert(index) }
+        UISelectionFeedbackGenerator().selectionChanged(); rerender()
+    }
+
+    private func runDocuments() {
+        guard let original, let cg = original.cgImage else { return }
+        working = true
+        let session = sessionID
+        Task.detached(priority: .userInitiated) {
+            let result = try? DocumentDetection.analyze(cg)
+            await MainActor.run {
+                guard sessionID == session else { return }
+                didAnalyzeDocuments = true
+                documentBoundaries = result?.boundaries ?? []; documentDetails = result?.details ?? []
+                hidesEntireDocument = documentDetails.isEmpty
+                selectedDocuments = Set(currentDocumentRegions.indices)
+                if mode == .documents { rerender() }
             }
         }
     }
@@ -565,6 +615,11 @@ struct PhotoVeilHome: View {
                 return BlurRegion(id: "plate-\(index)", rect: plateSuggestions[index], shape: .roundedRectangle)
             }
             return plates + manualRegions
+        case .documents:
+            return selectedDocuments.sorted().compactMap { index in
+                guard currentDocumentRegions.indices.contains(index) else { return nil }
+                return BlurRegion(id: "document-\(index)", rect: currentDocumentRegions[index], shape: .roundedRectangle)
+            } + manualRegions
         case .manual: return manualRegions
         case .background, .none: return []
         }
@@ -613,13 +668,14 @@ struct PhotoVeilHome: View {
 
     private func pushUndo() {
         undoStack.append(EditSnapshot(mode: mode, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
-                                      selectedPlates: selectedPlates, strength: strength, effect: effect, redactionColor: redactionColor))
+                                      selectedPlates: selectedPlates, selectedDocuments: selectedDocuments, hidesEntireDocument: hidesEntireDocument, strength: strength, effect: effect, redactionColor: redactionColor))
         if undoStack.count > 30 { undoStack.removeFirst() }
     }
 
     private func undo() {
         guard let snapshot = undoStack.popLast() else { return }
         mode = snapshot.mode; manualRegions = snapshot.regions; strokes = snapshot.strokes; draftStroke = nil; selectedFaces = snapshot.selectedFaces
+        selectedDocuments = snapshot.selectedDocuments; hidesEntireDocument = snapshot.hidesEntireDocument
         selectedPlates = snapshot.selectedPlates; strength = snapshot.strength; effect = snapshot.effect; redactionColor = snapshot.redactionColor
         rerender()
     }
@@ -628,7 +684,7 @@ struct PhotoVeilHome: View {
         guard let previewSource else { return }
         renderRevision += 1; working = false; backgroundUnavailable = false
         pushUndo(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
-        showingOriginal = false; showingFinalPreview = false; strokes = []; draftStroke = nil; preview = previewSource; manualDraws = true
+        selectedDocuments = []; showingOriginal = false; showingFinalPreview = false; strokes = []; draftStroke = nil; preview = previewSource; manualDraws = true
     }
 
     private func clearSession() {
