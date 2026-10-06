@@ -5,6 +5,7 @@ import Vision
 
 private struct EditSnapshot {
     let mode: EditorMode?
+    let focus: EditorMode?
     let backgroundActive: Bool
     let regions: [BlurRegion]
     let strokes: [BlurStroke]
@@ -12,9 +13,7 @@ private struct EditSnapshot {
     let selectedPlates: Set<Int>
     let selectedDocuments: Set<Int>
     let hidesEntireDocument: Bool
-    let strength: BlurStrength
-    let effect: PrivacyEffect
-    let redactionColor: RedactionColor
+    let settings: [EditorMode: PrivacyEffectSettings]
 }
 
 enum EditorMode: String, CaseIterable, Identifiable {
@@ -32,6 +31,23 @@ enum EditorMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// Equal tool columns with optically balanced outer label edges. The extra leading
+/// inset is measured from native intrinsic content, not a device-specific pixel offset.
+private struct PrivacyToolRowLayout: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        CGSize(width: proposal.width ?? subviews.reduce(0) { $0 + $1.sizeThatFits(.unspecified).width }, height: 56)
+    }
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let first = subviews.first, let last = subviews.last else { return }
+        let inset = max(0, (first.sizeThatFits(.unspecified).width - last.sizeThatFits(.unspecified).width) / 2)
+        let column = (bounds.width - inset) / CGFloat(subviews.count)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + inset + column * (CGFloat(index) + 0.5), y: bounds.midY),
+                anchor: .center, proposal: ProposedViewSize(width: column, height: bounds.height))
+        }
+    }
+}
+
 struct PhotoVeilHome: View {
     @EnvironmentObject private var library: VeilLibrary
     @State private var showingGallery = false
@@ -41,15 +57,30 @@ struct PhotoVeilHome: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var original: UIImage?
     @State private var previewSource: UIImage?
+    @State private var completedRenderLayers: [PrivacyRenderLayer]?
     @State private var preview: UIImage?
     @State private var backgroundMask: CIImage?
     @State private var backgroundSelection = DetectedPrivacySelection()
     @State private var detectionMessage: String?
     @State private var feedbackDismissal: Task<Void, Never>?
     @State private var mode: EditorMode?
-    @State private var strength: BlurStrength = .medium
-    @State private var effect: PrivacyEffect = .blur
-    @State private var redactionColor: RedactionColor = .black
+    @State private var layerSettings: [EditorMode: PrivacyEffectSettings] = [:]
+    private var currentSettings: PrivacyEffectSettings {
+        get { layerSettings[mode ?? .manual] ?? PrivacyEffectSettings() }
+        nonmutating set { layerSettings[mode ?? .manual] = newValue }
+    }
+    private var strength: BlurStrength {
+        get { currentSettings.strength }
+        nonmutating set { currentSettings.strength = newValue }
+    }
+    private var effect: PrivacyEffect {
+        get { currentSettings.effect }
+        nonmutating set { currentSettings.effect = newValue }
+    }
+    private var redactionColor: RedactionColor {
+        get { currentSettings.redactionColor }
+        nonmutating set { currentSettings.redactionColor = newValue }
+    }
     @State private var manualShape: BlurRegion.Shape = .roundedRectangle
     @State private var faceRegions: [CGRect] = []
     @State private var faceSelection = DetectedPrivacySelection()
@@ -92,16 +123,12 @@ struct PhotoVeilHome: View {
     #if DEBUG
     @State private var analysisCounts: [String: Int] = [:]
     @State private var rapidStressState = "Waiting"
+    @State private var testExportFingerprint = ""
     #endif
 
-    private var detectingCurrentTool: Bool {
-        switch mode {
-        case .background: backgroundSelection.status == .detecting
-        case .faces: faceSelection.status == .detecting
-        case .plate: plateSelection.status == .detecting
-        case .documents: documentSelection.status == .detecting
-        default: false
-        }
+    private var detectingRequestedLayers: Bool {
+        // Final output must wait for every requested analysis, even after switching tools.
+        backgroundAnalysis != nil || faceAnalysis != nil || plateAnalysis != nil || documentAnalysis != nil
     }
 
     var body: some View {
@@ -168,7 +195,7 @@ struct PhotoVeilHome: View {
             if !showingFinalPreview {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button("Undo", systemImage: "arrow.uturn.backward") { undo() }
-                        .labelStyle(.iconOnly).disabled(undoStack.isEmpty)
+                        .labelStyle(.iconOnly).disabled(!canUndo)
                     Menu("More editing actions", systemImage: "ellipsis") {
                         Button("Reset edits", systemImage: "arrow.counterclockwise", role: .destructive) { resetEdits() }
                     }.labelStyle(.iconOnly)
@@ -178,7 +205,7 @@ struct PhotoVeilHome: View {
                 Button(showingFinalPreview ? "Edit" : "Done") {
                     showingOriginal = false
                     showingFinalPreview.toggle()
-                }.id(showingFinalPreview).disabled(working || detectingCurrentTool).accessibilityIdentifier("finalPreview")
+                }.id(showingFinalPreview).disabled(working || detectingRequestedLayers).accessibilityIdentifier("finalPreview")
             }
             if showingFinalPreview {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -187,10 +214,10 @@ struct PhotoVeilHome: View {
                             .accessibilityIdentifier("saveToVeil")
                         Button("Save to Photos", systemImage: "photo") { prepareExport(destination: .photos) }
                             .accessibilityIdentifier("saveToPhotos")
-                    }.labelStyle(.iconOnly).disabled(working || detectingCurrentTool).accessibilityIdentifier("saveMenu")
+                    }.labelStyle(.iconOnly).disabled(working || detectingRequestedLayers).accessibilityIdentifier("saveMenu")
                     Button("Share", systemImage: "square.and.arrow.up") { prepareExport() }
                         .labelStyle(.iconOnly).modifier(VeilActionStyle(prominent: true))
-                        .disabled(working || detectingCurrentTool).accessibilityIdentifier("export")
+                        .disabled(working || detectingRequestedLayers).accessibilityIdentifier("export")
                 }
             }
         }
@@ -257,13 +284,15 @@ struct PhotoVeilHome: View {
                         .accessibilityIdentifier("privacySelectionCounts")
                         .accessibilityValue("background=\(backgroundSelection.selected.count),faces=\(selectedFaces.count),plates=\(selectedPlates.count),documents=\(selectedDocuments.count),rectangles=\(manualRegions.count),strokes=\(strokes.count)")
                     Color.clear.frame(width: 1, height: 1).accessibilityElement()
+                        .accessibilityIdentifier("exportFingerprint").accessibilityValue(testExportFingerprint)
+                    Color.clear.frame(width: 1, height: 1).accessibilityElement()
                         .accessibilityIdentifier("rapidSelectionStress").accessibilityValue(rapidStressState)
                 }
                 #endif
-                if (working || detectingCurrentTool) && draftStroke == nil {
+                if (working || detectingRequestedLayers) && draftStroke == nil {
                     ProgressView().controlSize(.regular).padding(13).background(.regularMaterial, in: Circle())
-                        .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel(detectingCurrentTool ? "Detecting" : "Processing")
-                        .accessibilityIdentifier(detectingCurrentTool ? "detectionInProgress" : "renderInProgress").allowsHitTesting(false)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel(detectingRequestedLayers ? "Detecting" : "Processing")
+                        .accessibilityIdentifier(detectingRequestedLayers ? "detectionInProgress" : "renderInProgress").allowsHitTesting(false)
                 } else {
                     Color.clear.frame(width: 1, height: 1)
                         .accessibilityElement()
@@ -325,7 +354,7 @@ struct PhotoVeilHome: View {
                 .accessibilityLabel("Editing tool").accessibilityValue(mode?.label ?? "None selected")
                 .accessibilityIdentifier("toolMenu")
             } else {
-                HStack(spacing: 0) {
+                PrivacyToolRowLayout {
                     ForEach(EditorMode.allCases) { item in
                         Button { select(item) } label: {
                             VStack(spacing: 3) {
@@ -521,7 +550,7 @@ struct PhotoVeilHome: View {
         backgroundSelection = .init(); faceSelection = .init(); plateSelection = .init(); documentSelection = .init()
         dismissDetectionFeedback()
         self.documentBoundaries = []; self.documentDetails = []; self.selectedDocuments = []; self.hidesEntireDocument = false
-        self.strength = .medium; self.effect = .blur; self.redactionColor = .black; self.manualShape = .roundedRectangle
+        self.completedRenderLayers = nil; self.layerSettings = [:]; self.manualShape = .roundedRectangle
         self.showingOriginal = false
         self.manualDraws = true
     }
@@ -536,12 +565,26 @@ struct PhotoVeilHome: View {
         }
         let requestedMode = argument("-veil-mode")
         let fixtureName = argument("-veil-fixture") ?? (requestedMode == "background" ? "background-person" : requestedMode == "faces" ? "two-faces" : "two-people-car")
+        func fixtureData(_ name: String) -> Data? {
+            func image(_ resource: String) -> UIImage? {
+                Bundle.main.url(forResource: resource, withExtension: "jpg").flatMap { UIImage(contentsOfFile: $0.path) }
+            }
+            guard name == "combined-privacy" else {
+                return Bundle.main.url(forResource: name, withExtension: "jpg").flatMap { try? Data(contentsOf: $0) }
+            }
+            guard let photo = image("two-people-car"), let card = image("sample-card") else { return nil }
+            let format = UIGraphicsImageRendererFormat(); format.scale = 1
+            return UIGraphicsImageRenderer(size: CGSize(width: 1800, height: 2250), format: format).image { _ in
+                photo.draw(in: CGRect(x: 0, y: 0, width: 1800, height: 2250))
+                card.draw(in: CGRect(x: 900, y: 1650, width: 900, height: 600))
+            }.jpegData(compressionQuality: 0.98)
+        }
         guard arguments.contains("-veil-ui-testing"), original == nil,
               let fixtureData = fixtureName == "empty-scene"
                 ? UIGraphicsImageRenderer(size: CGSize(width: 1000, height: 1200)).image { context in
                     UIColor.gray.setFill(); context.fill(CGRect(x: 0, y: 0, width: 1000, height: 1200))
                   }.jpegData(compressionQuality: 1)
-                : Bundle.main.url(forResource: fixtureName, withExtension: "jpg").flatMap({ try? Data(contentsOf: $0) }),
+                : fixtureData(fixtureName),
               let fixture = UIImage(data: fixtureData),
               let normalized = BlurRenderer.normalizedImage(fixture),
               let downsampled = BlurRenderer.previewImage(normalized) else { return }
@@ -595,7 +638,7 @@ struct PhotoVeilHome: View {
             return
         }
         UISelectionFeedbackGenerator().selectionChanged()
-        pushUndo()
+        if newMode != .manual { pushUndo(for: newMode) }
         renderRevision += 1
         mode = newMode
         backgroundUnavailable = false
@@ -640,7 +683,7 @@ struct PhotoVeilHome: View {
                 switch result {
                 case .success(let output):
                     backgroundSelection.complete(count: 1); backgroundMask = output.mask; backgroundUnavailable = false
-                    if mode == .background { rerender() }
+                    rerender()
                 case .failure:
                     backgroundSelection.fail()
                     if mode == .background {
@@ -678,10 +721,10 @@ struct PhotoVeilHome: View {
                 switch result {
                 case .success(let faces):
                     faceRegions = faces; faceSelection.complete(count: faces.count)
-                    if mode == .faces { rerender(); showDetectionFeedback(faceSelection.feedback(for: "faces")) }
+                    rerender(); if mode == .faces { showDetectionFeedback(faceSelection.feedback(for: "faces")) }
                 case .failure:
                     faceRegions = []; faceSelection.fail()
-                    if mode == .faces { rerender(); showDetectionFeedback(faceSelection.feedback(for: "faces")) }
+                    rerender(); if mode == .faces { showDetectionFeedback(faceSelection.feedback(for: "faces")) }
                 }
             }
         }
@@ -708,7 +751,7 @@ struct PhotoVeilHome: View {
                 case .success: plateSelection.complete(count: plateSuggestions.count)
                 case .failure: plateSelection.fail()
                 }
-                if mode == .plate { rerender(); showDetectionFeedback(plateSelection.feedback(for: "plates")) }
+                rerender(); if mode == .plate { showDetectionFeedback(plateSelection.feedback(for: "plates")) }
             }
         }
     }
@@ -716,6 +759,7 @@ struct PhotoVeilHome: View {
     private var currentDocumentRegions: [CGRect] { hidesEntireDocument ? documentBoundaries : documentDetails }
 
     private func setDocumentCoverage(entire: Bool) {
+        guard documentAnalysis == nil, didAnalyzeDocuments else { return }
         pushUndo(); hidesEntireDocument = entire
         documentSelection.complete(count: currentDocumentRegions.count); documentSelection.activate(); rerender()
     }
@@ -751,7 +795,7 @@ struct PhotoVeilHome: View {
                 case .success: documentSelection.complete(count: currentDocumentRegions.count)
                 case .failure: documentSelection.fail()
                 }
-                if mode == .documents { rerender(); showDetectionFeedback(documentSelection.feedback(for: "documents")) }
+                rerender(); if mode == .documents { showDetectionFeedback(documentSelection.feedback(for: "documents")) }
             }
         }
     }
@@ -813,14 +857,14 @@ struct PhotoVeilHome: View {
     }
 
     private func replaceManualRegions(_ regions: [BlurRegion]) {
-        pushUndo()
+        pushUndo(for: .manual)
         manualRegions = regions
         rerender()
     }
 
     private func updateStroke(_ stroke: BlurStroke?, committed: Bool) {
         if committed, let stroke {
-            pushUndo()
+            pushUndo(for: .manual)
             strokes.append(stroke)
             draftStroke = nil
         } else {
@@ -832,33 +876,34 @@ struct PhotoVeilHome: View {
         rerender(isBrushUpdate: true)
     }
 
-    private var renderStrokes: [BlurStroke] {
-        guard mode == .manual || mode == .plate || mode == .faces else { return [] }
-        return strokes + (draftStroke.map { [$0] } ?? [])
-    }
+    private var renderStrokes: [BlurStroke] { strokes + (draftStroke.map { [$0] } ?? []) }
 
-    private func regionsForCurrentMode() -> [BlurRegion] {
-        switch mode {
-        case .faces:
-            let faces = selectedFaces.sorted().compactMap { index -> BlurRegion? in
-                guard faceRegions.indices.contains(index) else { return nil }
-                return BlurRegion(id: "face-\(index)", rect: faceRegions[index], shape: .oval)
-            }
-            return faces + manualRegions
-        case .plate:
-            let plates = selectedPlates.sorted().compactMap { index -> BlurRegion? in
-                guard plateSuggestions.indices.contains(index) else { return nil }
-                return BlurRegion(id: "plate-\(index)", rect: plateSuggestions[index], shape: .roundedRectangle)
-            }
-            return plates + manualRegions
-        case .documents:
-            return selectedDocuments.sorted().compactMap { index in
-                guard currentDocumentRegions.indices.contains(index) else { return nil }
-                return BlurRegion(id: "document-\(index)", rect: currentDocumentRegions[index], shape: .rectangle)
-            } + manualRegions
-        case .manual: return manualRegions
-        case .background, .none: return []
+    /// Detection caches, active selections and editing focus are independent. Both render
+    /// destinations consume this exact snapshot; changing tools cannot remove another layer.
+    private var renderLayers: [PrivacyRenderLayer] {
+        var layers: [PrivacyRenderLayer] = []
+        if backgroundSelection.isActive, let backgroundMask {
+            layers.append(PrivacyRenderLayer(foregroundMask: backgroundMask,
+                settings: layerSettings[.background] ?? PrivacyEffectSettings()))
         }
+        let faces = selectedFaces.sorted().compactMap { index -> BlurRegion? in
+            guard faceRegions.indices.contains(index) else { return nil }
+            return BlurRegion(id: "face-\(index)", rect: faceRegions[index], shape: .oval)
+        }
+        let plates = selectedPlates.sorted().compactMap { index -> BlurRegion? in
+            guard plateSuggestions.indices.contains(index) else { return nil }
+            return BlurRegion(id: "plate-\(index)", rect: plateSuggestions[index], shape: .roundedRectangle)
+        }
+        let documents = selectedDocuments.sorted().compactMap { index -> BlurRegion? in
+            guard currentDocumentRegions.indices.contains(index) else { return nil }
+            return BlurRegion(id: "document-\(index)", rect: currentDocumentRegions[index], shape: .rectangle)
+        }
+        for (tool, regions) in [(EditorMode.faces, faces), (.plate, plates), (.documents, documents)] {
+            layers.append(PrivacyRenderLayer(regions: regions, settings: layerSettings[tool] ?? PrivacyEffectSettings()))
+        }
+        layers.append(PrivacyRenderLayer(regions: manualRegions, strokes: renderStrokes,
+            settings: layerSettings[.manual] ?? PrivacyEffectSettings()))
+        return layers.filter { $0.foregroundMask != nil || !$0.regions.isEmpty || !$0.strokes.isEmpty }
     }
 
     private func rerender(isBrushUpdate: Bool = false) {
@@ -867,17 +912,17 @@ struct PhotoVeilHome: View {
         guard mode != .background || backgroundMask != nil || !backgroundSelection.isActive else { return }
         working = true; renderRevision += 1
         let revision = renderRevision, currentMode = mode, currentStrength = strength, isDraft = draftStroke != nil
-        let strokes = renderStrokes, currentEffect = effect, currentColor = redactionColor
-        let regions = regionsForCurrentMode(), mask = currentMode == .background && backgroundSelection.isActive ? backgroundMask : nil
+        let strokes = renderStrokes, layers = renderLayers
+        if !isBrushUpdate && !brushRenderInFlight && completedRenderLayers == layers {
+            // Invalidate an obsolete in-flight render if the user restored the displayed state.
+            previewRender?.cancel(); working = false
+            return
+        }
         if !brushRenderInFlight { previewRender?.cancel() }
         previewRender = Task.detached(priority: .userInitiated) {
             guard !Task.isCancelled else { return }
-            let output: UIImage?
-            if currentMode == .background, let mask {
-                output = BlurRenderer.render(previewSource, regions: [], strength: currentStrength, foregroundMask: mask, strokes: strokes, effect: currentEffect, redactionColor: currentColor)
-            } else {
-                output = BlurRenderer.render(previewSource, regions: regions, strength: currentStrength, strokes: strokes, effect: currentEffect, redactionColor: currentColor)
-            }
+            let output = previewSource.cgImage.flatMap { PrivacyImageRenderer.render(source: $0, layers: layers) }
+                .map { UIImage(cgImage: $0, scale: previewSource.scale, orientation: .up) }
             await MainActor.run {
                 defer {
                     if isBrushUpdate {
@@ -894,7 +939,7 @@ struct PhotoVeilHome: View {
                 guard renderRevision == revision else { return }
                 working = false
                 if let output {
-                    preview = output
+                    completedRenderLayers = layers; preview = output
                     if !isDraft {
                         captureTestRender(output, name: "evidence-\(currentMode?.rawValue.lowercased() ?? "none")-\(currentStrength.rawValue.lowercased())-\(strokes.isEmpty ? "regions" : "brush")")
                         captureTestRender(output, name: "preview-\(currentMode?.rawValue.lowercased() ?? "none")")
@@ -904,25 +949,45 @@ struct PhotoVeilHome: View {
         }
     }
 
-    private func pushUndo() {
-        undoStack.append(EditSnapshot(mode: mode, backgroundActive: backgroundSelection.isActive, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
-                                      selectedPlates: selectedPlates, selectedDocuments: selectedDocuments, hidesEntireDocument: hidesEntireDocument, strength: strength, effect: effect, redactionColor: redactionColor))
+    private func pushUndo(for tool: EditorMode? = nil, global: Bool = false) {
+        let target = global ? nil : (tool ?? mode ?? .manual)
+        // Once a new edit starts, Undo belongs to that category again. An old Reset
+        // snapshot must not let Manual undo replace newer automatic selections.
+        if !global { undoStack.removeAll { $0.mode == nil } }
+        undoStack.append(EditSnapshot(mode: target, focus: mode, backgroundActive: backgroundSelection.isActive, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
+            selectedPlates: selectedPlates, selectedDocuments: selectedDocuments, hidesEntireDocument: hidesEntireDocument,
+            settings: layerSettings))
         if undoStack.count > 30 { undoStack.removeFirst() }
     }
 
+    private var canUndo: Bool { undoStack.contains { $0.mode == mode || $0.mode == nil } }
+
     private func undo() {
-        guard let snapshot = undoStack.popLast() else { return }
-        if snapshot.backgroundActive { backgroundSelection.activate() } else { backgroundSelection.clear() }
-        mode = snapshot.mode; manualRegions = snapshot.regions; strokes = snapshot.strokes; draftStroke = nil; selectedFaces = snapshot.selectedFaces
-        selectedDocuments = snapshot.selectedDocuments; hidesEntireDocument = snapshot.hidesEntireDocument
-        selectedPlates = snapshot.selectedPlates; strength = snapshot.strength; effect = snapshot.effect; redactionColor = snapshot.redactionColor
+        guard let index = undoStack.lastIndex(where: { $0.mode == mode || $0.mode == nil }) else { return }
+        let snapshot = undoStack.remove(at: index)
+        // Restore only the edited category. A manual undo never restores older automatic
+        // selections (and vice versa). The deliberately separate Reset edits remains global.
+        if snapshot.mode == nil || snapshot.mode == .background {
+            if snapshot.backgroundActive { backgroundSelection.activate() } else { backgroundSelection.clear() }
+        }
+        if snapshot.mode == nil || snapshot.mode == .faces { faceSelection.restoreSelection(snapshot.selectedFaces) }
+        if snapshot.mode == nil || snapshot.mode == .plate { plateSelection.restoreSelection(snapshot.selectedPlates) }
+        if snapshot.mode == nil || snapshot.mode == .documents {
+            documentSelection.restoreSelection(snapshot.selectedDocuments); hidesEntireDocument = snapshot.hidesEntireDocument
+        }
+        if snapshot.mode == nil || snapshot.mode == .manual {
+            manualRegions = snapshot.regions; strokes = snapshot.strokes; draftStroke = nil
+        }
+        if let tool = snapshot.mode { layerSettings[tool] = snapshot.settings[tool] }
+        else { layerSettings = snapshot.settings; mode = snapshot.focus }
         rerender()
     }
 
     private func resetEdits() {
         guard let previewSource else { return }
         renderRevision += 1; working = false; backgroundUnavailable = false
-        pushUndo(); backgroundSelection.clear(); faceSelection.clear(); plateSelection.clear(); documentSelection.clear(); dismissDetectionFeedback(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
+        completedRenderLayers = nil
+        pushUndo(global: true); backgroundSelection.clear(); faceSelection.clear(); plateSelection.clear(); documentSelection.clear(); dismissDetectionFeedback(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
         selectedDocuments = []; showingOriginal = false; showingFinalPreview = false; strokes = []; draftStroke = nil; preview = previewSource; manualDraws = true
     }
 
@@ -932,7 +997,7 @@ struct PhotoVeilHome: View {
         previewRender?.cancel(); previewRender = nil; brushRenderInFlight = false; brushRenderPending = false
         sessionID = UUID(); renderRevision += 1
         dismissDetectionFeedback()
-        original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
+        completedRenderLayers = nil; original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
         faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
         strokes = []; draftStroke = nil; showingFinalPreview = false; undoStack = []; pickerItem = nil; showingOriginal = false; zoomed = false; working = false
     }
@@ -946,13 +1011,17 @@ struct PhotoVeilHome: View {
             captureTestRender(preview, name: "preexport-\(mode?.rawValue.lowercased() ?? "none")")
             captureTestRender(preview, name: "evidence-preexport-\(mode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")")
         }
-        let currentMode = mode, regions = regionsForCurrentMode(), currentStrength = strength, strokes = renderStrokes
-        let mask = currentMode == .background && backgroundSelection.isActive ? backgroundMask : nil, session = sessionID
-        let currentEffect = effect, currentColor = redactionColor
+        let currentMode = mode, layers = renderLayers, strokes = renderStrokes, session = sessionID
+        let fixtureName = Self.testFixtureName
+        // Gallery/cloud metadata keeps its existing coarse style tag, not an editable recipe.
+        // Select the strongest applied style; the saved pixels always contain every layer.
+        let appliedEffects = Set(layers.filter { $0.foregroundMask != nil || !$0.regions.isEmpty || !$0.strokes.isEmpty }.map { $0.settings.effect.rawValue })
+        let representativeEffect: PrivacyEffect = appliedEffects.contains(PrivacyEffect.redact.rawValue) ? .redact
+            : appliedEffects.contains(PrivacyEffect.pixelate.rawValue) ? .pixelate : .blur
         Task.detached(priority: .userInitiated) {
             let rendered: UIImage?
             if let source = original.cgImage,
-               let output = PrivacyImageRenderer.render(source: source, regions: regions, strength: currentStrength, foregroundMask: mask, strokes: strokes, effect: currentEffect, redactionColor: currentColor) {
+               let output = PrivacyImageRenderer.render(source: source, layers: layers) {
                 rendered = UIImage(cgImage: output, scale: 1, orientation: .up)
             } else {
                 rendered = nil
@@ -966,8 +1035,13 @@ struct PhotoVeilHome: View {
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing"), let rendered {
                     let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                    try rendered.pngData()?.write(to: directory.appendingPathComponent("export-\(currentMode?.rawValue.lowercased() ?? "none")-\(Self.testFixtureName).png"))
-                    try rendered.pngData()?.write(to: directory.appendingPathComponent("evidence-export-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")-\(Self.testFixtureName).png"))
+                    let exportPNG = rendered.pngData()
+                    try exportPNG?.write(to: directory.appendingPathComponent("export-\(currentMode?.rawValue.lowercased() ?? "none")-\(fixtureName).png"))
+                    try exportPNG?.write(to: directory.appendingPathComponent("evidence-export-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")-\(fixtureName).png"))
+                    if let exportPNG {
+                        let fingerprint = SHA256.hash(data: exportPNG).map { String(format: "%02x", $0) }.joined()
+                        await MainActor.run { if sessionID == session { testExportFingerprint = fingerprint } }
+                    }
                 }
                 #endif
                 guard await MainActor.run(body: { sessionID == session }) else {
@@ -977,7 +1051,7 @@ struct PhotoVeilHome: View {
                 case .share:
                     await MainActor.run { working = false; shareItem = url.map { PhotoShareItem(url: $0) } }
                 case .gallery:
-                    try await library.save(data, effect: currentEffect.rawValue)
+                    try await library.save(data, effect: representativeEffect.rawValue)
                     await MainActor.run { working = false; successMessage = "Saved to Private Gallery on this iPhone" }
                 case .photos:
                     do {
@@ -1006,9 +1080,10 @@ struct PhotoVeilHome: View {
         // Keep PNG encoding, hashing and disk writes out of its main-thread actions.
         guard !ProcessInfo.processInfo.arguments.contains("-veil-rapid-selection-stress") else { return }
         if let data = image.pngData() { testRenderFingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
+        let fixtureName = Self.testFixtureName
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        try? image.pngData()?.write(to: directory.appendingPathComponent("\(name)-\(Self.testFixtureName).png"))
-        try? previewSource?.pngData()?.write(to: directory.appendingPathComponent("original-\(Self.testFixtureName).png"))
+        try? image.pngData()?.write(to: directory.appendingPathComponent("\(name)-\(fixtureName).png"))
+        try? previewSource?.pngData()?.write(to: directory.appendingPathComponent("original-\(fixtureName).png"))
         #endif
     }
 }

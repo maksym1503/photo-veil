@@ -26,6 +26,12 @@ struct DetectedPrivacySelection: Equatable {
     mutating func fail() { status = .failed; selected = [] }
     mutating func clear() { activationRequested = false; selected = [] }
 
+    /// Undo restores activation intent as well as selection, without discarding analysis.
+    mutating func restoreSelection(_ indices: Set<Int>) {
+        activationRequested = !indices.isEmpty
+        selected = indices
+    }
+
     func feedback(for category: String) -> String? {
         switch status {
         case .completed(0): "No \(category) detected. Try Manual."

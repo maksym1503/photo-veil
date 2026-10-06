@@ -1,6 +1,127 @@
 import XCTest
 
 final class PhotoVeilUITests: XCTestCase {
+    @MainActor func testV43ToolbarGeometry() {
+        let app = launch(fixture: "two-people-car")
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        let first = app.buttons["mode_background"].frame
+        let last = app.buttons["mode_manual"].frame
+        let leftText = app.buttons["mode_background"].staticTexts.firstMatch.frame
+        let rightText = app.buttons["mode_manual"].staticTexts.firstMatch.frame
+        print("V43 geometry buttons=\(first),\(last) labels=\(leftText),\(rightText)")
+        XCTAssertEqual(leftText.minX, app.frame.width - rightText.maxX, accuracy: 1)
+        attach(app, "v43-toolbar")
+    }
+
+    @MainActor func testV43ComposedPrivacyWorkflowAndScopedUndo() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history"]
+        app.launch(); waitForRender(app)
+        func counts() -> String { app.otherElements["privacySelectionCounts"].value as? String ?? "" }
+        func fingerprint() -> String { app.otherElements["processingComplete"].value as? String ?? "" }
+        app.buttons["mode_faces"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["face_0"].exists)
+        let facesOnly = fingerprint()
+        app.buttons["mode_plate"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["plate_0"].exists)
+        let both = fingerprint(), bothCounts = counts()
+        XCTAssertNotEqual(both, facesOnly)
+        XCTAssertTrue(bothCounts.contains("faces=2,plates=1"))
+        attach(app, "v43-faces-and-plates")
+        app.buttons["mode_faces"].tap(); waitForRender(app)
+        XCTAssertEqual(fingerprint(), both)
+        app.buttons["blurAllFaces"].tap(); waitForRender(app)
+        XCTAssertTrue(counts().contains("faces=0,plates=1"))
+        let platesOnly = fingerprint()
+        XCTAssertNotEqual(platesOnly, both)
+        app.buttons["mode_manual"].tap(); app.buttons["mode_faces"].tap(); waitForRender(app)
+        XCTAssertEqual(fingerprint(), both)
+        XCTAssertEqual(counts(), bothCounts)
+        app.buttons["strength_strong"].tap(); waitForRender(app)
+        app.buttons["mode_plate"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["strength_medium"].isSelected)
+        app.buttons["effectMenu"].tap(); app.buttons["Pixelate"].tap(); waitForRender(app)
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["strength_medium"].isSelected)
+        XCTAssertTrue(app.buttons["effectMenu"].label.contains("Blur"))
+        let beforeManual = fingerprint()
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.35, dy: 0.3), to: CGVector(dx: 0.55, dy: 0.45)); waitForRender(app)
+        XCTAssertTrue(counts().contains("faces=2,plates=1,documents=0,rectangles=1"))
+        let allThree = fingerprint()
+        XCTAssertNotEqual(allThree, beforeManual)
+        attach(app, "v43-mixed-three-layers")
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertEqual(fingerprint(), beforeManual)
+        XCTAssertTrue(counts().contains("faces=2,plates=1,documents=0,rectangles=0"))
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.35, dy: 0.3), to: CGVector(dx: 0.55, dy: 0.45)); waitForRender(app)
+        app.buttons["mode_faces"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["strength_strong"].isSelected)
+        app.buttons["blurAllFaces"].tap(); waitForRender(app)
+        XCTAssertTrue(counts().contains("faces=0,plates=1,documents=0,rectangles=1"))
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertTrue(counts().contains("faces=2,plates=1,documents=0,rectangles=1"))
+        XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, "background=0,faces=1,plates=1,documents=0")
+        let final = fingerprint()
+        app.buttons["finalPreview"].tap(); attach(app, "v43-three-layers-done")
+        XCTAssertEqual(fingerprint(), final)
+        app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        XCTAssertEqual(fingerprint(), final)
+        XCTAssertEqual(app.otherElements["exportFingerprint"].value as? String, final, "Gallery export must exactly match the live composition")
+        export(app, "v43-three-layers-share")
+    }
+
+    @MainActor func testV43ManualUndoCannotRestoreStaleGlobalReset() {
+        let app = launch(fixture: "two-people-car")
+        app.buttons["mode_faces"].tap(); waitForRender(app)
+        app.buttons["More editing actions"].tap(); app.buttons["Reset edits"].tap(); waitForRender(app)
+        app.buttons["mode_plate"].tap(); waitForRender(app)
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        XCTAssertFalse(app.buttons["Undo"].isEnabled)
+        XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String)?.contains("faces=0,plates=1") == true)
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.35, dy: 0.3), to: CGVector(dx: 0.55, dy: 0.45)); waitForRender(app)
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String)?.contains("faces=0,plates=1,documents=0,rectangles=0") == true)
+    }
+
+    @MainActor func testV43FullCompositionAndScopedClears() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "combined-privacy", "-veil-cached-mask-fixture"]
+        app.launch(); waitForRender(app)
+        for tool in ["background", "faces", "plate", "documents"] {
+            app.buttons["mode_\(tool)"].tap(); waitForRender(app, timeout: 120)
+            if tool == "documents" { app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app) }
+            if tool == "plate" { attach(app, "v43-background-faces-plates") }
+        }
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        app.buttons["effectMenu"].tap(); app.buttons["Pixelate"].tap(); waitForRender(app)
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.35, dy: 0.3), to: CGVector(dx: 0.55, dy: 0.45)); waitForRender(app)
+        let populated = app.otherElements["privacySelectionCounts"].value as? String
+        XCTAssertTrue(populated?.contains("background=1,faces=2,plates=1") == true)
+        XCTAssertTrue(populated?.contains("rectangles=1") == true)
+        XCTAssertFalse(populated?.contains("documents=0") == true)
+        attach(app, "v43-full-five-layers")
+        let fingerprint = app.otherElements["processingComplete"].value as? String
+        app.buttons["finalPreview"].tap(); attach(app, "v43-full-done")
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, fingerprint)
+        app.buttons["finalPreview"].tap()
+        for tool in ["background", "faces", "plate", "documents", "manual"] {
+            app.buttons["mode_\(tool)"].tap(); waitForRender(app)
+            let before = app.otherElements["privacySelectionCounts"].value as? String
+            if tool == "documents" { app.buttons["documentCoverage"].tap() }
+            if tool == "manual" { app.buttons["shapeMenu"].tap() }
+            let clear = tool == "faces" ? "blurAllFaces" : tool == "plate" ? "blurAllPlates" : "clearAll"
+            app.buttons[clear].tap(); waitForRender(app)
+            let after = app.otherElements["privacySelectionCounts"].value as? String
+            let key = tool == "plate" ? "plates" : tool == "manual" ? "rectangles" : tool
+            let old = (before ?? "").split(separator: ","), new = (after ?? "").split(separator: ",")
+            for (lhs, rhs) in zip(old, new) where !lhs.hasPrefix(key + "=") && !(tool == "manual" && lhs.hasPrefix("strokes=")) {
+                XCTAssertEqual(lhs, rhs, "Clear All changed another layer")
+            }
+            XCTAssertTrue(after?.contains("\(key)=0") == true)
+        }
+    }
+
     @MainActor func testV41RenderedControlsAndGallery() {
         let app = XCUIApplication()
         app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history"]
@@ -473,7 +594,9 @@ final class PhotoVeilUITests: XCTestCase {
         app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "empty-scene", "-veil-delay-faces"]
         app.launch(); waitForRender(app)
         app.buttons["mode_faces"].tap()
-        app.buttons["mode_manual"].tap(); waitForRender(app)
+        app.buttons["mode_manual"].tap()
+        // Other requested layers keep analyzing; changing focus cannot allow incomplete export.
+        XCTAssertFalse(app.buttons["finalPreview"].isEnabled)
         app.buttons["mode_faces"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["detectionInProgress"].exists)
         XCTAssertFalse(app.buttons["finalPreview"].isEnabled)

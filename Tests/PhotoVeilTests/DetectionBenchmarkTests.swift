@@ -64,6 +64,39 @@ final class DetectionBenchmarkTests: XCTestCase {
         try data.write(to: output.appendingPathComponent("measurements.json"))
         print("Veil diagnostic measurements: /tmp/veil-v4-diagnostics/measurements.json")
     }
+    func testV43FullCompositionPerformance() throws {
+        guard ProcessInfo.processInfo.environment["VEIL_RUN_DETECTION_BENCHMARK"] == "1" else { throw XCTSkip("Opt-in full composition profile") }
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("PhotoVeilUITests/Fixtures")
+        let crop = try load(root.appendingPathComponent("two-faces.jpg"))
+        var measurements: [[String: Any]] = []
+        for (width, height) in [(1440, 1800), (4032, 3024), (8064, 6048)] {
+            try autoreleasepool {
+                let image = try composite(crop, width: width, height: height, placements: [(100, 100, CGFloat(width) / 2)])
+                let extent = CGRect(x: 0, y: 0, width: width, height: height)
+                let foreground = CIImage(color: .white).cropped(to: CGRect(x: 0, y: 0, width: width / 2, height: height))
+                    .composited(over: CIImage(color: .black).cropped(to: extent))
+                let face = BlurRegion(rect: CGRect(x: 0.1, y: 0.1, width: 0.2, height: 0.2), shape: .oval)
+                let plate = BlurRegion(rect: CGRect(x: 0.4, y: 0.7, width: 0.2, height: 0.1), shape: .roundedRectangle)
+                let document = BlurRegion(rect: CGRect(x: 0.7, y: 0.5, width: 0.2, height: 0.25), shape: .rectangle)
+                let manual = BlurRegion(rect: CGRect(x: 0.2, y: 0.6, width: 0.2, height: 0.2), shape: .oval)
+                let layers = [PrivacyRenderLayer(foregroundMask: foreground, settings: PrivacyEffectSettings(strength: .low)),
+                    PrivacyRenderLayer(regions: [face], settings: PrivacyEffectSettings(strength: .strong)),
+                    PrivacyRenderLayer(regions: [plate], settings: PrivacyEffectSettings(effect: .pixelate)),
+                    PrivacyRenderLayer(regions: [document], settings: PrivacyEffectSettings(effect: .redact)),
+                    PrivacyRenderLayer(regions: [manual], strokes: [BlurStroke(points: [CGPoint(x: 0.1, y: 0.8), CGPoint(x: 0.5, y: 0.8)])])]
+                let start = Date()
+                let output = try XCTUnwrap(PrivacyImageRenderer.render(source: image, layers: layers))
+                try write(output, to: URL(fileURLWithPath: "/tmp/veil-v4-diagnostics/profile-v43-\(width).jpg"))
+                let elapsed = Date().timeIntervalSince(start)
+                XCTAssertEqual(output.width, width); XCTAssertEqual(output.height, height)
+                measurements.append(["pixels": "\(width)x\(height)", "layers": 5, "render_and_jpeg_seconds": elapsed])
+            }
+        }
+        let output = URL(fileURLWithPath: "/tmp/veil-v4-diagnostics/v43-composition.json")
+        try JSONSerialization.data(withJSONObject: measurements, options: [.prettyPrinted, .sortedKeys]).write(to: output)
+        print("V4.3 composition measurements: \(output.path)")
+    }
+
     private func load(_ url: URL) throws -> CGImage {
         let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL,nil)); return try XCTUnwrap(CGImageSourceCreateImageAtIndex(source,0,nil))
     }

@@ -23,6 +23,23 @@ final class DetectedPrivacySelectionTests: XCTestCase {
         XCTAssertFalse(selection.isActive)
         selection.activate(); XCTAssertEqual(selection.selected, [0])
     }
+    func testIndependentCategoriesAndUndoIntentPreserveOtherLayers() {
+        var faces = DetectedPrivacySelection(), plates = DetectedPrivacySelection(), documents = DetectedPrivacySelection()
+        faces.activate(); faces.begin(); faces.complete(count: 2)
+        plates.activate(); plates.begin(); plates.complete(count: 1)
+        documents.activate(); documents.begin(); documents.complete(count: 3)
+        faces.clear()
+        XCTAssertEqual(plates.selected, [0]); XCTAssertEqual(documents.selected, [0,1,2])
+        faces.activate(); plates.clear(); plates.activate()
+        XCTAssertEqual(faces.selected, [0,1]); XCTAssertEqual(plates.selected, [0])
+        XCTAssertEqual(faces.status, .completed(2)); XCTAssertEqual(plates.status, .completed(1))
+        faces.restoreSelection([])
+        XCTAssertFalse(faces.isActive)
+        var pending = DetectedPrivacySelection()
+        pending.activate(); pending.begin(); pending.restoreSelection([]); pending.complete(count: 2)
+        XCTAssertFalse(pending.isActive, "Undo must revoke pending activation without discarding its cache")
+        pending.activate(); XCTAssertEqual(pending.selected, [0,1])
+    }
     func testFeedbackDistinguishesPendingZeroAndFailure() {
         var selection = DetectedPrivacySelection()
         XCTAssertNil(selection.feedback(for: "faces"))
