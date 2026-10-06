@@ -48,8 +48,7 @@ struct VeilDemonstration: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var concealed = false
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            GeometryReader { geometry in
+        GeometryReader { geometry in
                 let size = geometry.size
                 ZStack {
                     LinearGradient(colors: [Color(red: 0.35, green: 0.53, blue: 0.60), Color(red: 0.76, green: 0.79, blue: 0.69)], startPoint: .top, endPoint: .bottom)
@@ -70,14 +69,21 @@ struct VeilDemonstration: View {
                     .position(x: size.width * 0.48, y: size.height * 0.47)
                 }
             }
-            Label("Private details, veiled", systemImage: "eye.slash")
-                .font(.caption.weight(.medium)).foregroundStyle(.white)
-                .padding(12).background(.black.opacity(0.45), in: Capsule()).padding(16)
+        .aspectRatio(1, contentMode: .fit)
+        .clipped()
+        .overlay {
+            LinearGradient(stops: [
+                .init(color: Color(uiColor: .systemBackground), location: 0),
+                .init(color: .clear, location: 0.22),
+                .init(color: .clear, location: 0.58),
+                .init(color: Color(uiColor: .systemBackground), location: 1)
+            ], startPoint: .top, endPoint: .bottom)
+            .allowsHitTesting(false)
         }
-        .aspectRatio(1.12, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 32))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Illustration of a portrait with its face blurred")
+        .accessibilityLabel("Portrait privacy demonstration")
+        .accessibilityValue(reduceMotion ? "Static blurred portrait" : concealed ? "Blurred portrait" : "Clear portrait")
+        .accessibilityIdentifier("privacyDemonstration")
         .task(id: reduceMotion) {
             concealed = reduceMotion
             guard !reduceMotion else { return }

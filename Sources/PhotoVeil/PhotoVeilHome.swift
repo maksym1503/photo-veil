@@ -121,10 +121,10 @@ struct PhotoVeilHome: View {
     private var importView: some View {
         ScrollView {
             VStack(spacing: 24) {
-                VeilDemonstration().frame(maxWidth: 360).padding(.top, 32)
+                VeilDemonstration().frame(maxWidth: .infinity)
                 VStack(spacing: 10) {
                     Text("Share the moment.\nKeep the details.")
-                        .font(.largeTitle.weight(.semibold)).multilineTextAlignment(.center)
+                        .font(.largeTitle.weight(.semibold)).multilineTextAlignment(.center).padding(.horizontal, 24)
                     Text("Choose. Blur. Share.")
                         .font(.body).foregroundStyle(.secondary)
                 }
@@ -137,7 +137,7 @@ struct PhotoVeilHome: View {
                 Label("Processed on this iPhone", systemImage: "iphone")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity).padding(.horizontal, 24).padding(.bottom, 32)
+            .frame(maxWidth: .infinity).padding(.bottom, 32)
         }
     }
 
@@ -147,7 +147,6 @@ struct PhotoVeilHome: View {
                 Button("Private Gallery", systemImage: "photo.stack") { showingGallery = true }
                     .labelStyle(.iconOnly).accessibilityIdentifier("gallery")
             }
-            ToolbarItem(placement: .principal) { Text("Veil").font(.headline) }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Settings", systemImage: "gearshape") { showingSettings = true }
                     .labelStyle(.iconOnly).accessibilityIdentifier("settings")
