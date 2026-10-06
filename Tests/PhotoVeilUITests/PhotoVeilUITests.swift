@@ -212,6 +212,8 @@ final class PhotoVeilUITests: XCTestCase {
         attach(app, "faces-selective")
         app.buttons["blurAllFaces"].tap()
         waitForRender(app)
+        XCTAssertEqual(face.label, "Face 1")
+        app.buttons["blurAllFaces"].tap(); waitForRender(app)
         XCTAssertEqual(face.label, "Blurred face 1")
         let fingerprint = app.otherElements["processingComplete"].value as? String
         app.buttons["finalPreview"].tap()
@@ -406,6 +408,138 @@ final class PhotoVeilUITests: XCTestCase {
     @MainActor func testBackgroundPersonMaskOrManualFallback() { checkBackground(fixture: "background-person", name: "person") }
     @MainActor func testBackgroundCarMaskOrManualFallback() { checkBackground(fixture: "two-people-car", name: "car") }
 
+    @MainActor func testV42CachedAutomaticSelectionLifecycle() {
+        for (tool, fixture, clear) in [("faces", "two-faces", "blurAllFaces"), ("plate", "two-people-car", "blurAllPlates"), ("documents", "sample-card", "clearAll")] {
+            let app = launch(fixture: fixture)
+            app.buttons["mode_\(tool)"].tap(); waitForRender(app)
+            let originalSelection = app.otherElements["privacySelectionCounts"].value as? String
+            let active = app.otherElements["processingComplete"].value as? String
+            let analyses = app.otherElements["analysisCounts"].value as? String
+            attach(app, "v42-\(tool)-active")
+            if tool == "documents" { app.buttons["documentCoverage"].tap() }
+            app.buttons[clear].tap(); waitForRender(app)
+            XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, active)
+            attach(app, "v42-\(tool)-cleared")
+            app.buttons["mode_manual"].tap(); waitForRender(app)
+            app.buttons["mode_\(tool)"].tap(); waitForRender(app)
+            XCTAssertEqual(app.otherElements["privacySelectionCounts"].value as? String, originalSelection)
+            XCTAssertEqual(app.otherElements["processingComplete"].value as? String, active)
+            XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, analyses)
+            attach(app, "v42-\(tool)-reactivated")
+            app.terminate()
+        }
+    }
+
+    @MainActor func testV42BackgroundClearCachedMaskAndUndo() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-mode", "background", "-veil-cached-mask-fixture"]
+        app.launch(); waitForRender(app)
+        let active = app.otherElements["processingComplete"].value as? String
+        attach(app, "v42-background-clear-control")
+        app.buttons["clearAll"].tap(); waitForRender(app)
+        XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, active)
+        XCTAssertTrue(app.buttons["mode_background"].isSelected)
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, active)
+        app.buttons["clearAll"].tap(); waitForRender(app)
+        app.buttons["mode_manual"].tap(); app.buttons["mode_background"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, active)
+        XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, "background=0,faces=0,plates=0,documents=0")
+        export(app, "v42-background-cached-export")
+    }
+
+    @MainActor func testV42ManualClearAllShapesAndUndo() {
+        let app = launch(fixture: "two-people-car")
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        let canvas = app.scrollViews["photoCanvas"]
+        let empty = app.otherElements["processingComplete"].value as? String
+        drag(canvas, from: CGVector(dx: 0.2, dy: 0.3), to: CGVector(dx: 0.4, dy: 0.5)); waitForRender(app)
+        app.buttons["shapeMenu"].tap(); app.buttons["Ellipse"].tap()
+        drag(canvas, from: CGVector(dx: 0.5, dy: 0.4), to: CGVector(dx: 0.7, dy: 0.6)); waitForRender(app)
+        app.buttons["manualBrush"].tap()
+        drag(canvas, from: CGVector(dx: 0.3, dy: 0.65), to: CGVector(dx: 0.65, dy: 0.65)); waitForRender(app)
+        let populated = app.otherElements["privacySelectionCounts"].value as? String
+        XCTAssertTrue(populated?.contains("rectangles=2,strokes=1") == true)
+        app.buttons["shapeMenu"].tap(); attach(app, "v42-manual-clear-menu")
+        app.buttons["clearAll"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, empty)
+        XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String)?.contains("rectangles=0,strokes=0") == true)
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["privacySelectionCounts"].value as? String, populated)
+    }
+
+    @MainActor func testV42EmptyDetectionFeedback() {
+        let app = launch(fixture: "empty-scene")
+        for (tool, message) in [("faces", "No faces detected. Try Manual."), ("plate", "No plates detected. Try Manual."), ("documents", "No documents detected. Try Manual.")] {
+            app.buttons["mode_\(tool)"].tap()
+            XCTAssertTrue(app.staticTexts["detectionFeedback"].waitForExistence(timeout: 30))
+            XCTAssertEqual(app.staticTexts["detectionFeedback"].label, message)
+            attach(app, "v42-empty-\(tool)")
+            let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["detectionFeedback"])
+            wait(for: [gone], timeout: 15)
+        }
+        app.buttons["mode_background"].tap(); waitForRender(app)
+        if app.buttons["mode_manual"].isSelected {
+            XCTAssertEqual(app.staticTexts["detectionFeedback"].label, "Background unavailable. Try Manual.")
+            attach(app, "v42-background-unavailable")
+        }
+    }
+
+    @MainActor func testV42LandingAnimationOrReduceMotion() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-empty"]
+        app.launch()
+        let hero = app.otherElements["privacyDemonstration"]
+        XCTAssertTrue(hero.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Veil"].exists)
+        if hero.value as? String == "Static blurred portrait" {
+            attach(app, "v42-landing-reduce-motion")
+            Thread.sleep(forTimeInterval: 4)
+            XCTAssertEqual(hero.value as? String, "Static blurred portrait")
+        } else {
+            for state in ["Blurred portrait", "Clear portrait", "Blurred portrait"] {
+                let phase = expectation(for: NSPredicate(format: "value == %@", state), evaluatedWith: hero)
+                wait(for: [phase], timeout: 15)
+            }
+            attach(app, "v42-landing-repeated-animation")
+        }
+    }
+
+    @MainActor func testV42LandingLargerText() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-empty", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["privacyDemonstration"].waitForExistence(timeout: 10))
+        attach(app, "v42-landing-largest-top")
+        app.swipeUp()
+        XCTAssertTrue(app.buttons["choosePhoto"].isHittable)
+        attach(app, "v42-landing-largest-action")
+    }
+
+    @MainActor func testV42LandingAndGalleryConfirmationEvidence() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-empty"]
+        app.launch(); XCTAssertTrue(app.buttons["choosePhoto"].waitForExistence(timeout: 10))
+        attach(app, "v42-landing")
+        app.terminate()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history"]
+        app.launch(); waitForRender(app)
+        app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
+        let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.tap()
+        attach(app, "v42-gallery-delete-action")
+        app.buttons["Delete"].tap()
+        XCTAssertTrue(app.buttons["Delete photo"].waitForExistence(timeout: 5))
+        attach(app, "v42-gallery-delete-confirmation")
+        XCTAssertGreaterThan(app.buttons["Delete photo"].frame.midY, app.frame.height * 0.65)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["galleryShare"].exists)
+        app.buttons["Delete"].tap(); app.buttons["Delete photo"].tap()
+        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+    }
+
     @MainActor func testLocalGallerySaveRelaunchShareAndDelete() {
         let app = XCUIApplication()
         app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history"]
@@ -523,13 +657,14 @@ final class PhotoVeilUITests: XCTestCase {
         // A cold hosted Simulator can take over 45s to initialize Vision before returning its fallback.
         // Keep the normal bound for interactive edits; only foreground model startup gets extra time.
         waitForRender(app, timeout: 120)
-        assertCamera(app, before)
         let state = app.otherElements["processingComplete"].label
         if state == "Manual fallback" {
-            XCTAssertTrue(app.staticTexts["No foreground found. Select manually."].exists)
+            XCTAssertEqual(app.staticTexts["detectionFeedback"].label, "Background unavailable. Try Manual.")
+            assertCamera(app, before)
             attach(app, "background-\(name)-fallback")
             return // Simulator Vision may lack foreground model support; report explicitly.
         }
+        assertCamera(app, before)
         XCTAssertEqual(state, "Background ready")
         attach(app, "background-\(name)-sharp")
         app.buttons["originalToggle"].tap()
