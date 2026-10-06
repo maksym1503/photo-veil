@@ -5,6 +5,7 @@ import Vision
 
 private struct EditSnapshot {
     let mode: EditorMode?
+    let backgroundActive: Bool
     let regions: [BlurRegion]
     let strokes: [BlurStroke]
     let selectedFaces: Set<Int>
@@ -42,20 +43,26 @@ struct PhotoVeilHome: View {
     @State private var previewSource: UIImage?
     @State private var preview: UIImage?
     @State private var backgroundMask: CIImage?
+    @State private var backgroundSelection = DetectedPrivacySelection()
+    @State private var detectionMessage: String?
+    @State private var feedbackDismissal: Task<Void, Never>?
     @State private var mode: EditorMode?
     @State private var strength: BlurStrength = .medium
     @State private var effect: PrivacyEffect = .blur
     @State private var redactionColor: RedactionColor = .black
     @State private var manualShape: BlurRegion.Shape = .roundedRectangle
     @State private var faceRegions: [CGRect] = []
-    @State private var selectedFaces = Set<Int>()
+    @State private var faceSelection = DetectedPrivacySelection()
+    private var selectedFaces: Set<Int> { get { faceSelection.selected } nonmutating set { faceSelection.selected = newValue } }
     @State private var plateSuggestions: [CGRect] = []
-    @State private var selectedPlates = Set<Int>()
+    @State private var plateSelection = DetectedPrivacySelection()
+    private var selectedPlates: Set<Int> { get { plateSelection.selected } nonmutating set { plateSelection.selected = newValue } }
     @State private var documentBoundaries: [CGRect] = []
     @State private var documentDetails: [CGRect] = []
-    @State private var selectedDocuments = Set<Int>()
+    @State private var documentSelection = DetectedPrivacySelection()
+    private var selectedDocuments: Set<Int> { get { documentSelection.selected } nonmutating set { documentSelection.selected = newValue } }
     @State private var hidesEntireDocument = false
-    @State private var didAnalyzeDocuments = false
+    private var didAnalyzeDocuments: Bool { documentSelection.hasAnalyzed }
     @State private var manualRegions: [BlurRegion] = []
     @State private var strokes: [BlurStroke] = []
     @State private var brushRenderInFlight = false
@@ -71,9 +78,9 @@ struct PhotoVeilHome: View {
     @State private var errorMessage: String?
     @State private var shareItem: PhotoShareItem?
     @State private var renderRevision = 0
-    @State private var didAnalyzePlates = false
-    @State private var didAnalyzeFaces = false
-    @State private var didAnalyzeBackground = false
+    private var didAnalyzePlates: Bool { plateSelection.hasAnalyzed }
+    private var didAnalyzeFaces: Bool { faceSelection.hasAnalyzed }
+    private var didAnalyzeBackground: Bool { backgroundSelection.hasAnalyzed }
     @State private var backgroundAnalysis: Task<Void, Never>?
     @State private var plateAnalysis: Task<Void, Never>?
     @State private var previewRender: Task<Void, Never>?
@@ -238,6 +245,9 @@ struct PhotoVeilHome: View {
                         .accessibilityIdentifier("analysisCounts")
                         .accessibilityValue(["background", "faces", "plates", "documents"].map { "\($0)=\(analysisCounts[$0, default: 0])" }.joined(separator: ","))
                     Color.clear.frame(width: 1, height: 1).accessibilityElement()
+                        .accessibilityIdentifier("privacySelectionCounts")
+                        .accessibilityValue("background=\(backgroundSelection.selected.count),faces=\(selectedFaces.count),plates=\(selectedPlates.count),documents=\(selectedDocuments.count),rectangles=\(manualRegions.count),strokes=\(strokes.count)")
+                    Color.clear.frame(width: 1, height: 1).accessibilityElement()
                         .accessibilityIdentifier("rapidSelectionStress").accessibilityValue(rapidStressState)
                 }
                 #endif
@@ -255,9 +265,11 @@ struct PhotoVeilHome: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(uiColor: .secondarySystemBackground))
             .overlay(alignment: .bottom) {
-                if backgroundUnavailable && !showingFinalPreview {
-                    Text("No foreground found. Select manually.").font(.caption)
-                        .padding(10).modifier(VeilGlassSurface()).padding(8)
+                if let detectionMessage, !showingFinalPreview {
+                    Text(detectionMessage).font(.callout).multilineTextAlignment(.center)
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .background(.regularMaterial, in: Capsule()).padding(12)
+                        .accessibilityIdentifier("detectionFeedback")
                         .allowsHitTesting(false)
                 }
             }
@@ -397,11 +409,11 @@ struct PhotoVeilHome: View {
             if mode == .faces || mode == .plate {
                 if (mode == .faces && !faceRegions.isEmpty) || (mode == .plate && !plateSuggestions.isEmpty) {
                     Button { toggleAllDetections() } label: {
-                        Label(allDetectionsSelected ? "Clear all" : "Hide all", systemImage: "checkmark.rectangle.stack")
+                        Label(hasSelectedDetections ? "Clear All" : "Hide all", systemImage: "checkmark.rectangle.stack")
                             .font(.subheadline).lineLimit(1).frame(minHeight: 44)
                     }.buttonStyle(.plain)
                     .accessibilityIdentifier(mode == .faces ? "blurAllFaces" : "blurAllPlates")
-                    .accessibilityLabel("\(allDetectionsSelected ? "Clear all" : "Hide all") \(mode == .faces ? "faces" : "plates")")
+                    .accessibilityLabel("\(hasSelectedDetections ? "Clear All" : "Hide all") \(mode == .faces ? "faces" : "plates")")
                 } else {
                     Button { select(.manual) } label: { Label("Manual", systemImage: "scribble.variable").font(.subheadline).frame(minHeight: 44) }
                         .buttonStyle(.plain).accessibilityLabel("Select manually")
@@ -410,16 +422,21 @@ struct PhotoVeilHome: View {
                 Menu {
                     Button("Hide all details") { setDocumentCoverage(entire: false) }
                     Button("Hide entire document") { setDocumentCoverage(entire: true) }
-                    Button("Clear selections") { pushUndo(); selectedDocuments = []; rerender() }
+                    Button("Clear All") { clearAll() }.accessibilityIdentifier("clearAll")
                 } label: {
                     Label("Coverage", systemImage: "doc.text").font(.subheadline).frame(minHeight: 44)
                 }.buttonStyle(.plain).accessibilityIdentifier("documentCoverage")
                 .accessibilityValue(didAnalyzeDocuments && documentBoundaries.isEmpty ? "No document found" : hidesEntireDocument ? "Entire document" : "Details")
+            } else if mode == .background {
+                Button("Clear All", systemImage: "checkmark.rectangle.stack") { clearAll() }
+                    .font(.subheadline).frame(minHeight: 44).buttonStyle(.plain).accessibilityIdentifier("clearAll")
             } else if mode == .manual {
                 Menu {
                     Button("Rectangle") { paintsStrokes = false; manualShape = .roundedRectangle }
                     Button("Ellipse") { paintsStrokes = false; manualShape = .oval }
                     Button("Brush") { paintsStrokes = true }
+                    Divider()
+                    Button("Clear All") { clearAll() }.accessibilityIdentifier("clearAll")
                 } label: {
                     Image(systemName: paintsStrokes ? "paintbrush.pointed" : manualShape == .oval ? "oval" : "rectangle.dashed")
                         .font(.system(size: 18)).frame(width: 44, height: 44)
@@ -491,8 +508,9 @@ struct PhotoVeilHome: View {
         #if DEBUG
         analysisCounts = [:]
         #endif
-        self.didAnalyzeBackground = false; self.didAnalyzePlates = false; self.didAnalyzeFaces = false
-        self.documentBoundaries = []; self.documentDetails = []; self.selectedDocuments = []; self.didAnalyzeDocuments = false; self.hidesEntireDocument = false
+        backgroundSelection = .init(); faceSelection = .init(); plateSelection = .init(); documentSelection = .init()
+        dismissDetectionFeedback()
+        self.documentBoundaries = []; self.documentDetails = []; self.selectedDocuments = []; self.hidesEntireDocument = false
         self.strength = .medium; self.effect = .blur; self.redactionColor = .black; self.manualShape = .roundedRectangle
         self.showingOriginal = false
         self.manualDraws = true
@@ -509,12 +527,22 @@ struct PhotoVeilHome: View {
         let requestedMode = argument("-veil-mode")
         let fixtureName = argument("-veil-fixture") ?? (requestedMode == "background" ? "background-person" : requestedMode == "faces" ? "two-faces" : "two-people-car")
         guard arguments.contains("-veil-ui-testing"), original == nil,
-              let fixtureURL = Bundle.main.url(forResource: fixtureName, withExtension: "jpg"),
-              let fixtureData = try? Data(contentsOf: fixtureURL),
+              let fixtureData = fixtureName == "empty-scene"
+                ? UIGraphicsImageRenderer(size: CGSize(width: 1000, height: 1200)).image { context in
+                    UIColor.gray.setFill(); context.fill(CGRect(x: 0, y: 0, width: 1000, height: 1200))
+                  }.jpegData(compressionQuality: 1)
+                : Bundle.main.url(forResource: fixtureName, withExtension: "jpg").flatMap({ try? Data(contentsOf: $0) }),
               let fixture = UIImage(data: fixtureData),
               let normalized = BlurRenderer.normalizedImage(fixture),
               let downsampled = BlurRenderer.previewImage(normalized) else { return }
         beginSession(original: normalized, preview: downsampled)
+        if arguments.contains("-veil-cached-mask-fixture") {
+            // Controlled cached mask tests activation/clear/export, not Vision segmentation.
+            let extent = CGRect(origin: .zero, size: downsampled.size)
+            let foreground = CIImage(color: CIColor.white).cropped(to: CGRect(x: 0, y: 0, width: extent.width / 2, height: extent.height))
+            backgroundMask = foreground.composited(over: CIImage(color: CIColor.black).cropped(to: extent))
+            backgroundSelection.complete(count: 1)
+        }
         if let index = arguments.firstIndex(of: "-veil-mode"), arguments.indices.contains(index + 1),
            let requested = EditorMode.allCases.first(where: { $0.rawValue.lowercased() == arguments[index + 1] }) {
             select(requested)
@@ -561,19 +589,24 @@ struct PhotoVeilHome: View {
         renderRevision += 1
         mode = newMode
         backgroundUnavailable = false
+        dismissDetectionFeedback()
         showingOriginal = false
         if newMode == .manual || newMode == .plate { manualDraws = true }
         switch newMode {
         case .background:
+            backgroundSelection.activate()
             if backgroundMask != nil { rerender() }
-            else if didAnalyzeBackground { backgroundUnavailable = true; mode = .manual; manualDraws = true; rerender() }
+            else if didAnalyzeBackground { backgroundUnavailable = true; mode = .manual; manualDraws = true; rerender(); showDetectionFeedback("Background unavailable. Try Manual.") }
             else { runBackground() }
         case .faces:
-            if !didAnalyzeFaces { runFaces() } else { rerender() }
+            faceSelection.activate()
+            if !didAnalyzeFaces { runFaces() } else { rerender(); showDetectionFeedback(faceSelection.feedback(for: "faces")) }
         case .plate:
-            if !didAnalyzePlates { runPlate() } else { rerender() }
+            plateSelection.activate()
+            if !didAnalyzePlates { runPlate() } else { rerender(); showDetectionFeedback(plateSelection.feedback(for: "plates")) }
         case .documents:
-            if !didAnalyzeDocuments { runDocuments() } else { rerender() }
+            documentSelection.activate()
+            if !didAnalyzeDocuments { runDocuments() } else { rerender(); showDetectionFeedback(documentSelection.feedback(for: "documents")) }
         case .manual: rerender()
         }
     }
@@ -581,6 +614,7 @@ struct PhotoVeilHome: View {
     private func runBackground() {
         guard backgroundAnalysis == nil else { return }
         guard let previewSource else { return }
+        backgroundSelection.begin()
         working = true
         #if DEBUG
         analysisCounts["background", default: 0] += 1
@@ -592,15 +626,16 @@ struct PhotoVeilHome: View {
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
-                backgroundAnalysis = nil; didAnalyzeBackground = true
+                backgroundAnalysis = nil
                 switch result {
                 case .success(let output):
-                    backgroundMask = output.mask; backgroundUnavailable = false
+                    backgroundSelection.complete(count: 1); backgroundMask = output.mask; backgroundUnavailable = false
                     if mode == .background { rerender() }
                 case .failure:
+                    backgroundSelection.fail()
                     if mode == .background {
                         backgroundUnavailable = true; mode = .manual; manualDraws = true
-                        rerender()
+                        rerender(); showDetectionFeedback("Background unavailable. Try Manual.")
                     }
                 }
             }
@@ -610,6 +645,7 @@ struct PhotoVeilHome: View {
     private func runFaces() {
         guard faceAnalysis == nil else { return }
         guard let original else { return }
+        faceSelection.begin()
         working = true
         let session = sessionID
         #if DEBUG
@@ -621,14 +657,14 @@ struct PhotoVeilHome: View {
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
-                faceAnalysis = nil; didAnalyzeFaces = true
+                faceAnalysis = nil
                 switch result {
                 case .success(let faces):
-                    faceRegions = faces; selectedFaces = Set(faces.indices)
-                    if mode == .faces { rerender() }
+                    faceRegions = faces; faceSelection.complete(count: faces.count)
+                    if mode == .faces { rerender(); showDetectionFeedback(faceSelection.feedback(for: "faces")) }
                 case .failure:
-                    faceRegions = []; selectedFaces = []
-                    if mode == .faces { working = false }
+                    faceRegions = []; faceSelection.fail()
+                    if mode == .faces { rerender(); showDetectionFeedback(faceSelection.feedback(for: "faces")) }
                 }
             }
         }
@@ -637,6 +673,7 @@ struct PhotoVeilHome: View {
     private func runPlate() {
         guard plateAnalysis == nil else { return }
         guard let previewSource else { return }
+        plateSelection.begin()
         working = true
         let session = sessionID
         #if DEBUG
@@ -648,10 +685,13 @@ struct PhotoVeilHome: View {
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
-                plateAnalysis = nil; didAnalyzePlates = true
+                plateAnalysis = nil
                 plateSuggestions = (try? result.get()) ?? []
-                selectedPlates = Set(plateSuggestions.indices)
-                if mode == .plate { rerender() }
+                switch result {
+                case .success: plateSelection.complete(count: plateSuggestions.count)
+                case .failure: plateSelection.fail()
+                }
+                if mode == .plate { rerender(); showDetectionFeedback(plateSelection.feedback(for: "plates")) }
             }
         }
     }
@@ -660,7 +700,7 @@ struct PhotoVeilHome: View {
 
     private func setDocumentCoverage(entire: Bool) {
         pushUndo(); hidesEntireDocument = entire
-        selectedDocuments = Set(currentDocumentRegions.indices); rerender()
+        documentSelection.complete(count: currentDocumentRegions.count); documentSelection.activate(); rerender()
     }
 
     private func toggleDocument(_ index: Int) {
@@ -673,6 +713,7 @@ struct PhotoVeilHome: View {
     private func runDocuments() {
         guard documentAnalysis == nil else { return }
         guard let original, let cg = original.cgImage else { return }
+        documentSelection.begin()
         working = true
         let session = sessionID
         #if DEBUG
@@ -680,14 +721,20 @@ struct PhotoVeilHome: View {
         #endif
         documentAnalysis = Task.detached(priority: .userInitiated) {
             let analysis = BlurRenderer.previewImage(original, maxDimension: 3200)?.cgImage ?? cg
-            let result = try? DocumentDetection.analyze(analysis)
+            let result: Result<DocumentDetection.Result, Error>
+            do { result = .success(try DocumentDetection.analyze(analysis)) }
+            catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
-                documentAnalysis = nil; didAnalyzeDocuments = true
-                documentBoundaries = result?.boundaries ?? []; documentDetails = result?.details ?? []
+                documentAnalysis = nil
+                let output = try? result.get()
+                documentBoundaries = output?.boundaries ?? []; documentDetails = output?.details ?? []
                 hidesEntireDocument = documentDetails.isEmpty
-                selectedDocuments = Set(currentDocumentRegions.indices)
-                if mode == .documents { rerender() }
+                switch result {
+                case .success: documentSelection.complete(count: currentDocumentRegions.count)
+                case .failure: documentSelection.fail()
+                }
+                if mode == .documents { rerender(); showDetectionFeedback(documentSelection.feedback(for: "documents")) }
             }
         }
     }
@@ -708,15 +755,44 @@ struct PhotoVeilHome: View {
         rerender()
     }
 
-    private var allDetectionsSelected: Bool {
-        mode == .faces ? selectedFaces.count == faceRegions.count : selectedPlates.count == plateSuggestions.count
+    private var hasSelectedDetections: Bool {
+        mode == .faces ? !selectedFaces.isEmpty : !selectedPlates.isEmpty
     }
 
     private func toggleAllDetections() {
         pushUndo()
-        if mode == .faces { selectedFaces = allDetectionsSelected ? [] : Set(faceRegions.indices) }
-        else { selectedPlates = allDetectionsSelected ? [] : Set(plateSuggestions.indices) }
+        if mode == .faces { if hasSelectedDetections { faceSelection.clear() } else { faceSelection.activate() } }
+        else { if hasSelectedDetections { plateSelection.clear() } else { plateSelection.activate() } }
         rerender()
+    }
+
+    private func clearAll() {
+        pushUndo()
+        switch mode {
+        case .background: backgroundSelection.clear()
+        case .faces: faceSelection.clear()
+        case .plate: plateSelection.clear()
+        case .documents: documentSelection.clear()
+        case .manual: manualRegions = []; strokes = []; draftStroke = nil
+        case .none: return
+        }
+        rerender()
+    }
+
+    private func dismissDetectionFeedback() {
+        feedbackDismissal?.cancel(); feedbackDismissal = nil; detectionMessage = nil
+    }
+
+    private func showDetectionFeedback(_ message: String?) {
+        guard let message else { return }
+        dismissDetectionFeedback()
+        detectionMessage = message
+        UIAccessibility.post(notification: .announcement, argument: message)
+        feedbackDismissal = Task { @MainActor in
+            do { try await Task.sleep(for: .seconds(UIAccessibility.isVoiceOverRunning ? 10 : 6)) }
+            catch { return }
+            detectionMessage = nil
+        }
     }
 
     private func replaceManualRegions(_ regions: [BlurRegion]) {
@@ -771,11 +847,11 @@ struct PhotoVeilHome: View {
     private func rerender(isBrushUpdate: Bool = false) {
         guard let previewSource else { return }
         // Strength changes must not publish an unprocessed Background preview.
-        guard mode != .background || backgroundMask != nil else { return }
+        guard mode != .background || backgroundMask != nil || !backgroundSelection.isActive else { return }
         working = true; renderRevision += 1
         let revision = renderRevision, currentMode = mode, currentStrength = strength, isDraft = draftStroke != nil
         let strokes = renderStrokes, currentEffect = effect, currentColor = redactionColor
-        let regions = regionsForCurrentMode(), mask = currentMode == .background ? backgroundMask : nil
+        let regions = regionsForCurrentMode(), mask = currentMode == .background && backgroundSelection.isActive ? backgroundMask : nil
         if !brushRenderInFlight { previewRender?.cancel() }
         previewRender = Task.detached(priority: .userInitiated) {
             guard !Task.isCancelled else { return }
@@ -812,13 +888,14 @@ struct PhotoVeilHome: View {
     }
 
     private func pushUndo() {
-        undoStack.append(EditSnapshot(mode: mode, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
+        undoStack.append(EditSnapshot(mode: mode, backgroundActive: backgroundSelection.isActive, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
                                       selectedPlates: selectedPlates, selectedDocuments: selectedDocuments, hidesEntireDocument: hidesEntireDocument, strength: strength, effect: effect, redactionColor: redactionColor))
         if undoStack.count > 30 { undoStack.removeFirst() }
     }
 
     private func undo() {
         guard let snapshot = undoStack.popLast() else { return }
+        if snapshot.backgroundActive { backgroundSelection.activate() } else { backgroundSelection.clear() }
         mode = snapshot.mode; manualRegions = snapshot.regions; strokes = snapshot.strokes; draftStroke = nil; selectedFaces = snapshot.selectedFaces
         selectedDocuments = snapshot.selectedDocuments; hidesEntireDocument = snapshot.hidesEntireDocument
         selectedPlates = snapshot.selectedPlates; strength = snapshot.strength; effect = snapshot.effect; redactionColor = snapshot.redactionColor
@@ -828,7 +905,7 @@ struct PhotoVeilHome: View {
     private func resetEdits() {
         guard let previewSource else { return }
         renderRevision += 1; working = false; backgroundUnavailable = false
-        pushUndo(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
+        pushUndo(); backgroundSelection.clear(); faceSelection.clear(); plateSelection.clear(); documentSelection.clear(); dismissDetectionFeedback(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
         selectedDocuments = []; showingOriginal = false; showingFinalPreview = false; strokes = []; draftStroke = nil; preview = previewSource; manualDraws = true
     }
 
@@ -837,6 +914,7 @@ struct PhotoVeilHome: View {
         backgroundAnalysis?.cancel(); backgroundAnalysis = nil; plateAnalysis?.cancel(); plateAnalysis = nil
         previewRender?.cancel(); previewRender = nil; brushRenderInFlight = false; brushRenderPending = false
         sessionID = UUID(); renderRevision += 1
+        dismissDetectionFeedback()
         original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
         faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
         strokes = []; draftStroke = nil; showingFinalPreview = false; undoStack = []; pickerItem = nil; showingOriginal = false; zoomed = false; working = false
@@ -852,7 +930,7 @@ struct PhotoVeilHome: View {
             captureTestRender(preview, name: "evidence-preexport-\(mode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")")
         }
         let currentMode = mode, regions = regionsForCurrentMode(), currentStrength = strength, strokes = renderStrokes
-        let mask = currentMode == .background ? backgroundMask : nil, session = sessionID
+        let mask = currentMode == .background && backgroundSelection.isActive ? backgroundMask : nil, session = sessionID
         let currentEffect = effect, currentColor = redactionColor
         Task.detached(priority: .userInitiated) {
             let rendered: UIImage?

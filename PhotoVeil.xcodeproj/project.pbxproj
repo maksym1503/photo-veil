@@ -175,6 +175,7 @@
 				<string>B33EFE6E9F440F6A184DC272</string>
 				<string>5A8CA0ED3ADFF88A9C0BD8A4</string>
 				<string>1563786605C6EBDBA941D0A8</string>
+				<string>031129D2E7FD31E005AFEFB7</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -803,6 +804,7 @@
 				<string>29599A38BA13162B775EBC16</string>
 				<string>6365AA3EF64329B8166B716E</string>
 				<string>E1904B9F4B75F5A6959E0ED9</string>
+				<string>58AAA79BF27A4586DBF6F1D0</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -1345,6 +1347,24 @@ fi
 			<string>PBXBuildFile</string>
 			<key>fileRef</key>
 			<string>E1904B9F4B75F5A6959E0ED9</string>
+		</dict>
+		<key>58AAA79BF27A4586DBF6F1D0</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/DetectedPrivacySelection.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>031129D2E7FD31E005AFEFB7</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>58AAA79BF27A4586DBF6F1D0</string>
 		</dict>
 	</dict>
 	<key>rootObject</key>

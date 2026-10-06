@@ -40,3 +40,11 @@ No invented project, key, domain, legal owner or provider ID. The default build 
 Native Core Image already supplies blur/pixelation/compositing; an editor/helper dependency would not reduce complexity. Keep Apple frameworks for image processing. Exact dependency versions/licenses and final operational limits are recorded in Backend setup and QA.
 
 V3 rendering semantics remain active-tool based: selecting another tool switches the active automatic mask set, rather than combining independently styled automatic tools. Effect/strength apply to the active session; editable originals and per-region mixed-effect stacks are future options, not silently added to cloud history.
+
+## V4.2 automatic-tool lifecycle
+
+`DetectedPrivacySelection` separates cached analysis status (`idle`, `detecting`, successful count, failure) from active selected indices and activation intent. Faces, Plates, Documents and Background share it; their geometry/mask caches remain in the existing editor session. Background represents a successful foreground mask as one selectable privacy effect.
+
+Entering an automatic tool from another tool is fresh activation intent: cached regions are selected again, without another Vision request. Clear All deactivates only that category and keeps analysis cached. Clearing while analysis is running suppresses activation when it finishes. Manual Clear All removes its rectangles, ellipses and strokes; Undo restores them. Documents re-entry retains the chosen Details/Entire Document coverage and activates that geometry. Individual region toggles continue to alter only selection. Existing preview/export renderer and image-space geometry are unchanged.
+
+Zero results and failures are distinct cached outcomes. Only a completed analysis (or re-entry to its cached outcome) produces transient feedback. A late result from a tool no longer selected cannot display that tool's feedback. Replacing/closing the photo cancels feedback and per-session tasks. Background's existing Manual fallback remains, now with concise transient feedback. No image/OCR data is included in diagnostics or feedback.
