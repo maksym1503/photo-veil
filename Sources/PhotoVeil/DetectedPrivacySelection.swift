@@ -14,6 +14,15 @@ struct DetectedPrivacySelection: Equatable {
         switch status { case .completed, .failed: true; default: false }
     }
     var isActive: Bool { !selected.isEmpty }
+    /// Editing focus alone is not an undoable change. A new request or cached
+    /// activation that changes selection is; its analysis remains independently cached.
+    var needsActivationUndo: Bool {
+        switch status {
+        case .idle, .detecting: !activationRequested
+        case .completed(let count): selected != Set(0..<count)
+        case .failed: false
+        }
+    }
     mutating func activate() {
         activationRequested = true
         if case .completed(let count) = status { selected = Set(0..<count) }

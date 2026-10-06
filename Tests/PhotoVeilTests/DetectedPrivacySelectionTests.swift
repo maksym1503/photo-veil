@@ -6,7 +6,9 @@ final class DetectedPrivacySelectionTests: XCTestCase {
         var selection = DetectedPrivacySelection()
         selection.activate(); selection.begin(); selection.complete(count: 3)
         XCTAssertEqual(selection.selected, [0, 1, 2])
+        XCTAssertFalse(selection.needsActivationUndo)
         selection.selected.remove(1)
+        XCTAssertTrue(selection.needsActivationUndo)
         selection.clear()
         XCTAssertEqual(selection.status, .completed(3))
         XCTAssertFalse(selection.isActive)
@@ -14,6 +16,7 @@ final class DetectedPrivacySelectionTests: XCTestCase {
             selection.activate()
             XCTAssertEqual(selection.selected, [0, 1, 2])
             XCTAssertTrue(selection.hasAnalyzed)
+            XCTAssertFalse(selection.needsActivationUndo)
             selection.clear()
         }
     }

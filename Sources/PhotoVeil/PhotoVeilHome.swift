@@ -638,7 +638,15 @@ struct PhotoVeilHome: View {
             return
         }
         UISelectionFeedbackGenerator().selectionChanged()
-        if newMode != .manual { pushUndo(for: newMode) }
+        let activationChanges: Bool
+        switch newMode {
+        case .background: activationChanges = backgroundSelection.needsActivationUndo
+        case .faces: activationChanges = faceSelection.needsActivationUndo
+        case .plate: activationChanges = plateSelection.needsActivationUndo
+        case .documents: activationChanges = documentSelection.needsActivationUndo
+        case .manual: activationChanges = false
+        }
+        if activationChanges { pushUndo(for: newMode) }
         renderRevision += 1
         mode = newMode
         backgroundUnavailable = false
@@ -957,7 +965,9 @@ struct PhotoVeilHome: View {
         undoStack.append(EditSnapshot(mode: target, focus: mode, backgroundActive: backgroundSelection.isActive, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
             selectedPlates: selectedPlates, selectedDocuments: selectedDocuments, hidesEntireDocument: hidesEntireDocument,
             settings: layerSettings))
-        if undoStack.count > 30 { undoStack.removeFirst() }
+        // Bound each category separately: automatic edits cannot evict Manual history.
+        let categoryIndices = undoStack.indices.filter { undoStack[$0].mode == target }
+        if categoryIndices.count > 30 { undoStack.remove(at: categoryIndices[0]) }
     }
 
     private var canUndo: Bool { undoStack.contains { $0.mode == mode || $0.mode == nil } }

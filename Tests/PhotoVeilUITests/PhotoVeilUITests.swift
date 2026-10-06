@@ -84,6 +84,24 @@ final class PhotoVeilUITests: XCTestCase {
         XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String)?.contains("faces=0,plates=1,documents=0,rectangles=0") == true)
     }
 
+    @MainActor func testV43AutomaticEditsCannotEvictManualUndoHistory() {
+        let app = launch(fixture: "two-people-car")
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.35, dy: 0.3), to: CGVector(dx: 0.55, dy: 0.45)); waitForRender(app)
+        app.buttons["mode_faces"].tap(); waitForRender(app)
+        app.buttons["mode_plate"].tap(); waitForRender(app)
+        for _ in 0..<16 {
+            app.buttons["mode_faces"].tap(); app.buttons["blurAllFaces"].tap()
+            app.buttons["mode_plate"].tap(); app.buttons["blurAllPlates"].tap()
+        }
+        app.buttons["mode_faces"].tap(); app.buttons["mode_plate"].tap()
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["Undo"].isEnabled)
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String)?.contains("faces=2,plates=1,documents=0,rectangles=0") == true)
+        XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, "background=0,faces=1,plates=1,documents=0")
+    }
+
     @MainActor func testV43FullCompositionAndScopedClears() {
         let app = XCUIApplication()
         app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "combined-privacy", "-veil-cached-mask-fixture"]
@@ -104,6 +122,13 @@ final class PhotoVeilUITests: XCTestCase {
         let fingerprint = app.otherElements["processingComplete"].value as? String
         app.buttons["finalPreview"].tap(); attach(app, "v43-full-done")
         XCTAssertEqual(app.otherElements["processingComplete"].value as? String, fingerprint)
+        app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        let savedExport = app.otherElements["exportFingerprint"].value as? String
+        XCTAssertFalse(savedExport?.isEmpty ?? true)
+        export(app, "v43-full-composition-share")
+        app.buttons["Close"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["exportFingerprint"].value as? String, savedExport, "Save to Veil and Share must render the same full-resolution composition")
         app.buttons["finalPreview"].tap()
         for tool in ["background", "faces", "plate", "documents", "manual"] {
             app.buttons["mode_\(tool)"].tap(); waitForRender(app)

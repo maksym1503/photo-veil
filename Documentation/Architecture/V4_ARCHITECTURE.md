@@ -62,3 +62,5 @@ Gallery/cloud metadata retains the existing coarse `effect` tag (Redact if prese
 A Reset edits undo snapshot expires when a new edit begins, so a later category undo cannot replace newer selections with an old global snapshot. Core Image intermediate caching is disabled: unchanged previews are reused at the session boundary, without retaining large full-resolution intermediate surfaces across exports.
 
 Region effects request only their selected bounding rectangle plus the feather halo from Core Image; filter inputs remain the full accumulated image so blur/pixel sampling quality and coordinates are unchanged. Background still spans the image. This avoids evaluating every region filter over a 48 MP image and keeps the same shared composition graph for preview/export. See [Apple’s intermediate cache option](https://developer.apple.com/documentation/coreimage/cicontextoption/cacheintermediates).
+
+Undo retains up to 30 edits per category, so repeated automatic edits cannot evict Manual history. Cached re-entry with an unchanged selection creates no undo record; reactivation after a clear or partial selection remains an undoable edit.
