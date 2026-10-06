@@ -468,6 +468,22 @@ final class PhotoVeilUITests: XCTestCase {
         XCTAssertEqual(app.otherElements["privacySelectionCounts"].value as? String, populated)
     }
 
+    @MainActor func testV42PendingDetectionSurvivesToolReentry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "empty-scene", "-veil-delay-faces"]
+        app.launch(); waitForRender(app)
+        app.buttons["mode_faces"].tap()
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        app.buttons["mode_faces"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["detectionInProgress"].exists)
+        XCTAssertFalse(app.buttons["finalPreview"].isEnabled)
+        XCTAssertFalse(app.staticTexts["detectionFeedback"].exists)
+        XCTAssertFalse(app.otherElements["processingComplete"].exists)
+        XCTAssertTrue(app.staticTexts["detectionFeedback"].waitForExistence(timeout: 30))
+        XCTAssertEqual(app.staticTexts["detectionFeedback"].label, "No faces detected. Try Manual.")
+        XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, "background=0,faces=1,plates=0,documents=0")
+    }
+
     @MainActor func testV42EmptyDetectionFeedback() {
         let app = launch(fixture: "empty-scene")
         for (tool, message) in [("faces", "No faces detected. Try Manual."), ("plate", "No plates detected. Try Manual."), ("documents", "No documents detected. Try Manual.")] {

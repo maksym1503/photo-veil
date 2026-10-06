@@ -94,6 +94,16 @@ struct PhotoVeilHome: View {
     @State private var rapidStressState = "Waiting"
     #endif
 
+    private var detectingCurrentTool: Bool {
+        switch mode {
+        case .background: backgroundSelection.status == .detecting
+        case .faces: faceSelection.status == .detecting
+        case .plate: plateSelection.status == .detecting
+        case .documents: documentSelection.status == .detecting
+        default: false
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -168,7 +178,7 @@ struct PhotoVeilHome: View {
                 Button(showingFinalPreview ? "Edit" : "Done") {
                     showingOriginal = false
                     showingFinalPreview.toggle()
-                }.id(showingFinalPreview).disabled(working).accessibilityIdentifier("finalPreview")
+                }.id(showingFinalPreview).disabled(working || detectingCurrentTool).accessibilityIdentifier("finalPreview")
             }
             if showingFinalPreview {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -177,10 +187,10 @@ struct PhotoVeilHome: View {
                             .accessibilityIdentifier("saveToVeil")
                         Button("Save to Photos", systemImage: "photo") { prepareExport(destination: .photos) }
                             .accessibilityIdentifier("saveToPhotos")
-                    }.labelStyle(.iconOnly).disabled(working).accessibilityIdentifier("saveMenu")
+                    }.labelStyle(.iconOnly).disabled(working || detectingCurrentTool).accessibilityIdentifier("saveMenu")
                     Button("Share", systemImage: "square.and.arrow.up") { prepareExport() }
                         .labelStyle(.iconOnly).modifier(VeilActionStyle(prominent: true))
-                        .disabled(working).accessibilityIdentifier("export")
+                        .disabled(working || detectingCurrentTool).accessibilityIdentifier("export")
                 }
             }
         }
@@ -250,9 +260,10 @@ struct PhotoVeilHome: View {
                         .accessibilityIdentifier("rapidSelectionStress").accessibilityValue(rapidStressState)
                 }
                 #endif
-                if working && draftStroke == nil {
+                if (working || detectingCurrentTool) && draftStroke == nil {
                     ProgressView().controlSize(.regular).padding(13).background(.regularMaterial, in: Circle())
-                        .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel("Processing").allowsHitTesting(false)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel(detectingCurrentTool ? "Detecting" : "Processing")
+                        .accessibilityIdentifier(detectingCurrentTool ? "detectionInProgress" : "renderInProgress").allowsHitTesting(false)
                 } else {
                     Color.clear.frame(width: 1, height: 1)
                         .accessibilityElement()
@@ -651,6 +662,13 @@ struct PhotoVeilHome: View {
         analysisCounts["faces", default: 0] += 1
         #endif
         faceAnalysis = Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-veil-delay-faces") {
+                // Deterministic pending/re-entry UI test; actual Vision still produces the result.
+                try? await Task.sleep(for: .seconds(15))
+                guard !Task.isCancelled else { return }
+            }
+            #endif
             let result: Result<[CGRect], Error>
             do { result = .success(try await BlurRenderer.detectFaces(in: original)) }
             catch { result = .failure(error) }
