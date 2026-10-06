@@ -51,8 +51,11 @@ struct VeilGallery: View {
                     }
                 }
             }
-            .confirmationDialog("Delete selected photos? Synced copies will also be deleted when sync runs.", isPresented: $confirmsDelete, titleVisibility: .visible) {
-                Button("Delete photos", role: .destructive) { Task { await library.delete(selected); selected = []; selecting = false } }
+            .sheet(isPresented: $confirmsDelete) {
+                GalleryDeleteConfirmation(multiple: true,
+                    includesCloud: library.items.contains { selected.contains($0.id) && $0.cloudUserID != nil }) {
+                    Task { await library.delete(selected); selected = []; selecting = false }
+                }
             }
         }.task { await library.reload() }
         .alert("Private Gallery", isPresented: Binding(get: { library.message != nil }, set: { if !$0 { library.message = nil } })) { Button("OK") { library.message = nil } } message: { Text(library.message ?? "") }
@@ -104,8 +107,10 @@ private struct GalleryPhoto: View {
             .sheet(item: $shareItem) { item in
                 ShareSheet(items: [item.url]).onDisappear { try? FileManager.default.removeItem(at: item.url) }
             }
-            .confirmationDialog("Delete this photo? Synced copies will also be deleted when sync runs.", isPresented: $confirmsDelete, titleVisibility: .visible) {
-                Button("Delete photo", role: .destructive) { Task { await library.delete([item.id]); dismiss() } }
+            .sheet(isPresented: $confirmsDelete) {
+                GalleryDeleteConfirmation(multiple: false, includesCloud: item.cloudUserID != nil) {
+                    Task { await library.delete([item.id]); dismiss() }
+                }
             }
             .alert("Private Gallery", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) { Button("OK") { notice = nil } } message: { Text(notice ?? "") }
     }
@@ -120,5 +125,30 @@ private struct GalleryPhoto: View {
             guard let data = try await library.store?.data(for: item.id) else { return }
             try await PhotosSaver.save(data); notice = "Saved to Photos"
         } catch { notice = PhotosSaver.message(for: error) }
+    }
+}
+
+/// A native sheet avoids confirmation-dialog popover anchoring on iOS 26.
+private struct GalleryDeleteConfirmation: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let multiple: Bool
+    let includesCloud: Bool
+    let delete: () -> Void
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(multiple ? "Delete selected photos?" : "Delete this photo?")
+                .font(.headline).multilineTextAlignment(.center)
+            Text(includesCloud
+                 ? "Deletes from this iPhone. Synced cloud copies are deleted when sync resumes."
+                 : "Removes \(multiple ? "these photos" : "this photo") from this iPhone.")
+                .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            Button(multiple ? "Delete photos" : "Delete photo", role: .destructive) { dismiss(); delete() }
+                .frame(maxWidth: .infinity, minHeight: 44).buttonStyle(.bordered)
+            Button("Cancel", role: .cancel) { dismiss() }.frame(maxWidth: .infinity, minHeight: 44)
+        }.padding(24)
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.height(280)])
+        .presentationDragIndicator(.visible)
+        .accessibilityIdentifier("galleryDeleteConfirmation")
     }
 }
