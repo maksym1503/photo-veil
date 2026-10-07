@@ -3,6 +3,45 @@ import CoreImage
 @testable import ImageGeometry
 
 final class PrivacyImageRendererTests: XCTestCase {
+    func testCancelledPreviewQueueSkipsObsoleteWorkAndLatestMatchesExport() async throws {
+        let source = try checkerboard(width: 160, height: 120)
+        let started = expectation(description: "First synchronous render started")
+        let release = DispatchSemaphore(value: 0)
+        var evaluations = 0
+        let renderer = PrivacyPreviewRenderer { source, layers in
+            evaluations += 1
+            if evaluations == 1 {
+                started.fulfill()
+                XCTAssertEqual(release.wait(timeout: .now() + 10), .success)
+            }
+            return PrivacyImageRenderer.render(source: source, layers: layers)
+        }
+        let first = Task { await renderer.render(source: source, layers: []) }
+        await fulfillment(of: [started], timeout: 5)
+        first.cancel()
+        let queued = expectation(description: "Every obsolete request reaches the renderer queue")
+        queued.expectedFulfillmentCount = 500
+        let obsolete = (0..<500).map { _ in
+            Task { queued.fulfill(); return await renderer.render(source: source, layers: []) }
+        }
+        await fulfillment(of: [queued], timeout: 5)
+        XCTAssertEqual(evaluations, 1, "Queued requests must not overlap synchronous image evaluation")
+        obsolete.forEach { $0.cancel() }
+        let layers = [
+            PrivacyRenderLayer(regions: [BlurRegion(rect: CGRect(x: 0.1, y: 0.1, width: 0.3, height: 0.3), shape: .oval)]),
+            PrivacyRenderLayer(regions: [BlurRegion(rect: CGRect(x: 0.6, y: 0.6, width: 0.3, height: 0.3), shape: .rectangle)],
+                settings: PrivacyEffectSettings(effect: .pixelate))]
+        let latest = Task { await renderer.render(source: source, layers: layers) }
+        release.signal()
+        let firstResult = await first.value
+        XCTAssertNil(firstResult, "Cancelled in-flight work cannot publish an obsolete image")
+        for task in obsolete { let result = await task.value; XCTAssertNil(result) }
+        let latestResult = await latest.value
+        let result = try XCTUnwrap(latestResult)
+        let exported = try XCTUnwrap(PrivacyImageRenderer.render(source: source, layers: layers))
+        XCTAssertEqual(evaluations, 2, "Only the already-running request and latest request may evaluate pixels")
+        XCTAssertEqual(result.dataProvider?.data as Data?, exported.dataProvider?.data as Data?)
+    }
     func testForegroundMaskSelectsSharpSubjectAndBlursEnvironment() throws {
         let source = try checkerboard(width: 160, height: 120)
         let mask = try mask(width: 160, height: 120, rect: CGRect(x: 48, y: 24, width: 64, height: 80))

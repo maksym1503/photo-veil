@@ -72,6 +72,21 @@ struct PrivacyRenderLayer: Equatable {
     }
 }
 
+/// Core Image rendering is synchronous and cannot be interrupted by Task.cancel().
+/// Serialize previews; cancelled queued requests never start expensive image evaluation.
+/// Export remains independent and always renders the complete requested snapshot.
+actor PrivacyPreviewRenderer {
+    private let renderImage: (CGImage, [PrivacyRenderLayer]) -> CGImage?
+    init(renderImage: @escaping (CGImage, [PrivacyRenderLayer]) -> CGImage? = {
+        PrivacyImageRenderer.render(source: $0, layers: $1)
+    }) { self.renderImage = renderImage }
+    func render(source: CGImage, layers: [PrivacyRenderLayer]) -> CGImage? {
+        guard !Task.isCancelled else { return nil }
+        let output = renderImage(source, layers)
+        return Task.isCancelled ? nil : output
+    }
+}
+
 /// Shared Core Image pipeline used by both the live canvas preview and full-resolution export.
 enum PrivacyImageRenderer {
     private static let context = CIContext(options: [.useSoftwareRenderer: false, .cacheIntermediates: false])

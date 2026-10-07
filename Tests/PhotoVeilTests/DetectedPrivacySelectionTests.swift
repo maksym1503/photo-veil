@@ -2,6 +2,41 @@ import XCTest
 @testable import ImageGeometry
 
 final class DetectedPrivacySelectionTests: XCTestCase {
+    func testHighVolumeAutomaticHistoryCannotEvictAnyManualSnapshot() {
+        var history = ScopedUndoHistory<String, String>()
+        for index in 0..<30 { history.append("manual-\(index)", for: "manual") }
+        let automatic = ["background", "faces", "plates", "documents"]
+        var selections = automatic.map { _ in DetectedPrivacySelection() }
+        for index in selections.indices {
+            selections[index].activate(); selections[index].begin(); selections[index].complete(count: index + 1)
+        }
+        for edit in 0..<1000 {
+            for (index, category) in automatic.enumerated() {
+                history.append("\(category)-\(edit)", for: category)
+                selections[index].clear(); selections[index].activate()
+                XCTAssertEqual(selections[index].selected, Set(0..<(index + 1)))
+                XCTAssertEqual(selections[index].status, .completed(index + 1), "Re-entry must retain cached analysis")
+            }
+        }
+        // All categories retain exactly their own last 30 snapshots, in reverse order.
+        // Popping one category neither consumes nor reorders another's history.
+        for category in automatic {
+            for edit in (970..<1000).reversed() { XCTAssertEqual(history.pop(for: category), "\(category)-\(edit)") }
+            XCTAssertNil(history.pop(for: category))
+            XCTAssertTrue(history.canUndo("manual"))
+        }
+        for index in (0..<30).reversed() { XCTAssertEqual(history.pop(for: "manual"), "manual-\(index)") }
+        XCTAssertFalse(history.canUndo("manual"))
+    }
+    func testGlobalResetHistoryExpiresOnNewEditWithoutRemovingManualHistory() {
+        var history = ScopedUndoHistory<String, String>()
+        history.append("manual", for: "manual"); history.append("reset", for: nil)
+        XCTAssertEqual(history.pop(for: "faces"), "reset")
+        history.append("reset", for: nil); history.append("faces", for: "faces")
+        XCTAssertEqual(history.pop(for: "manual"), "manual")
+        XCTAssertNil(history.pop(for: "manual"), "A stale global Reset must not erase newer categories")
+        XCTAssertEqual(history.pop(for: "faces"), "faces")
+    }
     func testCachedReentryReactivatesAllWithoutNewAnalysis() {
         var selection = DetectedPrivacySelection()
         selection.activate(); selection.begin(); selection.complete(count: 3)

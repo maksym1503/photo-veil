@@ -58,6 +58,7 @@ struct PhotoVeilHome: View {
     @State private var original: UIImage?
     @State private var previewSource: UIImage?
     @State private var completedRenderLayers: [PrivacyRenderLayer]?
+    @State private var previewRenderer = PrivacyPreviewRenderer()
     @State private var preview: UIImage?
     @State private var backgroundMask: CIImage?
     @State private var backgroundSelection = DetectedPrivacySelection()
@@ -101,7 +102,7 @@ struct PhotoVeilHome: View {
     @State private var draftStroke: BlurStroke?
     @State private var paintsStrokes = false
     @State private var showingFinalPreview = false
-    @State private var undoStack: [EditSnapshot] = []
+    @State private var undoStack = ScopedUndoHistory<EditorMode, EditSnapshot>()
     @State private var working = false
     @State private var showingOriginal = false
     @State private var manualDraws = true
@@ -542,7 +543,7 @@ struct PhotoVeilHome: View {
         self.selectedPlates = []
         self.manualRegions = []
         self.strokes = []; self.draftStroke = nil; self.paintsStrokes = false; self.showingFinalPreview = false
-        self.undoStack = []
+        self.undoStack = .init()
 
         #if DEBUG
         analysisCounts = [:]
@@ -601,6 +602,8 @@ struct PhotoVeilHome: View {
             select(requested)
         }
         if arguments.contains("-veil-rapid-selection-stress") {
+            // Exercise effect changes on an actual Manual layer, not an empty tool.
+            manualRegions = [BlurRegion(rect: CGRect(x: 0.3, y: 0.3, width: 0.2, height: 0.15), shape: .roundedRectangle)]
             let stressSession = sessionID
             Task { await runRapidSelectionStress(session: stressSession) }
         }
@@ -612,7 +615,9 @@ struct PhotoVeilHome: View {
     /// Uses the same actions at 40 ms intervals; no fake detection or account state.
     @MainActor private func runRapidSelectionStress(session: UUID) async {
         try? await Task.sleep(for: .seconds(5))
-        for _ in 0..<12 {
+        // High-volume cancellation/history invariants are covered by core tests.
+        // Two rendered cycles retain rapid asynchronous detection/tool/effect overlap.
+        for _ in 0..<2 {
             guard !Task.isCancelled, sessionID == session else { return }
             for tool in EditorMode.allCases {
                 select(tool); try? await Task.sleep(for: .milliseconds(40))
@@ -927,10 +932,18 @@ struct PhotoVeilHome: View {
             return
         }
         if !brushRenderInFlight { previewRender?.cancel() }
+        let renderer = previewRenderer
         previewRender = Task.detached(priority: .userInitiated) {
             guard !Task.isCancelled else { return }
-            let output = previewSource.cgImage.flatMap { PrivacyImageRenderer.render(source: $0, layers: layers) }
+            guard let source = previewSource.cgImage else { return }
+            let output = await renderer.render(source: source, layers: layers)
                 .map { UIImage(cgImage: $0, scale: previewSource.scale, orientation: .up) }
+            guard !Task.isCancelled else { return }
+            #if DEBUG
+            // Test evidence must not block SwiftUI/AX, and must be ready before publishing
+            // processingComplete. Encode once per accepted preview, off the main thread.
+            let evidence = !isDraft ? output.flatMap { Self.testEvidence($0, source: previewSource) } : nil
+            #endif
             await MainActor.run {
                 defer {
                     if isBrushUpdate {
@@ -948,10 +961,14 @@ struct PhotoVeilHome: View {
                 working = false
                 if let output {
                     completedRenderLayers = layers; preview = output
-                    if !isDraft {
-                        captureTestRender(output, name: "evidence-\(currentMode?.rawValue.lowercased() ?? "none")-\(currentStrength.rawValue.lowercased())-\(strokes.isEmpty ? "regions" : "brush")")
-                        captureTestRender(output, name: "preview-\(currentMode?.rawValue.lowercased() ?? "none")")
+                    #if DEBUG
+                    if let evidence {
+                        testRenderFingerprint = evidence.fingerprint
+                        captureTestRender(evidence, names: [
+                            "evidence-\(currentMode?.rawValue.lowercased() ?? "none")-\(currentStrength.rawValue.lowercased())-\(strokes.isEmpty ? "regions" : "brush")",
+                            "preview-\(currentMode?.rawValue.lowercased() ?? "none")"])
                     }
+                    #endif
                 }
             }
         }
@@ -961,20 +978,15 @@ struct PhotoVeilHome: View {
         let target = global ? nil : (tool ?? mode ?? .manual)
         // Once a new edit starts, Undo belongs to that category again. An old Reset
         // snapshot must not let Manual undo replace newer automatic selections.
-        if !global { undoStack.removeAll { $0.mode == nil } }
         undoStack.append(EditSnapshot(mode: target, focus: mode, backgroundActive: backgroundSelection.isActive, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
             selectedPlates: selectedPlates, selectedDocuments: selectedDocuments, hidesEntireDocument: hidesEntireDocument,
-            settings: layerSettings))
-        // Bound each category separately: automatic edits cannot evict Manual history.
-        let categoryIndices = undoStack.indices.filter { undoStack[$0].mode == target }
-        if categoryIndices.count > 30 { undoStack.remove(at: categoryIndices[0]) }
+            settings: layerSettings), for: target)
     }
 
-    private var canUndo: Bool { undoStack.contains { $0.mode == mode || $0.mode == nil } }
+    private var canUndo: Bool { undoStack.canUndo(mode) }
 
     private func undo() {
-        guard let index = undoStack.lastIndex(where: { $0.mode == mode || $0.mode == nil }) else { return }
-        let snapshot = undoStack.remove(at: index)
+        guard let snapshot = undoStack.pop(for: mode) else { return }
         // Restore only the edited category. A manual undo never restores older automatic
         // selections (and vice versa). The deliberately separate Reset edits remains global.
         if snapshot.mode == nil || snapshot.mode == .background {
@@ -1009,7 +1021,7 @@ struct PhotoVeilHome: View {
         dismissDetectionFeedback()
         completedRenderLayers = nil; original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
         faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
-        strokes = []; draftStroke = nil; showingFinalPreview = false; undoStack = []; pickerItem = nil; showingOriginal = false; zoomed = false; working = false
+        strokes = []; draftStroke = nil; showingFinalPreview = false; undoStack = .init(); pickerItem = nil; showingOriginal = false; zoomed = false; working = false
     }
 
     private enum ExportDestination { case share, gallery, photos }
@@ -1017,10 +1029,9 @@ struct PhotoVeilHome: View {
     private func prepareExport(destination: ExportDestination = .share) {
         guard let original else { errorMessage = "The image couldn’t be prepared."; return }
         working = true
-        if let preview {
-            captureTestRender(preview, name: "preexport-\(mode?.rawValue.lowercased() ?? "none")")
-            captureTestRender(preview, name: "evidence-preexport-\(mode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")")
-        }
+        #if DEBUG
+        let previewSnapshot = preview
+        #endif
         let currentMode = mode, layers = renderLayers, strokes = renderStrokes, session = sessionID
         let fixtureName = Self.testFixtureName
         // Gallery/cloud metadata keeps its existing coarse style tag, not an editable recipe.
@@ -1029,6 +1040,16 @@ struct PhotoVeilHome: View {
         let representativeEffect: PrivacyEffect = appliedEffects.contains(PrivacyEffect.redact.rawValue) ? .redact
             : appliedEffects.contains(PrivacyEffect.pixelate.rawValue) ? .pixelate : .blur
         Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            if let previewSnapshot, let evidence = Self.testEvidence(previewSnapshot, source: original) {
+                await MainActor.run {
+                    if sessionID == session {
+                        captureTestRender(evidence, names: ["preexport-\(currentMode?.rawValue.lowercased() ?? "none")",
+                            "evidence-preexport-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")"])
+                    }
+                }
+            }
+            #endif
             let rendered: UIImage?
             if let source = original.cgImage,
                let output = PrivacyImageRenderer.render(source: source, layers: layers) {
@@ -1077,25 +1098,33 @@ struct PhotoVeilHome: View {
         }
     }
 
-    private static var testFixtureName: String {
+    nonisolated private static var testFixtureName: String {
         let arguments = ProcessInfo.processInfo.arguments
         guard let index = arguments.firstIndex(of: "-veil-fixture"), arguments.indices.contains(index + 1) else { return "fixture" }
         return arguments[index + 1]
     }
 
-    private func captureTestRender(_ image: UIImage, name: String) {
-        #if DEBUG
-        guard ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") else { return }
-        // Rapid layout stress captures XCTest screenshots, not preview/export parity.
-        // Keep PNG encoding, hashing and disk writes out of its main-thread actions.
-        guard !ProcessInfo.processInfo.arguments.contains("-veil-rapid-selection-stress") else { return }
-        if let data = image.pngData() { testRenderFingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
-        let fixtureName = Self.testFixtureName
-        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        try? image.pngData()?.write(to: directory.appendingPathComponent("\(name)-\(fixtureName).png"))
-        try? previewSource?.pngData()?.write(to: directory.appendingPathComponent("original-\(fixtureName).png"))
-        #endif
+    #if DEBUG
+    private struct TestEvidence {
+        let png: Data
+        let original: Data?
+        let fingerprint: String
     }
+    nonisolated private static func testEvidence(_ image: UIImage, source: UIImage) -> TestEvidence? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-veil-ui-testing"), !arguments.contains("-veil-rapid-selection-stress"),
+              let data = image.pngData() else { return nil }
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let originalPath = directory.appendingPathComponent("original-\(testFixtureName).png")
+        return TestEvidence(png: data, original: FileManager.default.fileExists(atPath: originalPath.path) ? nil : source.pngData(),
+            fingerprint: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined())
+    }
+    private func captureTestRender(_ evidence: TestEvidence, names: [String]) {
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        for name in names { try? evidence.png.write(to: directory.appendingPathComponent("\(name)-\(Self.testFixtureName).png")) }
+        if let original = evidence.original { try? original.write(to: directory.appendingPathComponent("original-\(Self.testFixtureName).png")) }
+    }
+    #endif
 }
 
 struct ShareSheet: UIViewControllerRepresentable {

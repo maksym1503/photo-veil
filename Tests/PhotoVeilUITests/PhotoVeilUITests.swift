@@ -86,11 +86,17 @@ final class PhotoVeilUITests: XCTestCase {
 
     @MainActor func testV43AutomaticEditsCannotEvictManualUndoHistory() {
         let app = launch(fixture: "two-people-car")
-        app.buttons["mode_manual"].tap(); waitForRender(app)
-        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.35, dy: 0.3), to: CGVector(dx: 0.55, dy: 0.45)); waitForRender(app)
+        // Analyze once before exercising Undo; cold Vision startup is covered separately.
         app.buttons["mode_faces"].tap(); waitForRender(app)
         app.buttons["mode_plate"].tap(); waitForRender(app)
-        for _ in 0..<16 {
+        app.buttons["mode_manual"].tap(); waitForRender(app)
+        let automaticPixels = app.otherElements["processingComplete"].value as? String
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.35, dy: 0.3), to: CGVector(dx: 0.55, dy: 0.45)); waitForRender(app)
+        XCTAssertTrue(app.buttons["blur_region_0"].waitForExistence(timeout: 5), "The test must actually create a Manual edit")
+        XCTAssertTrue(app.buttons["Undo"].isEnabled)
+        // The production ScopedUndoHistory policy is exercised beyond its capacity for
+        // all four automatic categories in core tests. Keep representative native taps here.
+        for _ in 0..<2 {
             app.buttons["mode_faces"].tap(); app.buttons["blurAllFaces"].tap()
             app.buttons["mode_plate"].tap(); app.buttons["blurAllPlates"].tap()
         }
@@ -98,6 +104,8 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["mode_manual"].tap(); waitForRender(app)
         XCTAssertTrue(app.buttons["Undo"].isEnabled)
         app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, automaticPixels,
+            "Manual Undo must restore the exact automatic-layer pixels")
         XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String)?.contains("faces=2,plates=1,documents=0,rectangles=0") == true)
         XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, "background=0,faces=1,plates=1,documents=0")
     }

@@ -1,5 +1,26 @@
 import Foundation
 
+/// Bounded per-category history. Automatic edits cannot consume Manual's capacity.
+/// A global Reset is undoable until another category edit starts.
+struct ScopedUndoHistory<Category: Hashable, Snapshot> {
+    private var entries: [(category: Category?, snapshot: Snapshot)] = []
+    private let capacity: Int
+    init(capacity: Int = 30) { precondition(capacity > 0); self.capacity = capacity }
+    mutating func append(_ snapshot: Snapshot, for category: Category?) {
+        if category != nil { entries.removeAll { $0.category == nil } }
+        entries.append((category, snapshot))
+        let indices = entries.indices.filter { entries[$0].category == category }
+        if indices.count > capacity { entries.remove(at: indices[0]) }
+    }
+    func canUndo(_ category: Category?) -> Bool {
+        entries.contains { $0.category == category || $0.category == nil }
+    }
+    mutating func pop(for category: Category?) -> Snapshot? {
+        guard let index = entries.lastIndex(where: { $0.category == category || $0.category == nil }) else { return nil }
+        return entries.remove(at: index).snapshot
+    }
+}
+
 /// Analysis is cached independently of the user's current activation intent.
 /// Shared by Faces, Plates, Documents and Background (one mask = one region).
 struct DetectedPrivacySelection: Equatable {
