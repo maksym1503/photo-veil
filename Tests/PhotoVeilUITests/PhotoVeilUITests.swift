@@ -756,14 +756,32 @@ final class PhotoVeilUITests: XCTestCase {
     @MainActor func testDocumentDetailsAndWholeRedaction() {
         let app = launch(fixture: "sample-card")
         let before = transform(app)
-        app.buttons["mode_documents"].tap(); waitForRender(app)
-        XCTAssertTrue(app.buttons["document_0"].waitForExistence(timeout: 10))
+        app.buttons["mode_documents"].tap()
+        // A detected region is published only after real Vision analysis completes.
+        // Hosted cold analysis was still pending after 55 s and completed before
+        // the later ~105 s post-activation snapshot. Scope this cap to analysis, not rendering.
+        guard app.buttons["document_0"].waitForExistence(timeout: 120) else {
+            XCTFail("Document analysis did not publish a detected region")
+            return
+        }
+        XCTAssertFalse(app.activityIndicators["detectionInProgress"].exists)
+        waitForRender(app)
+        XCTAssertTrue(app.buttons["document_0"].label.hasPrefix("Hidden document region"))
+        XCTAssertFalse(app.staticTexts["detectionFeedback"].exists)
+        let detailsBlur = app.otherElements["processingComplete"].value as? String
         attach(app, "v4-document-details")
         app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
+        let detailsRedact = app.otherElements["processingComplete"].value as? String
+        XCTAssertNotEqual(detailsRedact, detailsBlur, "Details redaction must change rendered pixels")
         app.buttons["documentCoverage"].tap(); app.buttons["Hide entire document"].tap(); waitForRender(app)
+        let wholeRedact = app.otherElements["processingComplete"].value as? String
+        XCTAssertNotEqual(wholeRedact, detailsRedact, "Whole-document coverage must change rendered pixels")
         assertCamera(app, before); attach(app, "v4-document-whole-redact")
         app.buttons["document_0"].tap(); waitForRender(app)
+        XCTAssertNotEqual(app.otherElements["processingComplete"].value as? String, wholeRedact)
         app.buttons["document_0"].tap(); waitForRender(app)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, wholeRedact)
+        XCTAssertEqual(app.otherElements["analysisCounts"].value as? String, "background=0,faces=0,plates=0,documents=1")
         app.buttons["finalPreview"].tap(); export(app, "v4-document-clean-share")
     }
 
