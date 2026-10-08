@@ -76,7 +76,7 @@ final class VeilPRSmokeTests: XCTestCase {
         for (name, message) in [("faces", "No faces detected. Try Manual."), ("plate", "No plates detected. Try Manual."), ("documents", "No documents detected. Try Manual.")] {
             tool(name)
             XCTAssertEqual(app.staticTexts["detectionFeedback"].label, message)
-            XCTAssertFalse(app.activityIndicators["detectionInProgress"].exists)
+            XCTAssertFalse(app.descendants(matching: .any)["detectionInProgress"].exists)
         }
     }
 }

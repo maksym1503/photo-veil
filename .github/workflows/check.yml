@@ -1,27 +1,58 @@
-name: PhotoVeil CI
-on: [push, pull_request]
+name: Veil PR Gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
 concurrency:
-  group: veil-${{ github.head_ref || github.ref_name }}
+  group: veil-pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  build-and-test:
-    runs-on: macos-26-intel
+  repository-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Core Image and geometry tests
-        run: swift test
-      - name: Build app and run simulator UI tests
-        run: |
-          simulator_id=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; devices=json.load(sys.stdin)["devices"]; print(next(d["udid"] for group in devices.values() for d in group if d["name"].startswith("iPhone")))')
-          xcodebuild -project PhotoVeil.xcodeproj -scheme PhotoVeil -destination "platform=iOS Simulator,id=$simulator_id" -derivedDataPath /tmp/veil-ci -resultBundlePath /tmp/veil-ci.xcresult CODE_SIGNING_ALLOWED=NO test
-      - name: Keep runtime test evidence
+        with:
+          fetch-depth: 2
+      - run: python3 scripts/ci/validate.py
+      - run: python3 scripts/ci/test_infrastructure.py
+      - run: git diff --check HEAD^ HEAD
+  apple-pr-gate:
+    # Switch only after the owner's Xcode Cloud check is green AND required in branch protection.
+    if: vars.APPLE_CI_PROVIDER != 'xcode-cloud'
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      VEIL_CI_OUTPUT: /tmp/veil-pr
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deterministic iOS PR plan (build once, test products)
+        run: scripts/ci/run_apple.sh VeilPR
+      - name: Native results, failures, timings and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: veil-runtime-results
-          path: /tmp/veil-ci.xcresult
+          name: veil-pr-${{ github.run_id }}
+          retention-days: 7
+          path: |
+            /tmp/veil-pr/*.log
+            /tmp/veil-pr/*.json
+      - name: Full native failure evidence
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veil-pr-native-failure-${{ github.run_id }}
+          retention-days: 7
+          path: |
+            /tmp/veil-pr/Tests.xcresult
+            /tmp/veil-pr/failure-attachments
   backend-policy-and-deletion-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:18
