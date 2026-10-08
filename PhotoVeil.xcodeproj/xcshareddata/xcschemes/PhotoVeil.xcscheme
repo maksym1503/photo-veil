@@ -1,2 +1,38 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Scheme LastUpgradeVersion="2660" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="4D12E90DD8AA33456686B704" BuildableName="PhotoVeil.app" BlueprintName="PhotoVeil" ReferencedContainer="container:PhotoVeil.xcodeproj"/></BuildActionEntry><BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForAnalyzing="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A20000000000000000000016" BuildableName="PhotoVeilUITests.xctest" BlueprintName="PhotoVeilUITests" ReferencedContainer="container:PhotoVeil.xcodeproj"/></BuildActionEntry></BuildActionEntries></BuildAction><TestAction buildConfiguration="Debug"><Testables><TestableReference skipped="NO" parallelizable="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A20000000000000000000016" BuildableName="PhotoVeilUITests.xctest" BlueprintName="PhotoVeilUITests" ReferencedContainer="container:PhotoVeil.xcodeproj"/></TestableReference></Testables></TestAction><LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Debugger" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="4D12E90DD8AA33456686B704" BuildableName="PhotoVeil.app" BlueprintName="PhotoVeil" ReferencedContainer="container:PhotoVeil.xcodeproj"/></BuildableProductRunnable></LaunchAction><ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="4D12E90DD8AA33456686B704" BuildableName="PhotoVeil.app" BlueprintName="PhotoVeil" ReferencedContainer="container:PhotoVeil.xcodeproj"/></BuildableProductRunnable></ProfileAction><AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/></Scheme>
+<?xml version='1.0' encoding='utf-8'?>
+<Scheme LastUpgradeVersion="2660" version="1.3">
+   <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
+      <BuildActionEntries>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForAnalyzing="YES">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="4D12E90DD8AA33456686B704" BuildableName="PhotoVeil.app" BlueprintName="PhotoVeil" ReferencedContainer="container:PhotoVeil.xcodeproj" />
+         </BuildActionEntry>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForAnalyzing="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A20000000000000000000016" BuildableName="PhotoVeilUITests.xctest" BlueprintName="PhotoVeilUITests" ReferencedContainer="container:PhotoVeil.xcodeproj" />
+         </BuildActionEntry>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForAnalyzing="NO" buildForArchiving="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="6C652BB3ECD50ADF7932B79E" BuildableName="PhotoVeilCoreTests.xctest" BlueprintName="PhotoVeilCoreTests" ReferencedContainer="container:PhotoVeil.xcodeproj" />
+         </BuildActionEntry>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForAnalyzing="NO" buildForArchiving="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="B348D4785EBDA98453BA5A03" BuildableName="PhotoVeilPRUITests.xctest" BlueprintName="PhotoVeilPRUITests" ReferencedContainer="container:PhotoVeil.xcodeproj" />
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction buildConfiguration="Debug">
+      <TestPlans>
+         <TestPlanReference reference="container:VeilPR.xctestplan" default="YES" />
+         <TestPlanReference reference="container:VeilIntegration.xctestplan" />
+         <TestPlanReference reference="container:VeilDevice.xctestplan" />
+      </TestPlans>
+   </TestAction>
+   <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Debugger" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES">
+      <BuildableProductRunnable runnableDebuggingMode="0">
+         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="4D12E90DD8AA33456686B704" BuildableName="PhotoVeil.app" BlueprintName="PhotoVeil" ReferencedContainer="container:PhotoVeil.xcodeproj" />
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES">
+      <BuildableProductRunnable runnableDebuggingMode="0">
+         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="4D12E90DD8AA33456686B704" BuildableName="PhotoVeil.app" BlueprintName="PhotoVeil" ReferencedContainer="container:PhotoVeil.xcodeproj" />
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction buildConfiguration="Debug" />
+   <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES" />
+</Scheme>

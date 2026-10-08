@@ -587,7 +587,8 @@ struct PhotoVeilHome: View {
                   }.jpegData(compressionQuality: 1)
                 : fixtureData(fixtureName),
               let fixture = UIImage(data: fixtureData),
-              let normalized = BlurRenderer.normalizedImage(fixture),
+              let normalizedFull = BlurRenderer.normalizedImage(fixture),
+              let normalized = arguments.contains("-veil-analysis-fixture") ? BlurRenderer.previewImage(normalizedFull, maxDimension: 600) : normalizedFull,
               let downsampled = BlurRenderer.previewImage(normalized) else { return }
         beginSession(original: normalized, preview: downsampled)
         if arguments.contains("-veil-cached-mask-fixture") {
@@ -677,6 +678,8 @@ struct PhotoVeilHome: View {
         }
     }
 
+    private let analyzer = PrivacyAnalyzerFactory.make()
+
     private func runBackground() {
         guard backgroundAnalysis == nil else { return }
         guard let previewSource else { return }
@@ -688,7 +691,7 @@ struct PhotoVeilHome: View {
         let currentStrength = strength, session = sessionID
         backgroundAnalysis = Task.detached(priority: .userInitiated) {
             let result: Result<(image: UIImage, mask: CIImage), Error>
-            do { result = .success(try await BlurRenderer.renderBackground(previewSource, strength: currentStrength)) }
+            do { result = .success(try await analyzer.background(previewSource, strength: currentStrength)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
@@ -726,7 +729,7 @@ struct PhotoVeilHome: View {
             }
             #endif
             let result: Result<[CGRect], Error>
-            do { result = .success(try await BlurRenderer.detectFaces(in: original)) }
+            do { result = .success(try await analyzer.faces(original)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
@@ -754,7 +757,7 @@ struct PhotoVeilHome: View {
         #endif
         plateAnalysis = Task.detached(priority: .userInitiated) {
             let result: Result<[CGRect], Error>
-            do { result = .success(try await BlurRenderer.detectPlateSuggestions(in: previewSource)) }
+            do { result = .success(try await analyzer.plates(previewSource)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }
@@ -786,7 +789,7 @@ struct PhotoVeilHome: View {
 
     private func runDocuments() {
         guard documentAnalysis == nil else { return }
-        guard let original, let cg = original.cgImage else { return }
+        guard let original else { return }
         documentSelection.begin()
         working = true
         let session = sessionID
@@ -794,9 +797,8 @@ struct PhotoVeilHome: View {
         analysisCounts["documents", default: 0] += 1
         #endif
         documentAnalysis = Task.detached(priority: .userInitiated) {
-            let analysis = BlurRenderer.previewImage(original, maxDimension: 3200)?.cgImage ?? cg
             let result: Result<DocumentDetection.Result, Error>
-            do { result = .success(try DocumentDetection.analyze(analysis)) }
+            do { result = .success(try await analyzer.documents(original)) }
             catch { result = .failure(error) }
             await MainActor.run {
                 guard sessionID == session else { return }

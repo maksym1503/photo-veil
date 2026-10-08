@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "configurations": [
+    {
+      "id": "25789462-6ad2-439a-98ce-16896fc1455a",
+      "name": "Default",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "codeCoverage": false,
+    "testTimeoutsEnabled": true,
+    "defaultTestExecutionTimeAllowance": 300,
+    "maximumTestExecutionTimeAllowance": 300,
+    "testRepetitionMode": "none",
+    "maximumTestRepetitions": 1,
+    "targetForVariableExpansion": {
+      "containerPath": "container:PhotoVeil.xcodeproj",
+      "identifier": "4D12E90DD8AA33456686B704",
+      "name": "PhotoVeil"
+    }
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:PhotoVeil.xcodeproj",
+        "identifier": "B348D4785EBDA98453BA5A03",
+        "name": "PhotoVeilPRUITests"
+      },
+      "selectedTests": [
+        "VeilDeviceAcceptanceTests"
+      ],
+      "parallelizable": false
+    }
+  ]
+}

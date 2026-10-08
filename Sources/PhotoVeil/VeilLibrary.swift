@@ -15,6 +15,10 @@ import SwiftUI
                 let arguments = ProcessInfo.processInfo.arguments
                 if arguments.contains("-veil-ui-testing") {
                     root = root.deletingLastPathComponent().appendingPathComponent("UITestHistory")
+                    if let i = arguments.firstIndex(of: "-veil-test-storage-id"), arguments.indices.contains(i + 1),
+                       let id = UUID(uuidString: arguments[i + 1]) {
+                        root = root.appendingPathComponent(id.uuidString)
+                    }
                     if arguments.contains("-veil-reset-history") { try? FileManager.default.removeItem(at: root) }
                 }
                 #endif
