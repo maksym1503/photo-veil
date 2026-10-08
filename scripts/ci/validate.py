@@ -10,6 +10,8 @@ for p in (root/'Tests').rglob('*.swift'):
 assert actual==inventory, f'Test inventory drift: new={actual-inventory}, stale={inventory-actual}'
 pr=json.loads((root/'VeilPR.xctestplan').read_text());integration=json.loads((root/'VeilIntegration.xctestplan').read_text())
 assert len(pr['testTargets'])==2
+case_budget=next(e['value'] for e in pr['defaultOptions']['environmentVariableEntries'] if e['key']=='VEIL_UI_CASE_BUDGET_SECONDS' and e['enabled'])
+assert int(case_budget)==pr['defaultOptions']['defaultTestExecutionTimeAllowance']==pr['defaultOptions']['maximumTestExecutionTimeAllowance']==180, 'PR UI waits and runaway ceiling must share one bounded case budget'
 assert any(t['target']['name']=='PhotoVeilUITests' and not t['parallelizable'] for t in integration['testTargets'])
 assert 'VisionIntegrationTests' not in pr['testTargets'][0]['selectedTests']
 assert all(r['layer'] in ['PR Gate','Integration','Real Device','Backend'] for r in rows)

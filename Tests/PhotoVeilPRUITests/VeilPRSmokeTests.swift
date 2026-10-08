@@ -4,6 +4,20 @@ import XCTest
 final class VeilPRSmokeTests: XCTestCase {
     private var app: XCUIApplication!
     private let storage = UUID().uuidString
+    private var deadline: TimeInterval = 0
+    override func setUp() {
+        super.setUp()
+        continueAfterFailure = false
+        // One unchanged test-plan budget covers launch, every state wait and assertions.
+        // Cold hosted Core Image startup is not an individual operation performance test.
+        let budget = TimeInterval(ProcessInfo.processInfo.environment["VEIL_UI_CASE_BUDGET_SECONDS"] ?? "")
+        XCTAssertNotNil(budget, "Run with VeilPR test plan")
+        deadline = ProcessInfo.processInfo.systemUptime + (budget ?? 0)
+    }
+    @MainActor private func wait(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        let remaining = max(0, deadline - ProcessInfo.processInfo.systemUptime)
+        XCTAssertTrue(element.waitForExistence(timeout: remaining), app.debugDescription, file: file, line: line)
+    }
     override func tearDown() { app?.terminate(); app = nil; super.tearDown() }
     @MainActor private func launch(empty: Bool = false) {
         continueAfterFailure = false
@@ -14,7 +28,7 @@ final class VeilPRSmokeTests: XCTestCase {
         app.launch(); ready()
     }
     @MainActor private func ready() {
-        XCTAssertTrue(app.otherElements["processingComplete"].waitForExistence(timeout: 20), app.debugDescription)
+        wait(app.otherElements["processingComplete"])
     }
     @MainActor private func tool(_ name: String) { app.buttons["mode_\(name)"].tap(); ready() }
     @MainActor private func pixels() -> String {
@@ -58,15 +72,15 @@ final class VeilPRSmokeTests: XCTestCase {
     @MainActor func testLocalSaveReopenAndDeletionWithoutAccountOrSystemUI() {
         launch(); tool("faces"); tool("plate"); let combined = pixels()
         app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 20)); app.alerts.buttons["OK"].tap()
+        wait(app.alerts["Saved"]); app.alerts.buttons["OK"].tap()
         XCTAssertEqual(app.otherElements["exportFingerprint"].value as? String, combined)
         app.terminate(); app.launchArguments = ["-veil-ui-testing", "-veil-empty", "-veil-test-storage-id", storage]; app.launch()
         app.buttons["gallery"].tap()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch.waitForExistence(timeout: 10))
+        wait(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch)
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch.tap()
-        XCTAssertTrue(app.buttons["Delete"].waitForExistence(timeout: 10)); app.buttons["Delete"].tap()
-        XCTAssertTrue(app.buttons["Delete photo"].waitForExistence(timeout: 10)); app.buttons["Delete photo"].tap()
-        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+        wait(app.buttons["Delete"]); app.buttons["Delete"].tap()
+        wait(app.buttons["Delete photo"]); app.buttons["Delete photo"].tap()
+        wait(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."])
     }
     @MainActor func testEmptyDetectionAndStableToolbarGeometry() {
         launch(empty: true)

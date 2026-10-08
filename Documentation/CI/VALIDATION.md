@@ -13,6 +13,7 @@ No product UI, effects, geometry or authentication behavior was redesigned. The 
 | CI adapter security contracts | five Python tests passed without network/provider credentials | `python3 scripts/ci/test_infrastructure.py` |
 | Release iOS build | passed; test analyzer/launch configuration and fixture JPEGs absent | `/tmp/veil-layered-release.log`; `scripts/ci/check_release.py` |
 | Unsigned Release archive | passed; app archived, test bundles excluded; fixture exclusion passed | `/tmp/veil-layered-archive.log`, `/tmp/veil-layered-release-archive.xcarchive` |
+| Final shared-budget PR plan | 52 passed, zero skipped; 167.90 s end-to-end; unchanged 180 s case ceiling | `/tmp/veil-layered-pr-budget/Tests.xcresult`; exact inventory passed |
 | Serial PR plan, iPhone 17 Pro / Light | 52 passed, zero skipped; 287.10 s end-to-end including cold package/build setup | `/tmp/veil-layered-pr-serial/Tests.xcresult`; native inventory guard passed |
 | First hosted layered pilot | 51/52 native; backend/security passed; merge blocked | Run 37738927381; Faces render pending after fixture analysis; see performance baseline |
 | Native executed inventory | Exact 52/85 identifiers and all destinations passed; wrong-plan result rejected | `scripts/ci/verify_execution.py` against both native bundles |
