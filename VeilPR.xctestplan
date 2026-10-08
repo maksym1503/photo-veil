@@ -39,7 +39,7 @@
         "FaceDetectionTests",
         "GalleryStoreTests"
       ],
-      "parallelizable": true
+      "parallelizable": false
     },
     {
       "target": {

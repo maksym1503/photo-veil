@@ -16,7 +16,7 @@ Measured on 2026-10-08. Raw native result bundles and CI timestamps are authorit
 
 Old PR: SwiftPM core then one `xcodebuild test` building/running all legacy UI serially on Intel; push + PR duplicated/cancelled runs. No distinction between UI state, real model startup and OS service timing.
 
-New PR: 48 native deterministic core + four bounded deterministic UI smokes; one build-for-testing then test-without-building. Core classes parallel (max two workers), UI class serial/isolated; no automatic retries. New fallback uses macos-26 ARM64 and pinned Xcode 26.6. All 35 old UI tests move intact to Integration with real Vision. Integration contains 85 native cases plus two macOS-only profiles. Device acceptance is one focused method, manual/approved.
+New PR: 48 native deterministic core + four bounded deterministic UI smokes; one build-for-testing then test-without-building. PR core and UI execute serially to avoid virtual-GPU contention; Integration core permits two workers, UI is serial/isolated; no automatic retries. New fallback uses macos-26 ARM64 and pinned Xcode 26.6. All 35 old UI tests move intact to Integration with real Vision. Integration contains 85 native cases plus two macOS-only profiles. Device acceptance is one focused method, manual/approved.
 
 The finalized local script measurement is recorded above. Hosted measurements are retained in workflow artifacts and the final PR handoff. Xcode Cloud and real-device provider runtime cannot be measured before owner activation; do not claim their performance from local results.
 
@@ -31,3 +31,9 @@ A compact-device PR pilot was cancelled (exit 143) because it overlapped the ful
 Hosted gate durations are exported automatically in `timing.json`/`phases.json`, with native per-test durations in `tests.json`; the workflow run and final PR handoff document the measured hosted result. Xcode Cloud / vendor performance remains unmeasured pending owner setup.
 
 macOS full core + two opt-in real-Vision/performance methods: **50 passed, zero skipped, 10.163 s** test execution. Five-layer render + JPEG: 0.081 s at 1440×1800, 0.282 s at 4032×3024, 1.215 s at 8064×6048 on the local Intel Mac. See VALIDATION.md for all evidence paths and release/archive results.
+
+## First hosted layered pilot (not accepted)
+
+Run 37738927381, d4bcf56: backend and repository-security passed; native PR **51/52 passed**, job 15m17s, measured script wall 890.06 s, setup/cold build 470 s. The failed composed UI case timed out at the first Faces render, after deterministic analysis had completed. The native activity trace and recording show render pending, not a Vision or state assertion failure. Core and UI workers overlapped on the same hosted virtual GPU. Contention is a hypothesis, not a proven product diagnosis. The next experiment serializes the small PR plan (without changing waits, assertions, production renderer or coverage) and streams build/test output for progress diagnostics. This red pilot is retained; it is not merge evidence.
+
+Serial PR validation: iPhone 17 Pro / Light, **52/52 passed, zero skipped**, **287.10 s end-to-end**, setup/cold package + build 125 s, native 157.045 s, four UI methods 105.472 s. Evidence `/tmp/veil-layered-pr-serial/`. This is not a speed comparison with the warm compact-device run. No wait or execution allowance changed. The hosted action log confirms core and UI runner lifetimes overlapped during the first Background scenario; it does not prove concurrent graphics caused the later first-Faces timeout. The serial run is a scheduling experiment with identical assertions, not a claimed diagnosis of a renderer bug.

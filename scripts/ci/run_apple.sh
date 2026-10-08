@@ -27,15 +27,19 @@ fi
 args=(-project PhotoVeil.xcodeproj -scheme PhotoVeil -testPlan "$plan" -destination "$VEIL_DESTINATION" -derivedDataPath "${VEIL_DERIVED_DATA:-$output/DerivedData}" CODE_SIGNING_ALLOWED=NO)
 phase=compilation
 printf 'PHASE: compilation, plan=%s\n' "$plan"
-xcodebuild "${args[@]}" build-for-testing > "$output/build.log" 2>&1
+xcodebuild "${args[@]}" build-for-testing 2>&1 | tee "$output/build.log"
 build_end=$(date +%s)
 printf '{"build_and_setup_seconds":%s}\n' "$((build_end-start))" > "$output/phases.json"
 phase=test-execution
+# On small hosted machines, simultaneous Core Image and app workers contend for
+# the same virtual GPU. Keep the bounded PR suite free of concurrent graphics workers.
+parallel=YES
+if [ "$plan" = VeilPR ]; then parallel=NO; fi
 printf 'PHASE: %s tests\n' "$plan"
 # Plan controls isolation/parallelism. Do not force all legacy system-UI cases parallel.
 xcodebuild "${args[@]}" test-without-building -resultBundlePath "$output/Tests.xcresult" \
-  -parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 2 \
-  -maximum-parallel-testing-workers 2 > "$output/tests.log" 2>&1
+  -parallel-testing-enabled "$parallel" -maximum-concurrent-test-simulator-destinations 2 \
+  -maximum-parallel-testing-workers 2 2>&1 | tee "$output/tests.log"
 phase=execution-inventory
 python3 scripts/ci/verify_execution.py "$plan" "$output/Tests.xcresult"
 printf 'PHASE: tests passed\n'

@@ -15,13 +15,13 @@ Repository-side plans, native core/UI targets, shared scheme and `ci_scripts` ho
 
 | Workflow | Start / branch | Actions / plan | Required To Pass | Destination / parallelism |
 |---|---|---|---|---|
-| **Veil PR** | Pull Request Changes targeting `main`; all source branches, including `feature/veil-v4`; cancel obsolete PR builds | Test: PhotoVeil scheme, **VeilPR** only | Test **Required To Pass** | iPhone 17 Pro, iOS 26.5 (or exact available stable equivalent); core parallel enabled, PR UI serial as plan specifies |
+| **Veil PR** | Pull Request Changes targeting `main`; all source branches, including `feature/veil-v4`; cancel obsolete PR builds | Test: PhotoVeil scheme, **VeilPR** only | Test **Required To Pass** | iPhone 17 Pro, iOS 26.5 (or exact available stable equivalent); PR plan serial (core and UI share the virtual GPU) |
 | **Veil Apple Integration** | Branch Changes on `main`; daily scheduled build at 02:30 UTC on `main`; manual any candidate SHA | Test: **VeilIntegration**; Build: Release iOS | Both **Required To Pass** within this workflow; not a required PR status | modern iPhone iOS 26.5; add smaller iPhone/oldest supported available OS as additional scheduled destinations after pilot; legacy UI serial |
 | **Veil Release Candidate** | Manual only, exact reviewed release branch/tag/SHA; no automatic PR start | Test: **VeilPR** and **VeilIntegration** (separate Test actions); Analyze; Archive Release | All actions **Required To Pass** | same validated stable simulator; Archive any iOS device / real app team |
 
 Disable automatic test retries/repetitions in Cloud; the plans specify no retries and one execution. Verify the first native report has no retry attempts.
 
-Do not mark failing integration actions **Not Required To Pass** to create a green release. Optional exploratory beta-OS destinations may be **Not Required To Pass**, clearly named and outside release acceptance. Xcode Cloud controls worker allocation; enable test parallelization for the native core target, retain serial UI target settings. Do not configure multiple workers for the shared-state legacy UI class. Start with one integration destination, not a multiplied 35-test device matrix.
+Do not mark failing integration actions **Not Required To Pass** to create a green release. Optional exploratory beta-OS destinations may be **Not Required To Pass**, clearly named and outside release acceptance. Xcode Cloud controls worker allocation; disable test parallelization for Veil PR; enable core parallelization only for Integration, retaining serial UI target settings. Do not configure multiple workers for the shared-state legacy UI class. Start with one integration destination, not a multiplied 35-test device matrix.
 
 Set all production workflows to **Xcode 26.6 stable and compatible macOS 26** initially, not automatically “latest beta.” If unavailable in your Cloud account, choose the nearest stable supported pair, record the exact versions and rerun both plans before switching. Align fallback/local versions when upgrading. The deployment target remains iOS 17; latest-Simulator testing does not replace oldest-supported-device acceptance.
 
