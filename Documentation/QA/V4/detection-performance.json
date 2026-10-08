@@ -1,0 +1,176 @@
+[
+  {
+    "boxes" : [
+      [
+        0.77232694625854492,
+        0.59147332981228828,
+        0.033932298421859741,
+        0.045243065804243088
+      ],
+      [
+        0.12635339498519896,
+        0.68119462132453923,
+        0.08780283629894256,
+        0.11707044839859009
+      ],
+      [
+        0.39979852437973024,
+        0.72847590446472177,
+        0.037943547964096068,
+        0.050591397285461422
+      ]
+    ],
+    "fixture" : "faces-large-medium",
+    "pixels" : "3200x2400",
+    "placed_faces" : 3,
+    "raw_candidates" : 7,
+    "requests" : 5,
+    "suppressed_candidates" : 4,
+    "v3_preview_faces" : 3,
+    "v3_seconds" : 0.10486102104187012,
+    "v4_merged_faces" : 3,
+    "v4_seconds" : 0.3984370231628418,
+    "v4_whole_faces" : 3
+  },
+  {
+    "boxes" : [
+      [
+        0.33014696836471558,
+        0.51085026457871274,
+        0.011810553260147572,
+        0.015747404114032786
+      ],
+      [
+        0.10697469115257263,
+        0.71335839480161667,
+        0.070586450397968292,
+        0.094115264713764191
+      ]
+    ],
+    "fixture" : "faces-small-landscape",
+    "pixels" : "4032x3024",
+    "placed_faces" : 4,
+    "raw_candidates" : 5,
+    "requests" : 21,
+    "suppressed_candidates" : 3,
+    "v3_preview_faces" : 1,
+    "v3_seconds" : 0.050711989402770996,
+    "v4_merged_faces" : 2,
+    "v4_seconds" : 0.72298896312713623,
+    "v4_whole_faces" : 1
+  },
+  {
+    "boxes" : [
+      [
+        0.37395970261207334,
+        0.40977275557816029,
+        0.015804874814218946,
+        0.011853655800223351
+      ],
+      [
+        0.1618756221400367,
+        0.81157726421952248,
+        0.072228170000016689,
+        0.054171126335859299
+      ]
+    ],
+    "fixture" : "faces-small-portrait",
+    "pixels" : "3024x4032",
+    "placed_faces" : 3,
+    "raw_candidates" : 4,
+    "requests" : 21,
+    "suppressed_candidates" : 2,
+    "v3_preview_faces" : 1,
+    "v3_seconds" : 0.029307961463928223,
+    "v4_merged_faces" : 2,
+    "v4_seconds" : 0.67631089687347412,
+    "v4_whole_faces" : 1
+  },
+  {
+    "boxes" : [
+      [
+        0.95196853578090668,
+        0.21541688663678038,
+        0.025680307298898697,
+        0.034240408593581781
+      ],
+      [
+        -0.0050846557132899761,
+        0.53011328605848751,
+        0.01765080913901329,
+        0.023534412081870768
+      ],
+      [
+        0.43591223284602165,
+        0.62177960117588993,
+        0.021321630105376244,
+        0.028428838846998084
+      ],
+      [
+        0.013143889605998993,
+        0.9430128462198708,
+        0.018218984827399254,
+        0.024291980287267104
+      ]
+    ],
+    "fixture" : "faces-edges-partial",
+    "pixels" : "4032x3024",
+    "placed_faces" : 4,
+    "raw_candidates" : 6,
+    "requests" : 21,
+    "suppressed_candidates" : 2,
+    "v3_preview_faces" : 0,
+    "v3_seconds" : 0.071634888648986816,
+    "v4_merged_faces" : 4,
+    "v4_seconds" : 0.55984103679656982,
+    "v4_whole_faces" : 0
+  },
+  {
+    "detail_regions" : 4,
+    "document_boundaries" : 1,
+    "fixture" : "sample-card",
+    "seconds" : 0.95845901966094971
+  },
+  {
+    "effect" : "Blur",
+    "operation" : "full-resolution export including JPEG encoding",
+    "output_width" : 4032,
+    "pixels" : "4032x3024",
+    "seconds" : 0.41329300403594971
+  },
+  {
+    "effect" : "Pixelate",
+    "operation" : "full-resolution export including JPEG encoding",
+    "output_width" : 4032,
+    "pixels" : "4032x3024",
+    "seconds" : 0.22434401512145996
+  },
+  {
+    "effect" : "Redact",
+    "operation" : "full-resolution export including JPEG encoding",
+    "output_width" : 4032,
+    "pixels" : "4032x3024",
+    "seconds" : 0.18842399120330811
+  },
+  {
+    "effect" : "Blur",
+    "operation" : "full-resolution export including JPEG encoding",
+    "output_width" : 8064,
+    "pixels" : "8064x6048",
+    "seconds" : 1.583733081817627
+  },
+  {
+    "effect" : "Pixelate",
+    "operation" : "full-resolution export including JPEG encoding",
+    "output_width" : 8064,
+    "pixels" : "8064x6048",
+    "seconds" : 0.80475199222564697
+  },
+  {
+    "effect" : "Redact",
+    "operation" : "full-resolution export including JPEG encoding",
+    "output_width" : 8064,
+    "pixels" : "8064x6048",
+    "seconds" : 0.65598690509796143
+  }
+]

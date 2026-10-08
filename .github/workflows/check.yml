@@ -1,19 +1,91 @@
-name: PhotoVeil CI
-on: [push, pull_request]
+name: Veil PR Gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: veil-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
-  build-and-test:
-    runs-on: macos-26
+  repository-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Core Image and geometry tests
-        run: swift test
-      - name: Build app and run simulator UI tests
-        run: |
-          simulator_id=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; devices=json.load(sys.stdin)["devices"]; print(next(d["udid"] for group in devices.values() for d in group if d["name"].startswith("iPhone")))')
-          xcodebuild -project PhotoVeil.xcodeproj -scheme PhotoVeil -destination "platform=iOS Simulator,id=$simulator_id" -derivedDataPath /tmp/veil-ci -resultBundlePath /tmp/veil-ci.xcresult CODE_SIGNING_ALLOWED=NO test
-      - name: Keep runtime test evidence
+        with:
+          fetch-depth: 2
+      - run: python3 scripts/ci/validate.py
+      - run: python3 scripts/ci/test_infrastructure.py
+      - run: git diff --check HEAD^ HEAD
+  apple-pr-gate:
+    # Switch only after the owner's Xcode Cloud check is green AND required in branch protection.
+    if: vars.APPLE_CI_PROVIDER != 'xcode-cloud'
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      VEIL_CI_OUTPUT: /tmp/veil-pr
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deterministic iOS PR plan (build once, test products)
+        run: scripts/ci/run_apple.sh VeilPR
+      - name: Native results, failures, timings and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: veil-runtime-results
-          path: /tmp/veil-ci.xcresult
+          name: veil-pr-${{ github.run_id }}
+          retention-days: 7
+          path: |
+            /tmp/veil-pr/*.log
+            /tmp/veil-pr/*.json
+      - name: Full native failure evidence
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veil-pr-native-failure-${{ github.run_id }}
+          retention-days: 7
+          path: |
+            /tmp/veil-pr/Tests.xcresult
+            /tmp/veil-pr/failure-attachments
+  backend-policy-and-deletion-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: veil_policy_ci
+          POSTGRES_PASSWORD: veil-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Ownership and Vault privilege tests on a disposable database
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: veil_policy_ci
+          PGUSER: postgres
+          PGPASSWORD: veil-test-only
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/backend_shim.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610050001_veil_gallery.sql
+          sed '/create extension if not exists supabase_vault/d' supabase/migrations/202610050002_apple_revocation.sql | psql -v ON_ERROR_STOP=1
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/ownership.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/vault_privileges.sql
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check server code and deterministic deletion behavior
+        run: |
+          deno check supabase/functions/apple-credential/index.ts supabase/functions/delete-account/index.ts supabase/functions/delete-gallery-item/index.ts
+          deno test --allow-env supabase/functions/tests

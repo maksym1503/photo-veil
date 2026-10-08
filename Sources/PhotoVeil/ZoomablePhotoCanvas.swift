@@ -14,6 +14,7 @@ struct ZoomablePhotoCanvas: UIViewRepresentable {
     let plates: [CGRect]
     let selectedPlates: Set<Int>
     let regions: [BlurRegion]
+    let newRegionShape: BlurRegion.Shape
     let drawsRegions: Bool
     let paintsStrokes: Bool
     let strokes: [BlurStroke]
@@ -26,14 +27,14 @@ struct ZoomablePhotoCanvas: UIViewRepresentable {
     func makeUIView(context: Context) -> ZoomingPhotoView {
         let view = ZoomingPhotoView()
         view.configure(original: original, preview: preview, mode: mode, faces: faces, selectedFaces: selectedFaces,
-                       plates: plates, selectedPlates: selectedPlates, regions: regions, drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: strokes, onStroke: onStroke,
+                       plates: plates, selectedPlates: selectedPlates, regions: regions, newRegionShape: newRegionShape, drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: strokes, onStroke: onStroke,
                        onFaces: onFaces, onPlate: onPlate, onRegions: onRegions, onZoomChanged: onZoomChanged)
         return view
     }
 
     func updateUIView(_ view: ZoomingPhotoView, context: Context) {
         view.configure(original: original, preview: preview, mode: mode, faces: faces, selectedFaces: selectedFaces,
-                       plates: plates, selectedPlates: selectedPlates, regions: regions, drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: strokes, onStroke: onStroke,
+                       plates: plates, selectedPlates: selectedPlates, regions: regions, newRegionShape: newRegionShape, drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: strokes, onStroke: onStroke,
                        onFaces: onFaces, onPlate: onPlate, onRegions: onRegions, onZoomChanged: onZoomChanged)
     }
 }
@@ -90,7 +91,7 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
     deinit { if let fitObserver { NotificationCenter.default.removeObserver(fitObserver) } }
 
     func configure(original: UIImage, preview: UIImage, mode: EditorMode?, faces: [CGRect], selectedFaces: Set<Int>,
-                   plates: [CGRect], selectedPlates: Set<Int>, regions: [BlurRegion], drawsRegions: Bool, paintsStrokes: Bool, strokes: [BlurStroke], onStroke: @escaping (BlurStroke?, Bool) -> Void,
+                   plates: [CGRect], selectedPlates: Set<Int>, regions: [BlurRegion], newRegionShape: BlurRegion.Shape, drawsRegions: Bool, paintsStrokes: Bool, strokes: [BlurStroke], onStroke: @escaping (BlurStroke?, Bool) -> Void,
                    onFaces: @escaping (Int) -> Void, onPlate: @escaping (Int) -> Void,
                    onRegions: @escaping ([BlurRegion]) -> Void, onZoomChanged: @escaping (Bool) -> Void) {
         let identity = ObjectIdentifier(original)
@@ -101,7 +102,7 @@ final class ZoomingPhotoView: UIScrollView, UIScrollViewDelegate {
         imageView.image = preview
         self.onZoomChanged = onZoomChanged
         overlay.configure(imageSize: photoContent.bounds.size, mode: mode, faces: mode == .faces ? faces : [], selectedFaces: selectedFaces,
-                          plates: mode == .plate ? plates : [], selectedPlates: selectedPlates, regions: mode == .manual ? regions : [],
+                          plates: mode == .plate || mode == .documents ? plates : [], selectedPlates: selectedPlates, regions: mode == .manual ? regions : [], newRegionShape: newRegionShape,
                           drawsRegions: drawsRegions, paintsStrokes: paintsStrokes, strokes: mode == .manual ? strokes : [], onStroke: onStroke, onFaces: onFaces, onPlate: onPlate, onRegions: onRegions)
         let canvasInteractive = mode == .manual
         // One finger edits; two fingers can always navigate while drawing.
@@ -206,6 +207,7 @@ private final class PhotoRegionOverlay: UIView {
     private var plates: [CGRect] = []
     private var selectedPlates = Set<Int>()
     private var regions: [BlurRegion] = []
+    private var newRegionShape: BlurRegion.Shape = .roundedRectangle
     private var drawsRegions = true
     private var paintsStrokes = false
     private var strokes: [BlurStroke] = []
@@ -221,7 +223,7 @@ private final class PhotoRegionOverlay: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     @objc private func selectPlate(_ gesture: UITapGestureRecognizer) {
-        guard mode == .plate, gesture.state == .ended else { return }
+        guard mode == .plate || mode == .documents, gesture.state == .ended else { return }
         let point = gesture.location(in: self)
         if let index = plates.indices.first(where: { pixelRect(plates[$0]).contains(point) }) {
             onPlate?(index)
@@ -237,12 +239,12 @@ private final class PhotoRegionOverlay: UIView {
     var zoomScale: CGFloat = 1 { didSet { setNeedsDisplay() } }
 
     func configure(imageSize: CGSize, mode: EditorMode?, faces: [CGRect], selectedFaces: Set<Int>, plates: [CGRect], selectedPlates: Set<Int>,
-                   regions: [BlurRegion], drawsRegions: Bool, paintsStrokes: Bool, strokes: [BlurStroke], onStroke: @escaping (BlurStroke?, Bool) -> Void, onFaces: @escaping (Int) -> Void, onPlate: @escaping (Int) -> Void,
+                   regions: [BlurRegion], newRegionShape: BlurRegion.Shape, drawsRegions: Bool, paintsStrokes: Bool, strokes: [BlurStroke], onStroke: @escaping (BlurStroke?, Bool) -> Void, onFaces: @escaping (Int) -> Void, onPlate: @escaping (Int) -> Void,
                    onRegions: @escaping ([BlurRegion]) -> Void) {
         self.imageSize = imageSize; self.mode = mode; self.faces = faces; self.selectedFaces = selectedFaces
-        self.plates = plates; self.selectedPlates = selectedPlates; self.regions = regions; self.drawsRegions = drawsRegions
+        self.plates = plates; self.selectedPlates = selectedPlates; self.regions = regions; self.newRegionShape = newRegionShape; self.drawsRegions = drawsRegions
         self.paintsStrokes = paintsStrokes; self.strokes = strokes; self.onStroke = onStroke
-        plateTap.isEnabled = mode == .plate
+        plateTap.isEnabled = mode == .plate || mode == .documents
         self.onFaces = onFaces; self.onPlate = onPlate; self.onRegions = onRegions
         isUserInteractionEnabled = mode != nil
         accessibilityIdentifier = "photoRegions"
@@ -267,7 +269,7 @@ private final class PhotoRegionOverlay: UIView {
             let element = DetectionAccessibilityElement(accessibilityContainer: self)
             element.activate = { [weak self] in self?.onFaces?(index) }
             element.accessibilityLabel = selectedFaces.contains(index) ? "Blurred face \(index + 1)" : "Face \(index + 1)"
-            element.accessibilityHint = "Double-tap to toggle blur"
+            element.accessibilityHint = "Double-tap to toggle privacy effect"
             element.accessibilityValue = selectedFaces.contains(index) ? "Blur on" : "Blur off"
             element.accessibilityIdentifier = "face_\(index)"
             element.accessibilityTraits = .button
@@ -277,10 +279,12 @@ private final class PhotoRegionOverlay: UIView {
         for (index, rect) in plates.enumerated() {
             let element = DetectionAccessibilityElement(accessibilityContainer: self)
             element.activate = { [weak self] in self?.onPlate?(index) }
-            element.accessibilityLabel = selectedPlates.contains(index) ? "Blurred plate suggestion" : "Plate suggestion"
-            element.accessibilityHint = "Double-tap to toggle blur"
+            element.accessibilityLabel = mode == .documents
+                ? "\(selectedPlates.contains(index) ? "Hidden" : "Visible") document region \(index + 1)"
+                : (selectedPlates.contains(index) ? "Blurred plate suggestion" : "Plate suggestion")
+            element.accessibilityHint = "Double-tap to toggle privacy effect"
             element.accessibilityValue = selectedPlates.contains(index) ? "Blur on" : "Blur off"
-            element.accessibilityIdentifier = "plate_\(index)"
+            element.accessibilityIdentifier = "\(mode == .documents ? "document" : "plate")_\(index)"
             element.accessibilityTraits = .button
             element.accessibilityFrameInContainerSpace = pixelRect(rect)
             elements.append(element)
@@ -320,7 +324,7 @@ private final class PhotoRegionOverlay: UIView {
             drawRegion(region.rect, shape: region.shape, context: context, selected: true)
         }
         if let draftRect {
-            let previewRegion = BlurRegion(rect: draftRect, shape: .roundedRectangle)
+            let previewRegion = BlurRegion(rect: draftRect, shape: newRegionShape)
             drawRegion(previewRegion.rect, shape: previewRegion.shape, context: context, selected: false)
         }
         context.restoreGState()
@@ -470,7 +474,7 @@ private final class PhotoRegionOverlay: UIView {
             let minWidth = 6 / max(zoomScale * imageSize.width, 1)
             let minHeight = 6 / max(zoomScale * imageSize.height, 1)
             if draftRect.width >= minWidth && draftRect.height >= minHeight {
-                onRegions?(regions + [BlurRegion(rect: draftRect, shape: .roundedRectangle)])
+                onRegions?(regions + [BlurRegion(rect: draftRect, shape: newRegionShape)])
             }
         case .move(let index), .resize(let index):
             var updated = regions

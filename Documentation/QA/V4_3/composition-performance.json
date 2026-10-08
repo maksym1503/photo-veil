@@ -1,0 +1,17 @@
+[
+  {
+    "layers" : 5,
+    "pixels" : "1440x1800",
+    "render_and_jpeg_seconds" : 0.21782398223876953
+  },
+  {
+    "layers" : 5,
+    "pixels" : "4032x3024",
+    "render_and_jpeg_seconds" : 0.69089591503143311
+  },
+  {
+    "layers" : 5,
+    "pixels" : "8064x6048",
+    "render_and_jpeg_seconds" : 3.2361319065093994
+  }
+]

@@ -1,0 +1,57 @@
+name: Veil Apple Integration
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      keep_full_results:
+        description: 'Retain successful native bundle for release-candidate review'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: veil-integration-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  apple-integration:
+    if: vars.APPLE_CI_PROVIDER != 'xcode-cloud'
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      VEIL_CI_OUTPUT: /tmp/veil-integration
+    steps:
+      - uses: actions/checkout@v4
+      - name: All core, real Vision and all legacy UI regressions
+        run: scripts/ci/run_apple.sh VeilIntegration
+      - name: macOS real Vision and full-composition performance profile
+        env:
+          VEIL_RUN_DETECTION_BENCHMARK: '1'
+        run: |
+          swift test --filter DetectionBenchmarkTests > /tmp/veil-integration/benchmark.log 2>&1
+          cp /tmp/veil-v4-diagnostics/measurements.json /tmp/veil-integration/vision-profile.json
+          cp /tmp/veil-v4-diagnostics/v43-composition.json /tmp/veil-integration/composition-profile.json
+      - name: Release compile; no fixture analyzer or test assets
+        run: |
+          xcodebuild -project PhotoVeil.xcodeproj -scheme PhotoVeil -configuration Release -destination 'generic/platform=iOS' -derivedDataPath /tmp/veil-release CODE_SIGNING_ALLOWED=NO build > /tmp/veil-integration/release.log 2>&1
+          python3 scripts/ci/check_release.py /tmp/veil-release/Build/Products/Release-iphoneos/PhotoVeil.app
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: veil-integration-${{ github.run_id }}
+          retention-days: 14
+          path: |
+            /tmp/veil-integration/*.log
+            /tmp/veil-integration/*.json
+      - name: Native failure or requested release evidence
+        if: failure() || cancelled() || inputs.keep_full_results == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: veil-integration-native-${{ github.run_id }}
+          retention-days: 14
+          path: |
+            /tmp/veil-integration/Tests.xcresult
+            /tmp/veil-integration/failure-attachments

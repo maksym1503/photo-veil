@@ -31,8 +31,13 @@ Detection can miss details. Always review your photo before sharing; blur does n
 5. Manual: precise rectangle and freehand tools.
 6. Final photo / native export, with one concise on-device reassurance.
 
-Use owner-approved, licensed photos and actual app screenshots. Avoid dense annotations, unverified guarantees or accounts/subscriptions that do not exist.
+Use owner-approved, licensed photos and actual app screenshots. Avoid dense annotations, unverified guarantees or unconfigured cloud functionality or subscriptions that do not exist.
 
 ## App Review notes draft
 
 Veil is an iPhone utility. No account, purchase or login is required. Choose a photo using the system picker. Faces and Plates activate detected regions automatically; tap regions to toggle. Manual supports rectangle and brush selection. Choose Done to hide editing overlays and Export to open the system share sheet with a new JPEG. The original is unchanged. Detection and rendering run locally through Apple Vision/Core Image. No general photo-library permission is requested. Automatic detection may miss details; Manual is available. Public support/privacy URLs: **[SUPPLY FINAL REAL URLS]**.
+
+## V4 replacement positioning (review before publishing)
+On-device photo privacy, with blur, pixelation and solid redaction. Keep finished photos in a local private gallery; optionally sign in with Apple or Google and enable private sync. Source photos and OCR stay on-device; cloud output storage is not end-to-end encrypted. Review every result: detection can miss details.
+
+Screenshot additions: styles/ellipse → distant-face example (no guaranteed recall claim) → document full coverage → local gallery → optional account/sync consent only after configuration/validation. App Review: editor requires no login; Settings → Account enables providers and opt-in sync, with account deletion in the same surface. Save to Photos requests add-only permission on invocation. Supply working backend and reviewer access separately, never in repository copy.

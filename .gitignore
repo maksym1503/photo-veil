@@ -3,3 +3,10 @@
 DerivedData/
 xcuserdata/
 *.xcuserstate
+Configuration/VeilBackend.plist
+Configuration/*.local.xcconfig
+.env
+.env.*
+!.env.example
+*.p8
+*.p12

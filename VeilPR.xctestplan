@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "configurations": [
+    {
+      "id": "e6d490c3-30ae-40f7-9707-3dccf0e65e62",
+      "name": "Default",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "codeCoverage": false,
+    "testTimeoutsEnabled": true,
+    "defaultTestExecutionTimeAllowance": 180,
+    "maximumTestExecutionTimeAllowance": 180,
+    "testRepetitionMode": "none",
+    "maximumTestRepetitions": 1,
+    "targetForVariableExpansion": {
+      "containerPath": "container:PhotoVeil.xcodeproj",
+      "identifier": "4D12E90DD8AA33456686B704",
+      "name": "PhotoVeil"
+    },
+    "environmentVariableEntries": [
+      {
+        "key": "VEIL_UI_CASE_BUDGET_SECONDS",
+        "value": "180",
+        "enabled": true
+      }
+    ]
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:PhotoVeil.xcodeproj",
+        "identifier": "6C652BB3ECD50ADF7932B79E",
+        "name": "PhotoVeilCoreTests"
+      },
+      "selectedTests": [
+        "DocumentDetectionTests",
+        "PhotoSavePolicyTests",
+        "ImageGeometryMapperTests",
+        "AccountSessionTests",
+        "PrivacyImageRendererTests",
+        "CloudSyncTests",
+        "DetectedPrivacySelectionTests",
+        "BackendConfigurationTests",
+        "FaceDetectionTests",
+        "GalleryStoreTests"
+      ],
+      "parallelizable": false
+    },
+    {
+      "target": {
+        "containerPath": "container:PhotoVeil.xcodeproj",
+        "identifier": "B348D4785EBDA98453BA5A03",
+        "name": "PhotoVeilPRUITests"
+      },
+      "selectedTests": [
+        "VeilPRSmokeTests"
+      ],
+      "parallelizable": false
+    }
+  ]
+}

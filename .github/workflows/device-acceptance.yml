@@ -1,0 +1,32 @@
+name: Veil Real Device Acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'Exact BrowserStack live-catalog device-OS string; do not assume availability'
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  real-device:
+    runs-on: ubuntu-latest
+    environment: real-device-acceptance
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: One high-value real Vision/privacy/local persistence flow
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_APP_URL: ${{ secrets.BROWSERSTACK_APP_URL }}
+          BROWSERSTACK_TEST_SUITE_URL: ${{ secrets.BROWSERSTACK_TEST_SUITE_URL }}
+          BROWSERSTACK_BUILD_SHA: ${{ secrets.BROWSERSTACK_BUILD_SHA }}
+          VEIL_DEVICE: ${{ inputs.device }}
+        run: python3 scripts/ci/browserstack.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: veil-device-summary
+          path: /tmp/veil-device
+          retention-days: 7

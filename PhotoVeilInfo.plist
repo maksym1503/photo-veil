@@ -33,5 +33,7 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Veil saves the processed photo you choose to your photo library.</string>
 </dict>
 </plist>

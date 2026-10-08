@@ -15,4 +15,4 @@ Use Veil lawfully and respect other people's privacy and intellectual property. 
 
 **[DEVELOPER/COUNSEL: supply appropriate license, warranty, liability, statutory rights and termination provisions. Do not publish generic waivers that conflict with applicable consumer law.]**
 
-No account is required. No subscriptions or purchases are currently implemented. The applicable App Store license agreement should be confirmed before deciding whether separate custom terms are needed.
+An optional account enables opt-in synchronization of processed gallery outputs. Local editing, export and gallery remain available without an account. Account/cloud use, retention, service availability and deletion terms require developer/legal review. No subscriptions or purchases are currently implemented. The applicable App Store license agreement should be confirmed before deciding whether separate custom terms are needed.
