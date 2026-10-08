@@ -20,7 +20,7 @@ Until owner activates and requires Xcode Cloud, the same plans execute on GitHub
 
 ## Coverage and boundaries
 
-[TEST_MATRIX.md](TEST_MATRIX.md) and its machine-readable inventory assign every test a home. Baseline: 50 SwiftPM core methods (48 deterministic, two opt-in macOS Vision/performance profiles), 35 legacy UI methods. Added: four deterministic UI smokes, two native real-Vision integration tests, one physical-device acceptance method. No legacy test is removed, skipped or silently quarantined.
+[TEST_MATRIX.md](TEST_MATRIX.md) and its machine-readable inventory assign every test a home. Baseline: 50 SwiftPM core methods (48 deterministic, two opt-in macOS Vision/performance profiles), 35 legacy UI methods. Added: four deterministic UI smokes, two native real-Vision integration tests, one physical-device acceptance method. No legacy test is removed, skipped or silently quarantined. `verify_execution.py` compares native executed identifiers to the inventory and requires every case to pass on every destination/configuration; zero-test, missing-test, skipped or expected-failure green runs are rejected by both runners.
 
 PR: 52 tests. Integration: 85 iOS tests (48 core, two real Vision, all 35 legacy UI), plus the two macOS performance methods. Device: one focused real-Vision/composition/save/reopen flow. Integration repeats deterministic core protection deliberately; these counts overlap.
 

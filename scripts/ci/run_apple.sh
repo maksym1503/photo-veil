@@ -36,4 +36,6 @@ printf 'PHASE: %s tests\n' "$plan"
 xcodebuild "${args[@]}" test-without-building -resultBundlePath "$output/Tests.xcresult" \
   -parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 2 \
   -maximum-parallel-testing-workers 2 > "$output/tests.log" 2>&1
+phase=execution-inventory
+python3 scripts/ci/verify_execution.py "$plan" "$output/Tests.xcresult"
 printf 'PHASE: tests passed\n'

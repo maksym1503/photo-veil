@@ -13,6 +13,7 @@ No product UI, effects, geometry or authentication behavior was redesigned. The 
 | CI adapter security contracts | five Python tests passed without network/provider credentials | `python3 scripts/ci/test_infrastructure.py` |
 | Release iOS build | passed; test analyzer/launch configuration and fixture JPEGs absent | `/tmp/veil-layered-release.log`; `scripts/ci/check_release.py` |
 | Unsigned Release archive | passed; app archived, test bundles excluded; fixture exclusion passed | `/tmp/veil-layered-archive.log`, `/tmp/veil-layered-release-archive.xcarchive` |
+| Native executed inventory | Exact 52/85 identifiers and all destinations passed; wrong-plan result rejected | `scripts/ci/verify_execution.py` against both native bundles |
 | Inventory / plans / staged secret and signing guardrails | 92 Swift methods assigned; all 85 baseline methods retained; no staged signing team/private keys/server keys | `python3 scripts/ci/validate.py` |
 
 Native real Vision tests: Documents 9.283 s; faces/tiled mapping 4.163 s. Five-layer render + JPEG profile: 1440×1800 0.081 s; 4032×3024 0.282 s; 8064×6048 1.215 s on this local Intel Mac. These are measurements, not iPhone/hosted latency promises.

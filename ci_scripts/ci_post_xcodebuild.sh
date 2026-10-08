@@ -7,6 +7,9 @@ if [ -n "${CI_RESULT_BUNDLE_PATH:-}" ] && [ -d "$CI_RESULT_BUNDLE_PATH" ]; then
 fi
 if [ "${CI_XCODEBUILD_EXIT_CODE:-1}" = 0 ]; then
   case "${CI_XCODEBUILD_ACTION:-}" in
+    test-without-building)
+      python3 scripts/ci/verify_execution.py "${CI_TEST_PLAN:?}" "${CI_RESULT_BUNDLE_PATH:?}"
+      ;;
     archive)
       python3 scripts/ci/check_release.py "${CI_ARCHIVE_PATH:?}/Products/Applications/PhotoVeil.app"
       ;;
