@@ -395,7 +395,7 @@ struct PremiumPreviewNotice: View {
     let unlock: () -> Void
     var body: some View {
         if state.marked || state == .unavailable {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 12) {
                     Text(state == .unavailable ? "Export access unavailable" : "Preview Mode").font(.subheadline.weight(.semibold))
                     Spacer(minLength: 8)
@@ -408,9 +408,12 @@ struct PremiumPreviewNotice: View {
                         .accessibilityIdentifier("unlockCleanExports")
                 }
                 Text(state == .exhausted
-                     ? "Your free export allowance has been used. Upgrade to Pro to save or share clean photos."
+                     ? "Go Pro to save & share clean photos."
                      : "Free-export access couldn’t be checked. Unlock this iPhone and try again, or restore Pro in the upgrade screen.")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.caption).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 20).padding(.vertical, 6)
             .accessibilityElement(children: .contain)

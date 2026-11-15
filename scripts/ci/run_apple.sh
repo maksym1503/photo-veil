@@ -43,7 +43,9 @@ print(chosen["udid"])
   xcrun simctl bootstatus "$device" -b
   VEIL_DESTINATION="platform=iOS Simulator,id=$device"
 fi
-args=(-project PhotoVeil.xcodeproj -scheme PhotoVeil -testPlan "$plan" -destination "$VEIL_DESTINATION" -derivedDataPath "${VEIL_DERIVED_DATA:-$output/DerivedData}")
+scheme=PhotoVeil
+if [ "$plan" = VeilPR ]; then scheme=VeilPR; fi
+args=(-project PhotoVeil.xcodeproj -scheme "$scheme" -testPlan "$plan" -destination "$VEIL_DESTINATION" -derivedDataPath "${VEIL_DERIVED_DATA:-$output/DerivedData}")
 phase=compilation
 printf 'PHASE: compilation, plan=%s\n' "$plan"
 xcodebuild "${args[@]}" build-for-testing 2>&1 | tee "$output/build.log"

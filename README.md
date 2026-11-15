@@ -16,4 +16,4 @@ Background, Faces, Plates, Manual rectangle/ellipse/brush and heuristic Document
 
 Run `swift test` for deterministic core tests, the Xcode scheme for UI regressions, `python3 scripts/test_backend_policies.py` for isolated PostgreSQL policy tests, and `deno test --allow-env supabase/functions/tests` for mocked server deletion behavior. Real Supabase/provider integration is a separate owner validation gate. See backend setup for exact commands.
 
-**Do not merge V4** until owner physical acceptance and configured-backend review. V3 on main remains approved and stable.
+**Release gate:** Maksym explicitly accepted the completed functionality/reviews/QA and authorized merging and publishing Vail1.1. Required protected-branch checks remain mandatory. Optional backend configuration/deployment is unchanged and outside this release. Future releases retain explicit owner acceptance gates.
