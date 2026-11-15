@@ -169,4 +169,3 @@ struct PhotoExport: Sendable {
         return try encode(pixels, policy: policy, metadata: metadata, quality: quality)
     }
 }
-

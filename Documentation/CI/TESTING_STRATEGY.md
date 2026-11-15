@@ -2,17 +2,18 @@
 
 # Veil testing and release strategy
 
-## Current final-review evidence — 2026-11-15
+## Current internal-beta evidence — 2026-11-15
 
-Inventory contains159 Swift methods:100 PR Gate entries (93 core +7 UI),58
+Inventory contains163 Swift methods:102 PR Gate entries (95 core +7 UI),60
 Integration-specific entries and1 Real Device entry; plan memberships overlap.
-VeilCommerce selects27 cases (14 core,8 hosted StoreKit,5 UI). One new retained
+VeilCommerce selects31 cases (16 core,8 hosted StoreKit,7 UI). One new retained
 Integration method captures actual dark application appearance alongside the light
 Editorial journey. Run these capture methods in separate invocations after setting
 `simctl ui <destination> appearance light` / `dark`; a launch argument alone did
 not change native appearance on this host. Verify actual screenshots and restore
 Light after this local capture workflow (the preboot appearance getter returned
-unknown). See [final review evidence](../QA/NextRelease/FinalReview/STATUS.md).
+unknown). See [current beta evidence](../QA/NextRelease/Beta/STATUS.md) and the historical
+[visual review evidence](../QA/NextRelease/FinalReview/STATUS.md).
 Historical counts below refer to their original revisions, not current totals.
 
 ## Architecture

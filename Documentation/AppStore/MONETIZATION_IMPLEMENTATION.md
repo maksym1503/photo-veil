@@ -1,3 +1,8 @@
+> Vail1.1 update: owner approved new installations1 successful export and preserved
+> legacy recorded allowance2, with no usage reset. ADR-014 implements the same
+> Keychain identity and success-only shared gate. This document's earlier two-free
+> universal policy describes1.0. Current QA: `Documentation/QA/NextRelease/Beta/`.
+
 > Current release update — 2026-10-28: approved legal site is live and verified; Privacy/Support URLs are configured and read back in ASC and signed build1.0(7). Build7 is VALID and IN_BETA_TESTING in the existing internal group. See [build7 release report](LEGAL_RELEASE_BUILD7.md) for exact test outcomes, unsubmitted subscription draft and remaining owner gates. Historical missing-policy/build6 statements below no longer describe the current binary. No public App Review or release occurred.
 
 <!-- autonomous-current-status -->

@@ -3,7 +3,9 @@
 Owner-approved direction: Editorial Calm and Quiet Lattice. This revision targets
 only plate clarity, an actual automatic Documents adjustment demonstration, and
 restrained device depth. It preserves the five-part narrative, type, colors and
-branding. Final revised assets still await owner approval; nothing is uploaded,
+branding. Maksym subsequently approved all five designs and Quiet Lattice. Upload-ready
+individual copies are in `../UploadReady/`. The historical review below predates
+the approved migration; current policy/evidence is in the Beta QA checkpoint. Nothing is uploaded,
 merged, published or substituted in the live App Store listing.
 
 - [Five screenshot candidates](editorial-contact-sheet.png)

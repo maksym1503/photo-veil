@@ -1,6 +1,6 @@
 # Test inventory and layer assignment
 
-Baseline before migration: **50 core + 35 UI methods**. All remain represented. Added methods are marked in the baseline column. PR has 89 core + five UI; Integration repeats those core tests plus two real Vision, eight hosted StoreKit and 43 UI cases (all 35 legacy cases retained). The two AppKit performance methods run in the macOS integration profile. One real-device case supplements these plans. Counts overlap; no test is deleted or implicitly skipped.
+Baseline before migration: **50 core + 35 UI methods**. All remain represented. Added methods are marked in the baseline column. Current PR has95 core+7UI. Local Integration has153 unique cases across the documented26.5/26.1 compatibility split (all35 legacy UI methods retained); Commerce31 overlaps these plans. See ADR-008 and the current Beta QA report. The two AppKit performance methods run in the macOS integration profile. One real-device case supplements these plans. Counts overlap; no test is deleted or implicitly skipped.
 
 Each entry records the protected behavior, boundary sensitivity and merge role. “Vision” means real analysis is exercised, not that state/render assertions intrinsically require Vision. App-owned menus/confirmation sheets are not system UI. Runtime categories: short <10 seconds typical; long environment-sensitive. Exact measured timings belong in PERFORMANCE_BASELINE.md. The JSON inventory and plan membership are enforced by scripts/ci/validate.py.
 

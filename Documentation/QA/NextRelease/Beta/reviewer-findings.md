@@ -17,3 +17,16 @@ code review completed; native evidence is recorded separately. Physical gesture,
 VoiceOver and system-service acceptance remain owner beta checks.
 The unavailable dedicated Design Agent is not claimed; owner explicitly accepts
 prior independent visual inspection and all five designs for internal beta.
+
+## Full Integration fixture follow-up
+
+Actual failure in V43Composed triggered a complete audit of all output and relaunch
+stages in PhotoVeilUITests, PR smokes and Commerce UI. Reviewer found two further
+legacy-two-admission cases: V43FullComposition and WatermarkCustomTextStyles. Root
+added valid UUID legacy0 initial fixtures in all three; Reviewer rechecked and
+closed all findings, retaining every composition/Undo/pixel/Share/Photos assertion.
+Other new-policy and intentional-paywall cases keep their default allowance.
+Reviewer also decompressed all three archived patches and independently verified
+byte equality to the Git originals and manifest hashes; EOF change is exactly one
+blank line. A doubled gzip link suffix was identified and corrected. No remaining
+review blockers; fresh comprehensive execution remains required.

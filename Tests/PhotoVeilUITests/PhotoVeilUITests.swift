@@ -209,7 +209,7 @@ final class PhotoVeilUITests: XCTestCase {
 
     @MainActor func testV43ComposedPrivacyWorkflowAndScopedUndo() {
         let app = XCUIApplication()
-        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history"]
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history", "-veil-test-storage-id", UUID().uuidString, "-veil-legacy-usage", "0"]
         app.launch(); waitForRender(app)
         func counts() -> String { app.otherElements["privacySelectionCounts"].value as? String ?? "" }
         func fingerprint() -> String { app.otherElements["processingComplete"].value as? String ?? "" }
@@ -306,7 +306,7 @@ final class PhotoVeilUITests: XCTestCase {
 
     @MainActor func testV43FullCompositionAndScopedClears() {
         let app = XCUIApplication()
-        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "combined-privacy", "-veil-cached-mask-fixture"]
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "combined-privacy", "-veil-cached-mask-fixture", "-veil-test-storage-id", UUID().uuidString, "-veil-legacy-usage", "0"]
         app.launch(); waitForRender(app)
         for tool in ["background", "faces", "plate", "documents"] {
             app.buttons["mode_\(tool)"].tap(); waitForRender(app, timeout: 120)
@@ -1111,7 +1111,7 @@ final class PhotoVeilUITests: XCTestCase {
 
     @MainActor func testWatermarkCustomTextStylesAndExportPaths() {
         let app = XCUIApplication()
-        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history", "-veil-synthetic-watermark-evidence"]
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history", "-veil-synthetic-watermark-evidence", "-veil-test-storage-id", UUID().uuidString, "-veil-legacy-usage", "0"]
         app.launch(); waitForRender(app)
         let editingViewport = transform(app)
         app.buttons["pillar_watermark"].tap(); assertCamera(app, editingViewport)

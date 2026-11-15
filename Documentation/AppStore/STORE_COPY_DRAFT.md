@@ -22,7 +22,7 @@ After Done, choose **Remove metadata** or **Keep metadata** before saving or sha
 - Add a privacy-minded or custom text watermark; drag, style, rotate or repeat it.
 - Share, save to Photos, or keep finished photos in your Private Gallery.
 
-Explore every editing tool free. Your first two successful exports are included without registration. Veil Pro unlocks unlimited protected photo exports with a monthly or yearly subscription. Eligible users can start a three-day trial; subscriptions renew automatically at the displayed price until cancelled.
+Explore every editing tool free. New installations include one successful export without registration; previously recorded allowances are preserved. Veil Pro unlocks unlimited protected photo exports with a monthly or yearly subscription. Eligible users can start a three-day trial; subscriptions renew automatically at the displayed price until cancelled.
 
 Detection and editing happen on your iPhone. Local editing does not require a Veil account. Veil adds no analytics or tracking. Detection can miss details: always review the result. Blur and pixelation do not guarantee anonymity. A watermark communicates intended use, but cannot prevent removal or misuse. Custom watermark text stays in the editing session until you save or share it as visible pixels. Operational dates and identifiers remain in Veil's gallery/cloud records; removal of embedded image details does not remove those records.
 
@@ -50,6 +50,6 @@ Public policy/terms/support URLs and contact must be real, reachable and configu
 
 ## Commercial metadata gate
 
-Veil includes two successful photo exports free, without registration. Explore all editing tools and previews freely. Veil Pro offers unlimited protected photo exports through monthly or yearly subscriptions, with the same features on both plans. Eligible users receive a three-day free trial once per subscription group; after the trial the displayed localized price is billed automatically each month or year until cancelled. Cancel or manage through your Apple Account; Restore Purchases does not require a Veil account.
+New installations include one successful photo export free, without registration; previously recorded allowances are preserved. Explore all editing tools and previews freely. Veil Pro offers unlimited protected photo exports through monthly or yearly subscriptions, with the same features on both plans. Eligible users receive a three-day free trial once per subscription group; after the trial the displayed localized price is billed automatically each month or year until cancelled. Cancel or manage through your Apple Account; Restore Purchases does not require a Veil account.
 
 Do not publish before real products, legal links and sandbox acceptance are complete. Include real Privacy Policy and Terms of Use links in listing metadata. Confirm ongoing subscriber value, territories, availability and App Privacy disclosures. See [implementation and release gates](MONETIZATION_IMPLEMENTATION.md).

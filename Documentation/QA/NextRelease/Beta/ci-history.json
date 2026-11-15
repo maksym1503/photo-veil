@@ -1,0 +1,16 @@
+{
+  "initialRun": {
+    "id": 43727405001,
+    "url": "https://github.com/maksym1503/photo-veil/actions/runs/43727405001",
+    "candidate": "38fc89e28d9d3f1efc8a7490d9a943d7e7864ea5",
+    "repositorySecurity": "failed whitespace check; inventory/infrastructure checks passed",
+    "backend": "passed",
+    "applePR": "cancelled at job-budget; 95 core and six UI passed, last UI incomplete",
+    "productFailureDemonstrated": false,
+    "remoteSlownessCause": "not established",
+    "isGreen": false
+  },
+  "retryOldRun": false,
+  "changeTimeouts": false,
+  "finalRun": "normal trigger after genuine cleanup; pending"
+}

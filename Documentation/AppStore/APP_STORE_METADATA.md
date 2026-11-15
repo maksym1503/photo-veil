@@ -60,8 +60,8 @@ Inspect the edited copy before sharing, saving to Photos or keeping it in Veil�
 LOCAL PHOTO EDITING
 Photo processing and text recognition run on your iPhone. No Veil account is required. Veil adds no ads, analytics or tracking.
 
-TWO EXPORTS INCLUDED
-Try every editing tool and preview without using an export. Your first two successful Save or Share operations are included; failed or cancelled operations do not count. Each further successful output—including another destination or another export of the same photo—requires Veil Pro.
+FIRST EXPORT INCLUDED
+Try every editing tool and preview without using an export. New installations include one successful Save or Share; previously recorded allowances are preserved; failed or cancelled operations do not count. Each further successful output—including another destination or another export of the same photo—requires Veil Pro.
 
 UNLIMITED EXPORTS WITH PRO
 Monthly and yearly auto-renewable plans unlock the same unlimited protected photo exports. Eligible customers can receive a three-day free trial when offered by Apple. After the trial, the plan renews at its displayed localized price and billing period unless cancelled. Manage subscriptions in your Apple Account settings. To avoid renewing a trial, follow Apple’s guidance to cancel at least 24 hours before it ends. Restore Purchases uses the Apple Account used to subscribe.
@@ -96,7 +96,7 @@ Do not replace the owner placeholder with an assumed person or company. Confirm 
 - Choose whether supported source metadata is kept or removed from each new copy.
 - Add and position a visible text watermark, with style and repeat controls.
 - Review the finished image before saving, sharing or keeping it in the private gallery.
-- Make two successful Save or Share exports without an account; Veil Pro unlocks unlimited protected photo exports.
+- New installations receive one successful Save or Share without an account; previously recorded allowances are preserved; Veil Pro unlocks unlimited protected photo exports.
 
 ## Screenshot sequence and caption copy
 

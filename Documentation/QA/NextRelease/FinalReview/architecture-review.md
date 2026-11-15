@@ -46,7 +46,7 @@ so exact restoration of an unobservable initial value is not claimed).
 
 [Baseline comparison](baseline-comparison.json) and [source hashes](final-source-hashes.json)
 prove project/signing, renderer, geometry, StoreKit and ledger files were preserved.
-[Task patch](task-only.patch) includes files for which the initial snapshot retained
+[Task patch](task-only.patch.gz) includes files for which the initial snapshot retained
 full text; the additional Commerce policy assertions are independently inspected
 in the current test file and identified in the source hashes.
 

@@ -1,4 +1,9 @@
-# Vail 1.1 work in progress — owner decision checkpoint
+# Vail 1.1 — historical development checkpoints
+
+> Current authorized internal beta: [Beta status](Beta/STATUS.md). Maksym approved
+> all five Editorial Calm designs, Quiet Lattice and the new1/legacy2 policy.
+> Migration is implemented in ADR-014; the older pending-gate notes below are
+> historical. Internal TestFlight upload is authorized; public release/merge are not.
 
 > Latest checkpoint: [2026-11-15 final-review evidence](FinalReview/STATUS.md)
 > includes targeted Editorial Calm refinements, genuine light/dark app captures,
@@ -110,7 +115,7 @@ verification, Restore and actual introductory-offer eligibility unchanged.
   identical, including existing signing/team settings. QA made no project changes.
   `git diff --check` and inventory validation (152 assigned tests) pass.
 - Independent Reviewer inspected the actual task diff against the preserved
-  pre-task source ([task source diff](task-source.patch)), found and rechecked fixes for short-drag selection/double undo,
+  pre-task source ([task source diff](task-source.patch.gz)), found and rechecked fixes for short-drag selection/double undo,
   stale document-coverage gestures, drag recognition and stale accessibility
   geometry. Latest recognizer re-review: **no findings**. Reviewer made no edits
   and ran no tests. Native execution remains distinct evidence.
