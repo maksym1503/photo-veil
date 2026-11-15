@@ -1,0 +1,52 @@
+[
+  {
+    "file": "01-faces.jpg",
+    "checksumMD5": "5d92adb132a89647073073bc2a6da0e2",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "state": "COMPLETE",
+    "displayType": "APP_IPHONE_67"
+  },
+  {
+    "file": "02-plates.jpg",
+    "checksumMD5": "e36b537d6ee800ff686cd1b5f8c045b5",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "state": "COMPLETE",
+    "displayType": "APP_IPHONE_67"
+  },
+  {
+    "file": "03-location.jpg",
+    "checksumMD5": "3474c164de7426f93412922ffe7607fc",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "state": "COMPLETE",
+    "displayType": "APP_IPHONE_67"
+  },
+  {
+    "file": "04-documents.jpg",
+    "checksumMD5": "d8ff7cb63d6ad1241dffd6ba7db61856",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "state": "COMPLETE",
+    "displayType": "APP_IPHONE_67"
+  },
+  {
+    "file": "05-share.jpg",
+    "checksumMD5": "7494a11215110c9ec4ff77bf76e69b5e",
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "state": "COMPLETE",
+    "displayType": "APP_IPHONE_67"
+  }
+]

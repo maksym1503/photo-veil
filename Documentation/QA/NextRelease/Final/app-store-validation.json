@@ -1,0 +1,53 @@
+{
+  "summary": {
+    "errors": 0,
+    "warnings": 9,
+    "infos": 0,
+    "blocking": 0
+  },
+  "warnings": [
+    {
+      "id": "subscriptions.images.recommended",
+      "message": "Subscription \"Photo Privacy Annual\" (vail.pro.annual) has no subscription promotional image"
+    },
+    {
+      "id": "subscriptions.images.recommended",
+      "message": "Subscription \"Photo Privacy Monthly\" (vail.pro.monthly) has no subscription promotional image"
+    },
+    {
+      "id": "subscriptions.images.recommended",
+      "message": "Subscription \"Photo Privacy Yearly\" (vail.pro.yearly) has no subscription promotional image"
+    },
+    {
+      "id": "subscriptions.review_readiness.needs_attention",
+      "message": "Subscription \"Photo Privacy Yearly\" (vail.pro.yearly) is MISSING_METADATA"
+    },
+    {
+      "id": "subscriptions.diagnostics.group_localization_missing",
+      "message": "Subscription group \"Photo Privacy Yearly\" (22475732) has no localizations"
+    },
+    {
+      "id": "subscriptions.diagnostics.review_screenshot_missing",
+      "message": "Subscription \"Photo Privacy Yearly\" (vail.pro.yearly) has no App Review screenshot"
+    },
+    {
+      "id": "subscriptions.diagnostics.availability_missing",
+      "message": "Subscription \"Photo Privacy Yearly\" (vail.pro.yearly) has no subscription availability configured"
+    },
+    {
+      "id": "subscriptions.diagnostics.upfront_plan_availability_missing",
+      "message": "Subscription \"Photo Privacy Yearly\" (vail.pro.yearly) has no UPFRONT billing-plan availability"
+    },
+    {
+      "id": "deep.web_session.expired",
+      "message": "the cached Apple web session is expired"
+    }
+  ],
+  "deepVerification": {
+    "passed": 2,
+    "blocked": 0,
+    "unverified": 3,
+    "notApplicable": 0
+  },
+  "note": "Cached Apple web session expired; API submission was accepted. Existing optional promotional images and unused vail.pro.yearly metadata left unchanged."
+}

@@ -1,0 +1,5 @@
+apple-pr-gate	Deterministic iOS PR plan (build once, test products)	2026-11-15T20:46:26.5983270Z ** TEST BUILD SUCCEEDED **
+apple-pr-gate	Deterministic iOS PR plan (build once, test products)	2026-11-15T20:55:34.3198850Z ** TEST EXECUTE SUCCEEDED **
+apple-pr-gate	Deterministic iOS PR plan (build once, test products)	2026-11-15T20:55:44.2925480Z Execution inventory verified: VeilPR, 102 required cases per destination, no missing/skipped/expected failures
+apple-pr-gate	Deterministic iOS PR plan (build once, test products)	2026-11-15T20:55:44.2976860Z PHASE: tests passed
+apple-pr-gate	Deterministic iOS PR plan (build once, test products)	2026-11-15T20:55:44.6648580Z {"wall_seconds": 1004.36, "exit_code": 0, "bundle": "/tmp/veil-pr/Tests.xcresult", "phase": "execution-inventory"}

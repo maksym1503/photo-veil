@@ -1,0 +1,22 @@
+{
+  "version": "1.1",
+  "build": "9",
+  "bundleID": "com.maksym1503.veil",
+  "teamID": "88QTXB3NUA",
+  "profileUUID": "c0f9db54-2f2d-47aa-9722-433292e2125d",
+  "profileExpiry": "2027-10-26 17:09:26",
+  "distributionSignature": "passed",
+  "strictSignatureVerification": "passed",
+  "getTaskAllow": false,
+  "betaReportsActive": true,
+  "resourceGuard": "passed",
+  "normalAppStoreConnectExport": true,
+  "testFlightInternalTestingOnly": false,
+  "usesNonExemptEncryption": false,
+  "ipaSHA256": "68217326cc2cfab88dcff4950f325aa4a62d73953563114eb225cfde54fa1dce",
+  "archiveExecutableSHA256": "7ae0cf559833173ecb25b1aa09cd32d864a2f436ffb244a8207f27e1654d52f3",
+  "exportedExecutableSHA256": "e2d8b8cd5c1b6449e62f18746afe2b208828c68af4c575609dac593bec36c244",
+  "exportedIPASignatureAndResourceGuard": "passed",
+  "archivePath": "/tmp/vail11-public-final/release/Vail-1.1-9.xcarchive",
+  "ipaPath": "/tmp/vail11-public-final/release/export/Veil.ipa"
+}
