@@ -80,6 +80,7 @@
 				<string>A2000000000000000000000D</string>
 				<string>3F8CA0D75DB1C0EC8A8F31E5</string>
 				<string>1AEC82067992C1A4BDB37D9C</string>
+				<string>6DAE28FEC42784B496578CCD</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -135,6 +136,13 @@
 				<string>D71FBFC6FB52E49CE9B18A26</string>
 				<string>E7DA42304ACC1B5612DDCD72</string>
 				<string>C378399D4CD14FE6C115BA91</string>
+				<string>4C63AF49026C12FAE07ECD2F</string>
+				<string>C4036F50FB12418783B0A2B3</string>
+				<string>4987304A0B574BF19344B35F</string>
+				<string>4A02F17585354911A8E6E91A</string>
+				<string>28C426C99AB9475C8B47B811</string>
+				<string>478F841186014D0A8DF36C9B</string>
+				<string>BEE81E8916DA4DDFB7E707FA</string>
 			</array>
 			<key>isa</key>
 			<string>PBXResourcesBuildPhase</string>
@@ -179,6 +187,15 @@
 				<string>1563786605C6EBDBA941D0A8</string>
 				<string>031129D2E7FD31E005AFEFB7</string>
 				<string>43AF6A11A5A5D5D3D9AE750B</string>
+				<string>967DFAD0DC04372AF6570CF1</string>
+				<string>9797F7C0F46DDE5093A5378A</string>
+				<string>2D8B05CEF2D3F3320F794940</string>
+				<string>795CDD81F9BCF8F79F29DA17</string>
+				<string>70D552DF3B4C406D00D3C81E</string>
+				<string>9A9F57A5B5D6642634285253</string>
+				<string>9EDE47AAEA1BCD8EE0A3AC6D</string>
+				<string>9C3585DE06FB466497AB722C</string>
+				<string>D3EAA468987C4524BB24AF35</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -272,6 +289,13 @@
 						<key>TestTargetID</key>
 						<string>4D12E90DD8AA33456686B704</string>
 					</dict>
+					<key>636D894987561FD7EE4C1A0C</key>
+					<dict>
+						<key>CreatedOnToolsVersion</key>
+						<string>26.6</string>
+						<key>TestTargetID</key>
+						<string>4D12E90DD8AA33456686B704</string>
+					</dict>
 				</dict>
 			</dict>
 			<key>buildConfigurationList</key>
@@ -296,6 +320,7 @@
 				<string>A20000000000000000000016</string>
 				<string>6C652BB3ECD50ADF7932B79E</string>
 				<string>B348D4785EBDA98453BA5A03</string>
+				<string>636D894987561FD7EE4C1A0C</string>
 			</array>
 			<key>knownRegions</key>
 			<array>
@@ -316,7 +341,7 @@
 				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
 				<string>PhotoVeilIcon</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>4</string>
+				<string>9</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>NO</string>
 				<key>INFOPLIST_FILE</key>
@@ -336,7 +361,7 @@
 				<key>TARGETED_DEVICE_FAMILY</key>
 				<string>1</string>
 				<key>MARKETING_VERSION</key>
-				<string>4.0</string>
+				<string>1.1</string>
 				<key>ALWAYS_SEARCH_USER_PATHS</key>
 				<string>NO</string>
 				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
@@ -345,6 +370,10 @@
 				<string>$(VEIL_ENTITLEMENTS_FILE)</string>
 				<key>ONLY_ACTIVE_ARCH</key>
 				<string>YES</string>
+				<key>VEIL_PRIVACY_POLICY_URL</key>
+				<string>https://veil-legal.pages.dev/privacy</string>
+				<key>VEIL_SUPPORT_URL</key>
+				<string>https://veil-legal.pages.dev/support</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -478,6 +507,7 @@
 			<key>files</key>
 			<array>
 				<string>A20000000000000000000009</string>
+				<string>A0D66BB211827A98A2FEEC7E</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -500,7 +530,9 @@
 			<key>buildActionMask</key>
 			<string>2147483647</string>
 			<key>files</key>
-			<array/>
+			<array>
+				<string>2388CC0C0D09028A02ED298D</string>
+			</array>
 			<key>isa</key>
 			<string>PBXResourcesBuildPhase</string>
 			<key>runOnlyForDeploymentPostprocessing</key>
@@ -736,7 +768,7 @@
 				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
 				<string>PhotoVeilIcon</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>4</string>
+				<string>9</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>NO</string>
 				<key>INFOPLIST_FILE</key>
@@ -756,13 +788,17 @@
 				<key>TARGETED_DEVICE_FAMILY</key>
 				<string>1</string>
 				<key>MARKETING_VERSION</key>
-				<string>4.0</string>
+				<string>1.1</string>
 				<key>ALWAYS_SEARCH_USER_PATHS</key>
 				<string>NO</string>
 				<key>EXCLUDED_SOURCE_FILE_NAMES</key>
-				<string>two-faces.jpg faces-small-landscape.jpg two-people-car.jpg faces-edges-partial.jpg background-person.jpg sample-card.jpg faces-large-medium.jpg faces-small-portrait.jpg</string>
+				<string>two-faces.jpg faces-small-landscape.jpg two-people-car.jpg faces-edges-partial.jpg background-person.jpg sample-card.jpg faces-large-medium.jpg faces-small-portrait.jpg release-sample-metadata.jpg release-owned-sample.jpg marketing-cafe.jpg marketing-coast.jpg marketing-card.jpg marketing-night.jpg</string>
 				<key>CODE_SIGN_ENTITLEMENTS</key>
 				<string>$(VEIL_ENTITLEMENTS_FILE)</string>
+				<key>VEIL_PRIVACY_POLICY_URL</key>
+				<string>https://veil-legal.pages.dev/privacy</string>
+				<key>VEIL_SUPPORT_URL</key>
+				<string>https://veil-legal.pages.dev/support</string>
 			</dict>
 			<key>isa</key>
 			<string>XCBuildConfiguration</string>
@@ -825,6 +861,29 @@
 				<string>971AF55E8B07F5AA64C87A96</string>
 				<string>25F5FC81406B312803CD0841</string>
 				<string>49C174EBE55C8B66433C64F7</string>
+				<string>E6175609BC5C33AA64DC5A58</string>
+				<string>D3A4AEE3B541A0A0D86D619B</string>
+				<string>3CDC78FC13D47D757CF383B2</string>
+				<string>6C8F70874C6F7B40B9D0884D</string>
+				<string>A40154E1F8D4B50DD082ACF4</string>
+				<string>8AA73F06600D692FDE94B8FB</string>
+				<string>74C571D6FB59B6D0AF263A97</string>
+				<string>97151682FB86D2DAF7CB7151</string>
+				<string>07E1502966D47D47E69F18DB</string>
+				<string>E719E74F202048F1EBA71786</string>
+				<string>2B5B7306A713B386EBD6A95D</string>
+				<string>101A8ADB06E4906F1D1A381F</string>
+				<string>34D89EA6D7AF9BA8FC448EDF</string>
+				<string>64A67DF34928343447FDD85A</string>
+				<string>D80F2706CD8F450C93AD0132</string>
+				<string>F1D7483A87174DDFA35D322B</string>
+				<string>DE57E21539804F62A26FE245</string>
+				<string>563DCC8662AD452B829C0D60</string>
+				<string>F7555F0EB084405789258000</string>
+				<string>AA1F545D4DE74E5AA7252A83</string>
+				<string>E03B5FABF4094B2A85208B5E</string>
+				<string>3F0958DA8C54489EB5EED8CD</string>
+				<string>04E7A7A883E945E3B7C1AA4B</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -1618,6 +1677,7 @@ fi
 			<key>files</key>
 			<array>
 				<string>BA471B3C7130C12BBA386CD7</string>
+				<string>41E155F5553D9B858064F95C</string>
 				<string>E99A17F97B389D014BAE70E1</string>
 				<string>35FAA201689572746B92F261</string>
 				<string>6139E3C18747DA573821D33E</string>
@@ -1628,6 +1688,9 @@ fi
 				<string>F86690714821BC708EC8B5F0</string>
 				<string>C393A9D1B858727641D7886F</string>
 				<string>8A79292E63E7DF2B278F326A</string>
+				<string>5CA28A5DF1FC114F99DB54CD</string>
+				<string>788538E3B434AEF3DDE7D6B5</string>
+				<string>1466959388BF49FEAAD0BA88</string>
 			</array>
 			<key>runOnlyForDeploymentPostprocessing</key>
 			<string>0</string>
@@ -2016,6 +2079,579 @@ fi
 			<key>fileRef</key>
 			<string>49C174EBE55C8B66433C64F7</string>
 		</dict>
+		<key>E6175609BC5C33AA64DC5A58</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/CommercePolicy.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>967DFAD0DC04372AF6570CF1</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>E6175609BC5C33AA64DC5A58</string>
+		</dict>
+		<key>D3A4AEE3B541A0A0D86D619B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/TemporaryExportStorage.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>9797F7C0F46DDE5093A5378A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>D3A4AEE3B541A0A0D86D619B</string>
+		</dict>
+		<key>3CDC78FC13D47D757CF383B2</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/VeilSubscriptions.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>2D8B05CEF2D3F3320F794940</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>3CDC78FC13D47D757CF383B2</string>
+		</dict>
+		<key>6C8F70874C6F7B40B9D0884D</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilTests/ReleaseReadinessTests.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+		</dict>
+		<key>41E155F5553D9B858064F95C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>6C8F70874C6F7B40B9D0884D</string>
+		</dict>
+		<key>A40154E1F8D4B50DD082ACF4</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>file.storyboard</string>
+			<key>path</key>
+			<string>Design/LaunchScreen.storyboard</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>4C63AF49026C12FAE07ECD2F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>A40154E1F8D4B50DD082ACF4</string>
+		</dict>
+		<key>8AA73F06600D692FDE94B8FB</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/MetadataSafeJPEG.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>795CDD81F9BCF8F79F29DA17</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>8AA73F06600D692FDE94B8FB</string>
+		</dict>
+		<key>74C571D6FB59B6D0AF263A97</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/Watermark.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>70D552DF3B4C406D00D3C81E</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>74C571D6FB59B6D0AF263A97</string>
+		</dict>
+		<key>97151682FB86D2DAF7CB7151</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/WatermarkControls.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>9A9F57A5B5D6642634285253</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>97151682FB86D2DAF7CB7151</string>
+		</dict>
+		<key>07E1502966D47D47E69F18DB</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilTests/WatermarkTests.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>5CA28A5DF1FC114F99DB54CD</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>07E1502966D47D47E69F18DB</string>
+		</dict>
+		<key>E719E74F202048F1EBA71786</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/VeilSubscriptionStore.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>9EDE47AAEA1BCD8EE0A3AC6D</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>E719E74F202048F1EBA71786</string>
+		</dict>
+		<key>2B5B7306A713B386EBD6A95D</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilTests/CommerceTests.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>788538E3B434AEF3DDE7D6B5</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>2B5B7306A713B386EBD6A95D</string>
+		</dict>
+		<key>101A8ADB06E4906F1D1A381F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilCommerceTests/StoreKitSubscriptionTests.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>554FB57665B518ABF58F8150</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>101A8ADB06E4906F1D1A381F</string>
+		</dict>
+		<key>34D89EA6D7AF9BA8FC448EDF</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/VeilCommerceUITests.swift</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>A0D66BB211827A98A2FEEC7E</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>34D89EA6D7AF9BA8FC448EDF</string>
+		</dict>
+		<key>64A67DF34928343447FDD85A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>text.json</string>
+			<key>path</key>
+			<string>Configuration/VeilLocal.storekit</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>B639970CDF552327144B66CE</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>64A67DF34928343447FDD85A</string>
+		</dict>
+		<key>2388CC0C0D09028A02ED298D</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>64A67DF34928343447FDD85A</string>
+		</dict>
+		<key>6DAE28FEC42784B496578CCD</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>explicitFileType</key>
+			<string>wrapper.cfbundle</string>
+			<key>path</key>
+			<string>PhotoVeilCommerceTests.xctest</string>
+			<key>sourceTree</key>
+			<string>BUILT_PRODUCTS_DIR</string>
+		</dict>
+		<key>1C34853816BCE47D1DD3AEAA</key>
+		<dict>
+			<key>isa</key>
+			<string>XCConfigurationList</string>
+			<key>buildConfigurations</key>
+			<array>
+				<string>50E3087A06C3FECD478834C4</string>
+				<string>DC7254174D554405E43E9372</string>
+			</array>
+			<key>defaultConfigurationName</key>
+			<string>Release</string>
+			<key>defaultConfigurationIsVisible</key>
+			<string>0</string>
+		</dict>
+		<key>50E3087A06C3FECD478834C4</key>
+		<dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Debug</string>
+			<key>buildSettings</key>
+			<dict>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.maksym1503.veil.PhotoVeilCommerceTests</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>SDKROOT</key>
+				<string>iphoneos</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>17.0</string>
+				<key>SUPPORTED_PLATFORMS</key>
+				<string>iphoneos iphonesimulator</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>1</string>
+				<key>GENERATE_INFOPLIST_FILE</key>
+				<string>YES</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>SWIFT_OPTIMIZATION_LEVEL</key>
+				<string>-Onone</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<string>$(inherited) @executable_path/Frameworks @loader_path/Frameworks</string>
+				<key>TEST_HOST</key>
+				<string>$(BUILT_PRODUCTS_DIR)/PhotoVeil.app/PhotoVeil</string>
+				<key>BUNDLE_LOADER</key>
+				<string>$(TEST_HOST)</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>$(inherited) DEBUG</string>
+			</dict>
+		</dict>
+		<key>DC7254174D554405E43E9372</key>
+		<dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Release</string>
+			<key>buildSettings</key>
+			<dict>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.maksym1503.veil.PhotoVeilCommerceTests</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>SDKROOT</key>
+				<string>iphoneos</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>17.0</string>
+				<key>SUPPORTED_PLATFORMS</key>
+				<string>iphoneos iphonesimulator</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>1</string>
+				<key>GENERATE_INFOPLIST_FILE</key>
+				<string>YES</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>SWIFT_OPTIMIZATION_LEVEL</key>
+				<string>-O</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<string>$(inherited) @executable_path/Frameworks @loader_path/Frameworks</string>
+				<key>TEST_HOST</key>
+				<string>$(BUILT_PRODUCTS_DIR)/PhotoVeil.app/PhotoVeil</string>
+				<key>BUNDLE_LOADER</key>
+				<string>$(TEST_HOST)</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>$(inherited)</string>
+			</dict>
+		</dict>
+		<key>D24D4049E6F4CC1050D93F33</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXSourcesBuildPhase</string>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>03D554103D60C9AF4A93ACC1</string>
+			</array>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>AE0805C807BB6035D9416D46</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFrameworksBuildPhase</string>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>EEAF6853F13D316779C8C1E8</string>
+			</array>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>26C72E377C7B9863104F7C9C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXResourcesBuildPhase</string>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>34ED939383C4C348B5ECB742</string>
+			</array>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>3D233468E30F66AF09959087</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXContainerItemProxy</string>
+			<key>containerPortal</key>
+			<string>8642ACF60E32BC9E3C379AB9</string>
+			<key>proxyType</key>
+			<string>1</string>
+			<key>remoteGlobalIDString</key>
+			<string>4D12E90DD8AA33456686B704</string>
+			<key>remoteInfo</key>
+			<string>PhotoVeil</string>
+		</dict>
+		<key>BF45266ACE8F7AF6D08BE6E8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXTargetDependency</string>
+			<key>target</key>
+			<string>4D12E90DD8AA33456686B704</string>
+			<key>targetProxy</key>
+			<string>3D233468E30F66AF09959087</string>
+		</dict>
+		<key>636D894987561FD7EE4C1A0C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXNativeTarget</string>
+			<key>name</key>
+			<string>PhotoVeilCommerceTests</string>
+			<key>productName</key>
+			<string>PhotoVeilCommerceTests</string>
+			<key>productReference</key>
+			<string>6DAE28FEC42784B496578CCD</string>
+			<key>productType</key>
+			<string>com.apple.product-type.bundle.unit-test</string>
+			<key>buildConfigurationList</key>
+			<string>1C34853816BCE47D1DD3AEAA</string>
+			<key>buildPhases</key>
+			<array>
+				<string>D24D4049E6F4CC1050D93F33</string>
+				<string>AE0805C807BB6035D9416D46</string>
+				<string>26C72E377C7B9863104F7C9C</string>
+			</array>
+			<key>buildRules</key>
+			<array/>
+			<key>dependencies</key>
+			<array>
+				<string>BF45266ACE8F7AF6D08BE6E8</string>
+			</array>
+			<key>packageProductDependencies</key>
+			<array>
+				<string>9B3CE171F54BB884040BAB7D</string>
+			</array>
+		</dict>
+		<key>EEAF6853F13D316779C8C1E8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>9B3CE171F54BB884040BAB7D</string>
+		</dict>
+		<key>03D554103D60C9AF4A93ACC1</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>101A8ADB06E4906F1D1A381F</string>
+		</dict>
+		<key>34ED939383C4C348B5ECB742</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>64A67DF34928343447FDD85A</string>
+		</dict>
+		<key>D80F2706CD8F450C93AD0132</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>image.jpeg</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/Fixtures/release-sample-metadata.jpg</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>C4036F50FB12418783B0A2B3</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>D80F2706CD8F450C93AD0132</string>
+		</dict>
+		<key>F1D7483A87174DDFA35D322B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>image.jpeg</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilUITests/Fixtures/release-owned-sample.jpg</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>4987304A0B574BF19344B35F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>F1D7483A87174DDFA35D322B</string>
+		</dict>
+		<key>DE57E21539804F62A26FE245</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/ContextualAdvertising.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>9C3585DE06FB466497AB722C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>DE57E21539804F62A26FE245</string>
+		</dict>
+		<key>563DCC8662AD452B829C0D60</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Sources/PhotoVeil/HomeSponsorshipBanner.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>D3EAA468987C4524BB24AF35</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>563DCC8662AD452B829C0D60</string>
+		</dict>
+		<key>F7555F0EB084405789258000</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Tests/PhotoVeilTests/ContextualAdvertisingTests.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>1466959388BF49FEAAD0BA88</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>fileRef</key>
+			<string>F7555F0EB084405789258000</string>
+		</dict>
+		<key>AA1F545D4DE74E5AA7252A83</key><dict><key>isa</key><string>PBXFileReference</string><key>lastKnownFileType</key><string>image.jpeg</string><key>path</key><string>Tests/PhotoVeilUITests/Fixtures/marketing-cafe.jpg</string><key>sourceTree</key><string>SOURCE_ROOT</string></dict>
+		<key>4A02F17585354911A8E6E91A</key><dict><key>isa</key><string>PBXBuildFile</string><key>fileRef</key><string>AA1F545D4DE74E5AA7252A83</string></dict>
+		<key>E03B5FABF4094B2A85208B5E</key><dict><key>isa</key><string>PBXFileReference</string><key>lastKnownFileType</key><string>image.jpeg</string><key>path</key><string>Tests/PhotoVeilUITests/Fixtures/marketing-coast.jpg</string><key>sourceTree</key><string>SOURCE_ROOT</string></dict>
+		<key>28C426C99AB9475C8B47B811</key><dict><key>isa</key><string>PBXBuildFile</string><key>fileRef</key><string>E03B5FABF4094B2A85208B5E</string></dict>
+		<key>3F0958DA8C54489EB5EED8CD</key><dict><key>isa</key><string>PBXFileReference</string><key>lastKnownFileType</key><string>image.jpeg</string><key>path</key><string>Tests/PhotoVeilUITests/Fixtures/marketing-card.jpg</string><key>sourceTree</key><string>SOURCE_ROOT</string></dict>
+		<key>478F841186014D0A8DF36C9B</key><dict><key>isa</key><string>PBXBuildFile</string><key>fileRef</key><string>3F0958DA8C54489EB5EED8CD</string></dict>
+
+		<key>04E7A7A883E945E3B7C1AA4B</key><dict><key>isa</key><string>PBXFileReference</string><key>lastKnownFileType</key><string>image.jpeg</string><key>path</key><string>Tests/PhotoVeilUITests/Fixtures/marketing-night.jpg</string><key>sourceTree</key><string>SOURCE_ROOT</string></dict>
+		<key>BEE81E8916DA4DDFB7E707FA</key><dict><key>isa</key><string>PBXBuildFile</string><key>fileRef</key><string>04E7A7A883E945E3B7C1AA4B</string></dict>
+
 	</dict>
 	<key>rootObject</key>
 	<string>8642ACF60E32BC9E3C379AB9</string>

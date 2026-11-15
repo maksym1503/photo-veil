@@ -20,6 +20,7 @@ import Security
     private var syncID = UUID()
     private var pendingSync = false
     private var active = true
+    private var consent = SyncConsentGate()
 
     init(library: VeilLibrary) {
         self.library = library
@@ -39,7 +40,7 @@ import Security
                 authEvents = Task { [weak self] in
                     for await (event, _) in auth.client.authStateChanges {
                         if event == .signedOut {
-                            self?.stopSync(); self?.identity = nil; self?.syncEnabled = false
+                            self?.stopSync(); self?.consent.invalidate(); self?.identity = nil; self?.syncEnabled = false
                             self?.syncStatus = "Sign in to resume sync"
                         }
                     }
@@ -50,7 +51,11 @@ import Security
     }
     private func refreshIdentity() async {
         identity = lifecycle?.identity
-        if let user = identity?.id, let store = library.store { syncEnabled = await store.syncEnabled(for: user) }
+        if let user = identity?.id, let store = library.store {
+            let stored = await store.syncEnabled(for: user)
+            guard identity?.id == user else { return }
+            syncEnabled = stored && consent.permitsRestoration(for: user)
+        }
         else { syncEnabled = false }
         syncStatus = syncEnabled ? "Ready to sync" : "Stored on this iPhone"
         setActive(active); requestSync()
@@ -66,11 +71,13 @@ import Security
     func checkAppleCredential() async {
         guard identity?.provider == "apple", let providerIdentity = auth?.client.currentUser?.identities?.first(where: { $0.provider == "apple" }),
               let user = providerIdentity.identityData?["sub"]?.stringValue else { return }
+        let identityID = identity?.id
         let state = try? await ASAuthorizationAppleIDProvider().credentialState(forUserID: user)
+        guard identity?.id == identityID else { return }
         if state == .revoked || state == .notFound { await signOut() }
     }
     func apple(_ proof: AppleIdentityProof) async {
-        guard let lifecycle else { return }
+        guard let lifecycle, !busy else { return }
         busy = true; defer { busy = false }
         do { try await lifecycle.apple(proof); await refreshIdentity() }
         catch {
@@ -80,7 +87,7 @@ import Security
         }
     }
     func google() async {
-        guard let lifecycle else { return }
+        guard let lifecycle, !busy else { return }
         busy = true; defer { busy = false }
         do { try await lifecycle.google(); await refreshIdentity() }
         catch {
@@ -89,43 +96,59 @@ import Security
         }
     }
     func signOut() async {
-        guard let lifecycle else { return }
+        guard let lifecycle, !busy else { return }
         busy = true; defer { busy = false }
         await setSync(false)
         do { try await lifecycle.signOut(); await refreshIdentity() }
         catch { message = "Sign-out couldn’t finish. Try again." }
     }
     func deleteAccount() async {
-        guard let lifecycle, let user = identity?.id else { return }
+        guard let lifecycle, let user = identity?.id, !busy else { return }
         busy = true; defer { busy = false }
-        await setSync(false)
+        guard await setSync(false), identity?.id == user else { return }
         do {
             try await lifecycle.delete(); try? await library.store?.forgetAccount(user); await refreshIdentity()
             message = "Account and cloud gallery deleted. Local gallery kept on this iPhone."
         } catch { message = "Deletion couldn’t finish. Retry online. If you use Apple, reconnect Apple and retry deletion. Local photos remain available." }
     }
     func updateName(_ name: String) async {
-        guard let auth, let user = identity?.id else { return }
+        guard let auth, let user = identity?.id, !busy else { return }
         busy = true; defer { busy = false }
         do {
             let session = try await auth.client.session
+            guard identity?.id == user else { return }
             try await auth.transport.profile(user: user, displayName: name, token: session.accessToken)
+            guard identity?.id == user else { return }
             identity?.displayName = String(name.prefix(80))
         } catch { message = "Your display name couldn’t be updated." }
     }
-    func setSync(_ enabled: Bool) async {
-        guard let user = identity?.id, let store = library.store else { return }
+    @discardableResult func setSync(_ enabled: Bool) async -> Bool {
         stopSync()
+        syncEnabled = false
+        syncStatus = "Cloud sync is off"
+        guard let user = identity?.id else { return !enabled }
+        let change = consent.begin(user: user, enabled: enabled)
+        guard let store = library.store else {
+            message = "Cloud sync is off for this session. The preference couldn’t be saved. Retry before closing Veil."
+            return false
+        }
         do {
-            try await store.setSync(enabled, for: user); syncEnabled = enabled
-            syncStatus = enabled ? "Ready to sync" : "Stored on this iPhone"
+            try await store.setSync(enabled, for: user)
+            guard let resolved = consent.complete(change, succeeded: true, currentUser: identity?.id) else { return false }
+            syncEnabled = resolved
+            syncStatus = resolved ? "Ready to sync" : "Cloud sync is off"
             setActive(active); requestSync()
-        } catch { message = "Sync preference couldn’t be saved. Try again after unlocking this iPhone." }
+            return true
+        } catch {
+            guard consent.complete(change, succeeded: false, currentUser: identity?.id) != nil else { return false }
+            message = "Cloud sync is off for this session. The preference couldn’t be saved. Unlock this iPhone and retry before closing Veil."
+            return false
+        }
     }
     func deleteCloudCopies() async {
-        guard let auth, let user = identity?.id else { return }
+        guard let auth, let user = identity?.id, !busy else { return }
         busy = true; defer { busy = false }
-        await setSync(false)
+        guard await setSync(false), identity?.id == user else { return }
         do {
             let cloud = SupabaseGallery(auth: auth)
             for item in try await cloud.list(user: user) {
@@ -173,6 +196,8 @@ import Security
 }
 
 struct VeilAccountView: View {
+    @EnvironmentObject private var subscriptions: VeilSubscriptionStore
+    private var subscriptionsConfigured: Bool { subscriptions.isConfigured }
     @EnvironmentObject private var account: VeilAccount
     @Environment(\.colorScheme) private var colorScheme
     @State private var nonce: String?
@@ -190,7 +215,62 @@ struct VeilAccountView: View {
         #endif
     }
     var body: some View {
-        List {
+        Group {
+            if account.identity == nil && account.auth?.configuration.appleSignInEnabled != true && !previewsProviderControls {
+                localAccount
+            } else { accountList }
+        }
+        .navigationTitle("Account").navigationBarTitleDisplayMode(.inline)
+        .disabled(account.busy)
+        .overlay { if account.busy { ProgressView().padding().background(.regularMaterial, in: Circle()) } }
+        .onAppear { displayName = account.identity?.displayName ?? "" }
+        .onChange(of: account.identity?.id) { _, _ in displayName = account.identity?.displayName ?? "" }
+        .onChange(of: account.identity?.displayName) { old, new in
+            if displayName == (old ?? "") { displayName = new ?? "" }
+        }
+        .confirmationDialog("Enable private sync? Processed photos already saved in your unlinked Veil gallery, thumbnails and edit metadata will upload to your account. Originals will not upload.", isPresented: $confirmsSync, titleVisibility: .visible) {
+            Button("Enable sync") { Task { await account.setSync(true) } }
+        }
+        .confirmationDialog("Delete account and cloud gallery? Local history stays on this iPhone. This cannot be undone. If you subscribe through Apple, deleting your Veil account does not cancel billing. Manage your subscription in App Store account settings.", isPresented: $confirmsDelete, titleVisibility: .visible) {
+            Button("Delete account", role: .destructive) { Task { await account.deleteAccount() } }
+        }
+        .confirmationDialog("Delete cloud copies? Sync will turn off. Local photos stay on this iPhone.", isPresented: $confirmsCloudDelete, titleVisibility: .visible) {
+            Button("Delete cloud copies", role: .destructive) { Task { await account.deleteCloudCopies() } }
+        }
+        .alert("Account", isPresented: Binding(get: { account.message != nil }, set: { if !$0 { account.message = nil } })) { Button("OK") { account.message = nil } } message: { Text(account.message ?? "") }
+    }
+    private var localAccount: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                ZStack {
+                    Circle().fill(.blue.opacity(0.07)).frame(width: 180, height: 180)
+                    Circle().strokeBorder(.blue.opacity(0.13), lineWidth: 1).frame(width: 136, height: 136)
+                    Image(systemName: "iphone.gen3").font(.system(size: 70, weight: .ultraLight))
+                        .foregroundStyle(LinearGradient(colors: [.cyan, .blue, .indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    Image(systemName: "lock.fill").font(.title3).foregroundStyle(.blue)
+                        .offset(x: 42, y: 38)
+                }.frame(maxWidth: .infinity).accessibilityHidden(true)
+                Text("Your space.\nYour photos.").font(.largeTitle.weight(.semibold))
+                Label("On this iPhone", systemImage: "checkmark.shield")
+                    .font(.headline).foregroundStyle(.blue).accessibilityIdentifier("localGalleryAvailability")
+                Text("Your photos, your choice. Edit, share and keep finished photos in your Private Gallery without creating an account.")
+                    .font(.title3).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Divider()
+                Label("Only the photos you save", systemImage: "photo.stack").font(.headline)
+                Text("Save to Veil keeps finished copies in your Private Gallery. Removing Veil removes this local gallery, so share or save any photos you want to keep first.")
+                    .foregroundStyle(.secondary)
+                #if DEBUG
+                DisclosureGroup("Configuration details") {
+                    Text(account.backendReadiness.diagnostic).font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("backendDiagnostic")
+                    NavigationLink("Subscription preview") { VeilSubscriptionView() }
+                }
+                #endif
+            }.padding(28)
+        }
+    }
+    private var accountList: some View {
+List {
             if let identity = account.identity {
                 Section("Account") {
                     LabeledContent("Provider", value: identity.provider.capitalized)
@@ -213,26 +293,37 @@ struct VeilAccountView: View {
                     Button("Sign out") { Task { await account.signOut() } }
                     Button("Delete account", role: .destructive) { confirmsDelete = true }
                 } footer: { Text("Signing out or deleting your account keeps local history. Delete local history separately in Settings.") }
-            } else if account.auth != nil || previewsProviderControls {
+            } else if account.auth?.configuration.appleSignInEnabled == true || previewsProviderControls {
                 Section {
                     Label("Your gallery, across devices", systemImage: "photo.stack").font(.title3.weight(.semibold))
                     Text("Sign in to optionally sync processed photos. Editing and local history work without an account.")
                     if account.auth?.configuration.appleSignInEnabled == true || previewsProviderControls { appleButton.disabled(previewsProviderControls) }
                     Button { Task { await account.google() } } label: {
-                        Text("Continue with Google").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
-                    }.modifier(VeilActionStyle()).accessibilityIdentifier("continueWithGoogle").disabled(previewsProviderControls)
+                        Image(colorScheme == .dark ? "GoogleSignInDark" : "GoogleSignInLight")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: 300)
+                            .frame(minHeight: 50)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Continue with Google")
+                    .accessibilityIdentifier("continueWithGoogle")
+                    .disabled(previewsProviderControls)
                     if previewsProviderControls { Text("Sign-in controls preview — authentication is disabled.").font(.footnote) }
                 }
             } else {
                 Section {
                     Label("On this iPhone", systemImage: "iphone").font(.title3.weight(.semibold))
                         .accessibilityIdentifier("localGalleryAvailability")
-                    Text("Your private gallery stays on this iPhone. Keep, share and save photos without an account.")
-                    Text("Cloud sync isn’t available right now.").font(.footnote).foregroundStyle(.secondary)
+                    Text("Your photos, your choice. Edit, share and keep finished photos in your Private Gallery without creating an account.")
+                    Text("Your gallery stays on this iPhone. No sign-in is needed to edit or share.").font(.footnote).foregroundStyle(.secondary)
                 }
             }
             #if DEBUG
             Section {
+                if !subscriptionsConfigured {
+                    NavigationLink("Subscription preview") { VeilSubscriptionView() }
+                }
                 DisclosureGroup("Configuration details") {
                     Text(account.backendReadiness.diagnostic).font(.footnote).foregroundStyle(.secondary)
                         .accessibilityIdentifier("backendDiagnostic")
@@ -240,24 +331,6 @@ struct VeilAccountView: View {
             }
             #endif
         }
-        .navigationTitle("Account").navigationBarTitleDisplayMode(.inline)
-        .disabled(account.busy)
-        .overlay { if account.busy { ProgressView().padding().background(.regularMaterial, in: Circle()) } }
-        .onAppear { displayName = account.identity?.displayName ?? "" }
-        .onChange(of: account.identity?.id) { _, _ in displayName = account.identity?.displayName ?? "" }
-        .onChange(of: account.identity?.displayName) { old, new in
-            if displayName == (old ?? "") { displayName = new ?? "" }
-        }
-        .confirmationDialog("Enable private sync? Processed photos already saved in your unlinked Veil gallery, thumbnails and edit metadata will upload to your account. Originals will not upload.", isPresented: $confirmsSync, titleVisibility: .visible) {
-            Button("Enable sync") { Task { await account.setSync(true) } }
-        }
-        .confirmationDialog("Delete account and cloud gallery? Local history stays on this iPhone. This cannot be undone.", isPresented: $confirmsDelete, titleVisibility: .visible) {
-            Button("Delete account", role: .destructive) { Task { await account.deleteAccount() } }
-        }
-        .confirmationDialog("Delete cloud copies? Sync will turn off. Local photos stay on this iPhone.", isPresented: $confirmsCloudDelete, titleVisibility: .visible) {
-            Button("Delete cloud copies", role: .destructive) { Task { await account.deleteCloudCopies() } }
-        }
-        .alert("Account", isPresented: Binding(get: { account.message != nil }, set: { if !$0 { account.message = nil } })) { Button("OK") { account.message = nil } } message: { Text(account.message ?? "") }
     }
     private var appleButton: some View {
         SignInWithAppleButton(.continue) { request in

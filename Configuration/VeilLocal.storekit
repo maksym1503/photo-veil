@@ -1,0 +1,85 @@
+{
+  "identifier": "7E02ED2A-1846-4307-8B5A-11F24DE7C13C",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_askToBuyEnabled": false,
+    "_billingGracePeriodEnabled": true,
+    "_billingIssuesEnabled": false,
+    "_locale": "pl_PL",
+    "_storefront": "POL"
+  },
+  "subscriptionGroups": [
+    {
+      "id": "33839055",
+      "localizations": [
+        {
+          "description": "Subscription group for Veil Pro.",
+          "displayName": "Photo Privacy Pro",
+          "locale": "pl_PL"
+        }
+      ],
+      "name": "Photo Privacy Pro",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "12.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "8AE17A32-AC07-4BF9-837A-A9BFC38C50A1",
+          "introductoryOffer": {
+            "internalID": "3C3E75A7-EBB3-44ED-A7F6-3C91768CE075",
+            "numberOfPeriods": 1,
+            "paymentMode": "free",
+            "subscriptionPeriod": "P3D"
+          },
+          "introductoryOffers": [],
+          "localizations": [
+            {
+              "description": "Unlimited protected photo exports.",
+              "displayName": "Veil Pro Monthly",
+              "locale": "pl_PL"
+            }
+          ],
+          "productID": "vail.pro.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Veil Pro Monthly",
+          "subscriptionGroupID": "33839055",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "99.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "92EA8B2C-FC86-466E-ABFA-5664345CE5DF",
+          "introductoryOffer": {
+            "internalID": "A4A6C948-78D4-4D0A-BA9E-8EAC661FC9B0",
+            "numberOfPeriods": 1,
+            "paymentMode": "free",
+            "subscriptionPeriod": "P3D"
+          },
+          "introductoryOffers": [],
+          "localizations": [
+            {
+              "description": "Unlimited protected photo exports.",
+              "displayName": "Veil Pro Yearly",
+              "locale": "pl_PL"
+            }
+          ],
+          "productID": "vail.pro.annual",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Veil Pro Yearly",
+          "subscriptionGroupID": "33839055",
+          "type": "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

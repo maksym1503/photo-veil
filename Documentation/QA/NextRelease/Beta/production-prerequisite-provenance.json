@@ -1,0 +1,62 @@
+[
+  {
+    "file": "Sources/PhotoVeil/AccountContracts.swift",
+    "sha256": "7d7547b158542b757e231df62c6b6e0d0819542a65910e544f819d303b95108a",
+    "matchesRetained1_0Candidate": true
+  },
+  {
+    "file": "Sources/PhotoVeil/CloudSync.swift",
+    "sha256": "915a6afa244ad054abdeb3019b4a7fd2df812f4da4b27834ca0f1b8a84441deb",
+    "matchesRetained1_0Candidate": true
+  },
+  {
+    "file": "Sources/PhotoVeil/GalleryStore.swift",
+    "sha256": "5339d88a388cf88462ecfc53726a8df5f5c39ec23ea828827fc4ae49f1fb8694",
+    "matchesRetained1_0Candidate": true
+  },
+  {
+    "file": "Sources/PhotoVeil/PhotoVeilApp.swift",
+    "sha256": "8c9a1ac641d149d471e38a48d4f4485aea3741e4bc55b5a4c407fd2e5ca8e806",
+    "matchesRetained1_0Candidate": false
+  },
+  {
+    "file": "Sources/PhotoVeil/PhotoVeilHome.swift",
+    "sha256": "70eebfb8fdf74f97932044c366bf7c994deaecc696ae1b6c4fb0418f9ed3138d",
+    "matchesRetained1_0Candidate": false
+  },
+  {
+    "file": "Sources/PhotoVeil/PhotosSaver.swift",
+    "sha256": "a30ed06ef532b9dba2fcf59b572a0a39ae96180be10036613cf8bdb4b61384b4",
+    "matchesRetained1_0Candidate": true
+  },
+  {
+    "file": "Sources/PhotoVeil/PrivacyImageRenderer.swift",
+    "sha256": "f00914004c991d7ef1e23bf9166d074a5f2b16ee9fe9070f3e4ff143369e666b",
+    "matchesRetained1_0Candidate": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilAccount.swift",
+    "sha256": "d03c31d0a98cbd8011fd7b2d17234dd0d44766582fdca0cb60c2fc1014078c4f",
+    "matchesRetained1_0Candidate": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilGallery.swift",
+    "sha256": "ec270b4db844390bde3632501f12be49f61f71fef887cdf46c6267cda5360ee1",
+    "matchesRetained1_0Candidate": false
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilLibrary.swift",
+    "sha256": "057484eedeb4b104b81fed5bcc2a812f45e9ef5979cef5bba22c38482a7f270d",
+    "matchesRetained1_0Candidate": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilPresentation.swift",
+    "sha256": "13b87a94bde6f9b1a67a28db1c537ddfc6d07a98dec707a8e7adf8c29e73d18c",
+    "matchesRetained1_0Candidate": false
+  },
+  {
+    "file": "Sources/PhotoVeil/ZoomablePhotoCanvas.swift",
+    "sha256": "6977afe09a42ab274bcd120fdfadeb5c0c7ce9afb69a4021c61646c884ded45b",
+    "matchesRetained1_0Candidate": false
+  }
+]

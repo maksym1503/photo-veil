@@ -25,7 +25,7 @@ final class VeilDeviceAcceptanceTests: XCTestCase {
         app.buttons["finalPreview"].tap()
         XCTAssertEqual(app.otherElements["processingComplete"].value as? String, pixels)
         app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 30)); app.alerts.buttons["OK"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 30)); app.buttons["dismissSaveNotice"].tap()
         XCTAssertEqual(app.otherElements["exportFingerprint"].value as? String, pixels)
         let finished = XCTAttachment(screenshot: app.screenshot()); finished.name = "physical-composed-output"; finished.lifetime = .keepAlways; add(finished)
         app.terminate(); app.launchArguments = ["-veil-ui-testing", "-veil-empty", "-veil-test-storage-id", storage]; app.launch()

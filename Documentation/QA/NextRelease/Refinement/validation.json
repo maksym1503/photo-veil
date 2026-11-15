@@ -1,0 +1,56 @@
+{
+  "branch": "feature/vail-1-1",
+  "scope": "Approved A/A directions refined, native Quiet Lattice presentation implemented, final assets awaiting owner review",
+  "native_runs": {
+    "pr": {
+      "result": "Passed",
+      "totalTestCount": 100,
+      "passedTests": 100,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "capture": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "commerce": {
+      "result": "Failed",
+      "totalTestCount": 27,
+      "passedTests": 26,
+      "failedTests": 1,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "commerce-focused": {
+      "result": "Passed",
+      "totalTestCount": 4,
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    }
+  },
+  "swiftpm_commerce": {
+    "passed": 14,
+    "failed": 0
+  },
+  "commerce_initial_failure": "Immediate preview property assertion raced a newer listener-owned entitlement scan; classified test synchronization after independent architecture reassessment",
+  "correction": "Observe signed current entitlement publication within existing10-second native expectation; assert emitted-value presentation. No production behavior change or timeout increase. Four affected native cases passed. Initial27-case run remains failed.",
+  "full_final_commerce_run": false,
+  "release_simulator_build": "Passed; unsigned universal Simulator, not signed device archive",
+  "release_resource_guard": "Passed: no fixture photos/analyzer, local StoreKit configuration or commerce test flags/linkage",
+  "full_release_integration": false,
+  "physical_device": false,
+  "independent_review": "No blocking code or visual findings; read-only CTO thread, not implementation",
+  "final_source": "final-source-hashes.json",
+  "quota_threshold": 2,
+  "one_export_migration": "Pending existing-user product decision; no record reset/migration",
+  "final_asset_approval": false,
+  "published": false,
+  "merged": false
+}

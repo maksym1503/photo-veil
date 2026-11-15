@@ -10,3 +10,5 @@ Configuration/*.local.xcconfig
 !.env.example
 *.p8
 *.p12
+
+__pycache__/

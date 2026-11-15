@@ -1,0 +1,260 @@
+[0/1] Planning build
+Building for debugging...
+[0/3] Write sources
+[1/3] Write swift-version--112E4EF74740DA65.txt
+[3/5] Emitting module ImageGeometry
+[4/5] Compiling ImageGeometry MetadataSafeJPEG.swift
+[4/6] Write Objects.LinkFileList
+[5/6] Linking PhotoVeilGeometryPackageTests
+Build complete! (3.10s)
+Test Suite 'All tests' started at 2026-11-15 17:34:35.819.
+Test Suite 'PhotoVeilGeometryPackageTests.xctest' started at 2026-11-15 17:34:35.823.
+Test Suite 'AccountSessionTests' started at 2026-11-15 17:34:35.823.
+Test Case '-[ImageGeometryTests.AccountSessionTests testBackendFailureRetainsSessionForRetry]' started.
+Test Case '-[ImageGeometryTests.AccountSessionTests testBackendFailureRetainsSessionForRetry]' passed (0.008 seconds).
+Test Case '-[ImageGeometryTests.AccountSessionTests testOAuthCallbackRouteAndCodeValidation]' started.
+Test Case '-[ImageGeometryTests.AccountSessionTests testOAuthCallbackRouteAndCodeValidation]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.AccountSessionTests testOptionalIdentityLifecycleAndMinimalAppleProfile]' started.
+Test Case '-[ImageGeometryTests.AccountSessionTests testOptionalIdentityLifecycleAndMinimalAppleProfile]' passed (0.001 seconds).
+Test Suite 'AccountSessionTests' passed at 2026-11-15 17:34:35.833.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.009 (0.010) seconds
+Test Suite 'BackendConfigurationTests' started at 2026-11-15 17:34:35.833.
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testConfiguredAppleAndGoogleReadinessIsNotAuthenticationSuccess]' started.
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testConfiguredAppleAndGoogleReadinessIsNotAuthenticationSuccess]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testInvalidFieldsAndSecretKeysNeverCreateClientConfiguration]' started.
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testInvalidFieldsAndSecretKeysNeverCreateClientConfiguration]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testMissingAndMalformedConfigurationAreLocalOnly]' started.
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testMissingAndMalformedConfigurationAreLocalOnly]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testSessionStorageSeparatesProjectsButNormalizesHostCase]' started.
+Test Case '-[ImageGeometryTests.BackendConfigurationTests testSessionStorageSeparatesProjectsButNormalizesHostCase]' passed (0.000 seconds).
+Test Suite 'BackendConfigurationTests' passed at 2026-11-15 17:34:35.837.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.003 (0.003) seconds
+Test Suite 'CloudSyncTests' started at 2026-11-15 17:34:35.837.
+Test Case '-[ImageGeometryTests.CloudSyncTests testConsentOfflineRetryAndIdempotentUpload]' started.
+Test Case '-[ImageGeometryTests.CloudSyncTests testConsentOfflineRetryAndIdempotentUpload]' passed (0.069 seconds).
+Test Case '-[ImageGeometryTests.CloudSyncTests testExplicitCloudOnlyDeletionKeepsLocalCopyAcrossRelaunchAndSync]' started.
+Test Case '-[ImageGeometryTests.CloudSyncTests testExplicitCloudOnlyDeletionKeepsLocalCopyAcrossRelaunchAndSync]' passed (0.012 seconds).
+Test Case '-[ImageGeometryTests.CloudSyncTests testForeignMetadataAndStoragePathsAreRejectedBeforeDownload]' started.
+Test Case '-[ImageGeometryTests.CloudSyncTests testForeignMetadataAndStoragePathsAreRejectedBeforeDownload]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CloudSyncTests testRemoteDeletionAndAnotherAccountNeverUploadForeignLocalCopies]' started.
+Test Case '-[ImageGeometryTests.CloudSyncTests testRemoteDeletionAndAnotherAccountNeverUploadForeignLocalCopies]' passed (0.007 seconds).
+Test Suite 'CloudSyncTests' passed at 2026-11-15 17:34:35.925.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.088 (0.089) seconds
+Test Suite 'CommerceTests' started at 2026-11-15 17:34:35.925.
+Test Case '-[ImageGeometryTests.CommerceTests testDepartedGalleryPreparationReleasesUnpresentedLease]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testDepartedGalleryPreparationReleasesUnpresentedLease]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testFailedAndCancelledExportsDoNotConsumeAndLeaseIsExclusive]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testFailedAndCancelledExportsDoNotConsumeAndLeaseIsExclusive]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testLegacyMigrationProbePreservesEveryRecordedCountAndLimit]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testLegacyMigrationProbePreservesEveryRecordedCountAndLimit]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testNewOneExportCancellationProAndDirtySuccessNeverGrantSecondUse]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testNewOneExportCancellationProAndDirtySuccessNeverGrantSecondUse]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testPreviewEpochRejectsScansFromBeforeBackgroundAndNewerRefresh]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testPreviewEpochRejectsScansFromBeforeBackgroundAndNewerRefresh]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testPreviewPolicyUsesActualAllowanceAndVerifiedPro]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testPreviewPolicyUsesActualAllowanceAndVerifiedPro]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testPreviewStorageFailureDoesNotInventAFreeAllowance]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testPreviewStorageFailureDoesNotInventAFreeAllowance]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testProCanExportWhenLocalUsageStorageIsLocked]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testProCanExportWhenLocalUsageStorageIsLocked]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testProDoesNotConsumeRemainingFreeUsesAndExpiryRestoresLimit]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testProDoesNotConsumeRemainingFreeUsesAndExpiryRestoresLimit]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testReadOnlyPreviewLoadPreservesDirtySuccessfulUsage]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testReadOnlyPreviewLoadPreservesDirtySuccessfulUsage]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testSavingsUseActualPricesAndNeverAdvertiseNegativeSavings]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testSavingsUseActualPricesAndNeverAdvertiseNegativeSavings]' passed (0.002 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testShareDisappearanceBeforeCompletionAndDuplicateCallback]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testShareDisappearanceBeforeCompletionAndDuplicateCallback]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testStorageFailureNeverResetsAllowanceAndSuccessRetriesDirtyCount]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testStorageFailureNeverResetsAllowanceAndSuccessRetriesDirtyCount]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testTrialCTARequiresEligibleActualThreeDayFreeTrial]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testTrialCTARequiresEligibleActualThreeDayFreeTrial]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testTwoSuccessesThenPaywallAndDuplicateCompletion]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testTwoSuccessesThenPaywallAndDuplicateCompletion]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.CommerceTests testUsageRecordRejectsCorruptionUnknownVersionAndOutOfBounds]' started.
+Test Case '-[ImageGeometryTests.CommerceTests testUsageRecordRejectsCorruptionUnknownVersionAndOutOfBounds]' passed (0.000 seconds).
+Test Suite 'CommerceTests' passed at 2026-11-15 17:34:35.934.
+	 Executed 16 tests, with 0 failures (0 unexpected) in 0.007 (0.009) seconds
+Test Suite 'ContextualAdvertisingTests' started at 2026-11-15 17:34:35.934.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testConfigurationRequiresPublishedReadinessAndRealHTTPSURLs]' started.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testConfigurationRequiresPublishedReadinessAndRealHTTPSURLs]' passed (0.003 seconds).
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testConsentMustMatchCurrentDisclosureVersion]' started.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testConsentMustMatchCurrentDisclosureVersion]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testDecoderEnforcesByteTextAndURIBoundsAndExactSchema]' started.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testDecoderEnforcesByteTextAndURIBoundsAndExactSchema]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testNoProviderNoFillAndProviderFailureStayQuiet]' started.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testNoProviderNoFillAndProviderFailureStayQuiet]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testStaleResponseIsDiscardedAfterProNavigationOrBackground]' started.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testStaleResponseIsDiscardedAfterProNavigationOrBackground]' passed (0.002 seconds).
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testUnknownConsentAndEveryNonFreeEntitlementSuppressRequests]' started.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testUnknownConsentAndEveryNonFreeEntitlementSuppressRequests]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testVerificationEpochRequiresVerifiedFreeEvidenceAndRejectsStaleOrProConflicts]' started.
+Test Case '-[ImageGeometryTests.ContextualAdvertisingTests testVerificationEpochRequiresVerifiedFreeEvidenceAndRejectsStaleOrProConflicts]' passed (0.000 seconds).
+Test Suite 'ContextualAdvertisingTests' passed at 2026-11-15 17:34:35.943.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.009 (0.009) seconds
+Test Suite 'DetectedPrivacySelectionTests' started at 2026-11-15 17:34:35.943.
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testCachedReentryReactivatesAllWithoutNewAnalysis]' started.
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testCachedReentryReactivatesAllWithoutNewAnalysis]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testClearDuringAnalysisDoesNotReactivateOnCompletion]' started.
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testClearDuringAnalysisDoesNotReactivateOnCompletion]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testFeedbackDistinguishesPendingZeroAndFailure]' started.
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testFeedbackDistinguishesPendingZeroAndFailure]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testGlobalResetHistoryExpiresOnNewEditWithoutRemovingManualHistory]' started.
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testGlobalResetHistoryExpiresOnNewEditWithoutRemovingManualHistory]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testHighVolumeAutomaticHistoryCannotEvictAnyManualSnapshot]' started.
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testHighVolumeAutomaticHistoryCannotEvictAnyManualSnapshot]' passed (0.497 seconds).
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testIndependentCategoriesAndUndoIntentPreserveOtherLayers]' started.
+Test Case '-[ImageGeometryTests.DetectedPrivacySelectionTests testIndependentCategoriesAndUndoIntentPreserveOtherLayers]' passed (0.000 seconds).
+Test Suite 'DetectedPrivacySelectionTests' passed at 2026-11-15 17:34:36.442.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.498 (0.499) seconds
+Test Suite 'DetectionBenchmarkTests' started at 2026-11-15 17:34:36.442.
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testChallengingFixturesAndPerformance]' started.
+/Users/macbook/PycharmProjects/photo-privacy-blur/Tests/PhotoVeilTests/DetectionBenchmarkTests.swift:11: -[ImageGeometryTests.DetectionBenchmarkTests testChallengingFixturesAndPerformance] : Test skipped - Opt-in real Vision/profile run; see Documentation/QA/V4
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testChallengingFixturesAndPerformance]' skipped (0.001 seconds).
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testV43FullCompositionPerformance]' started.
+/Users/macbook/PycharmProjects/photo-privacy-blur/Tests/PhotoVeilTests/DetectionBenchmarkTests.swift:68: -[ImageGeometryTests.DetectionBenchmarkTests testV43FullCompositionPerformance] : Test skipped - Opt-in full composition profile
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testV43FullCompositionPerformance]' skipped (0.000 seconds).
+Test Suite 'DetectionBenchmarkTests' passed at 2026-11-15 17:34:36.444.
+	 Executed 2 tests, with 2 tests skipped and 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'DocumentDetectionTests' started at 2026-11-15 17:34:36.444.
+Test Case '-[ImageGeometryTests.DocumentDetectionTests testCardHeuristicDoesNotPretendToClassifyNamesOrEveryNumber]' started.
+Test Case '-[ImageGeometryTests.DocumentDetectionTests testCardHeuristicDoesNotPretendToClassifyNamesOrEveryNumber]' passed (0.000 seconds).
+Test Suite 'DocumentDetectionTests' passed at 2026-11-15 17:34:36.445.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'FaceDetectionTests' started at 2026-11-15 17:34:36.445.
+Test Case '-[ImageGeometryTests.FaceDetectionTests testBoundedOverlappingTilesCoverPortraitAndLandscape]' started.
+Test Case '-[ImageGeometryTests.FaceDetectionTests testBoundedOverlappingTilesCoverPortraitAndLandscape]' passed (0.005 seconds).
+Test Case '-[ImageGeometryTests.FaceDetectionTests testMergeRemovesCropDuplicatesAndPreservesNearbyFaces]' started.
+Test Case '-[ImageGeometryTests.FaceDetectionTests testMergeRemovesCropDuplicatesAndPreservesNearbyFaces]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.FaceDetectionTests testTileMappingDoesNotDependOnZoom]' started.
+Test Case '-[ImageGeometryTests.FaceDetectionTests testTileMappingDoesNotDependOnZoom]' passed (0.001 seconds).
+Test Suite 'FaceDetectionTests' passed at 2026-11-15 17:34:36.452.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.007 (0.007) seconds
+Test Suite 'GalleryStoreTests' started at 2026-11-15 17:34:36.452.
+Test Case '-[ImageGeometryTests.GalleryStoreTests testOwnershipAndDeletionTombstonesSurviveRelaunch]' started.
+Test Case '-[ImageGeometryTests.GalleryStoreTests testOwnershipAndDeletionTombstonesSurviveRelaunch]' passed (0.032 seconds).
+Test Case '-[ImageGeometryTests.GalleryStoreTests testSaveReloadThumbnailAndDeletionWithoutAnAccount]' started.
+Test Case '-[ImageGeometryTests.GalleryStoreTests testSaveReloadThumbnailAndDeletionWithoutAnAccount]' passed (0.023 seconds).
+Test Case '-[ImageGeometryTests.GalleryStoreTests testSyncConsentIsExplicitAndPerAccount]' started.
+Test Case '-[ImageGeometryTests.GalleryStoreTests testSyncConsentIsExplicitAndPerAccount]' passed (0.003 seconds).
+Test Case '-[ImageGeometryTests.GalleryStoreTests testUnknownSchemaAndCorruptionNeverOverwriteHistory]' started.
+Test Case '-[ImageGeometryTests.GalleryStoreTests testUnknownSchemaAndCorruptionNeverOverwriteHistory]' passed (0.002 seconds).
+Test Suite 'GalleryStoreTests' passed at 2026-11-15 17:34:36.511.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.059 (0.060) seconds
+Test Suite 'ImageGeometryMapperTests' started at 2026-11-15 17:34:36.511.
+Test Case '-[ImageGeometryTests.ImageGeometryMapperTests testAspectFitAccountsForLetterboxOffsets]' started.
+Test Case '-[ImageGeometryTests.ImageGeometryMapperTests testAspectFitAccountsForLetterboxOffsets]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.ImageGeometryMapperTests testRoundTripRemainsAlignedAfterZoomAndPan]' started.
+Test Case '-[ImageGeometryTests.ImageGeometryMapperTests testRoundTripRemainsAlignedAfterZoomAndPan]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.ImageGeometryMapperTests testVisionOriginIsFlippedForEditorCoordinates]' started.
+Test Case '-[ImageGeometryTests.ImageGeometryMapperTests testVisionOriginIsFlippedForEditorCoordinates]' passed (0.000 seconds).
+Test Suite 'ImageGeometryMapperTests' passed at 2026-11-15 17:34:36.513.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'PhotoSavePolicyTests' started at 2026-11-15 17:34:36.513.
+Test Case '-[ImageGeometryTests.PhotoSavePolicyTests testEveryPermissionState]' started.
+Test Case '-[ImageGeometryTests.PhotoSavePolicyTests testEveryPermissionState]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.PhotoSavePolicyTests testRequestOnlyOnSaveAndOnlyOnce]' started.
+Test Case '-[ImageGeometryTests.PhotoSavePolicyTests testRequestOnlyOnSaveAndOnlyOnce]' passed (0.000 seconds).
+Test Suite 'PhotoSavePolicyTests' passed at 2026-11-15 17:34:36.514.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'PrivacyImageRendererTests' started at 2026-11-15 17:34:36.514.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testBlurRadiusScalesEquallyForPreviewAndExport]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testBlurRadiusScalesEquallyForPreviewAndExport]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testCachedForegroundMaskScalesToFullResolutionExport]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testCachedForegroundMaskScalesToFullResolutionExport]' passed (0.161 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testCancelledPreviewQueueSkipsObsoleteWorkAndLatestMatchesExport]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testCancelledPreviewQueueSkipsObsoleteWorkAndLatestMatchesExport]' passed (0.019 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testDifferentEffectsRemainIndependentAndClearingLayerKeepsOthers]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testDifferentEffectsRemainIndependentAndClearingLayerKeepsOthers]' passed (0.033 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testEmptyOrFullForegroundMaskIsRejected]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testEmptyOrFullForegroundMaskIsRejected]' passed (0.011 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testEveryEffectAndShapePreservesUnselectedPixels]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testEveryEffectAndShapePreservesUnselectedPixels]' passed (0.018 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testEveryRequestedLayerCombinationAndDestinationParity]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testEveryRequestedLayerCombinationAndDestinationParity]' passed (0.133 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testForegroundMaskIsMappedWithoutVerticalInversion]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testForegroundMaskIsMappedWithoutVerticalInversion]' passed (0.005 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testForegroundMaskSelectsSharpSubjectAndBlursEnvironment]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testForegroundMaskSelectsSharpSubjectAndBlursEnvironment]' passed (0.004 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testManualRegionUsesTopLeftImageCoordinatesAndKeepsAspectRatio]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testManualRegionUsesTopLeftImageCoordinatesAndKeepsAspectRatio]' passed (0.005 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testNormalizedPixelGridScalesFromPreviewToExport]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testNormalizedPixelGridScalesFromPreviewToExport]' passed (0.011 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testOverlappingBackgroundAndMixedEffectsNeverRestoreOriginalOrSolidRedaction]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testOverlappingBackgroundAndMixedEffectsNeverRestoreOriginalOrSolidRedaction]' passed (0.027 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testPixelateBrushAndBackgroundUseSharedMaskSemantics]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testPixelateBrushAndBackgroundUseSharedMaskSemantics]' passed (0.011 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testPlateStrengthChangesRenderedPixelsAndEmptySelectionKeepsOriginal]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testPlateStrengthChangesRenderedPixelsAndEmptySelectionKeepsOriginal]' passed (0.009 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testSelectedPlateRectangleIsBlurredAndOutsideStaysSharp]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testSelectedPlateRectangleIsBlurredAndOutsideStaysSharp]' passed (0.005 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testSolidPreviewAndExportMaskSemanticsAtDifferentResolutions]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testSolidPreviewAndExportMaskSemanticsAtDifferentResolutions]' passed (0.011 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testSolidRedactionDoesNotFeatherAndSupportsWhiteBrush]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testSolidRedactionDoesNotFeatherAndSupportsWhiteBrush]' passed (0.005 seconds).
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testStrokeMaskBlursOnlyPaintedPixelsAtEveryStrength]' started.
+Test Case '-[ImageGeometryTests.PrivacyImageRendererTests testStrokeMaskBlursOnlyPaintedPixelsAtEveryStrength]' passed (0.012 seconds).
+Test Suite 'PrivacyImageRendererTests' passed at 2026-11-15 17:34:36.996.
+	 Executed 18 tests, with 0 failures (0 unexpected) in 0.480 (0.482) seconds
+Test Suite 'ReleaseReadinessTests' started at 2026-11-15 17:34:36.996.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testCloudPolicyRoundTripLegacyDefaultAndDownloadPropagation]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testCloudPolicyRoundTripLegacyDefaultAndDownloadPropagation]' passed (0.049 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testCloudUploadCleansLegacyImageAndThumbnail]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testCloudUploadCleansLegacyImageAndThumbnail]' passed (0.016 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testCommerceRequiresExplicitValidConfiguration]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testCommerceRequiresExplicitValidConfiguration]' passed (0.001 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testFailedSyncConsentRemainsOffUntilExplicitSuccessfulEnable]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testFailedSyncConsentRemainsOffUntilExplicitSuccessfulEnable]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testGalleryPersistsKeepPolicyAcrossRelaunchExportsAndThumbnail]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testGalleryPersistsKeepPolicyAcrossRelaunchExportsAndThumbnail]' passed (0.041 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testGallerySanitizesImportsAndLegacyExportsWithoutRewritingHistory]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testGallerySanitizesImportsAndLegacyExportsWithoutRewritingHistory]' passed (0.011 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testKeepPolicyBytesReachPhotosAndTemporaryShareDestinations]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testKeepPolicyBytesReachPhotosAndTemporaryShareDestinations]' passed (0.010 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testMetadataRemovalFailsClosedOnInvalidPhoto]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testMetadataRemovalFailsClosedOnInvalidPhoto]' passed (0.014 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testMetadataRemovalNormalizesAllEightOrientations]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testMetadataRemovalNormalizesAllEightOrientations]' passed (0.083 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testObsoleteConsentAndOtherIdentityCannotEnableSynchronization]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testObsoleteConsentAndOtherIdentityCannotEnableSynchronization]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testPhotoExportKeepRetainsAllowlistedFieldsAndRemoveRemainsDefault]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testPhotoExportKeepRetainsAllowlistedFieldsAndRemoveRemainsDefault]' passed (0.015 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testPriorSessionCleanupCannotDeleteCurrentShare]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testPriorSessionCleanupCannotDeleteCurrentShare]' passed (0.005 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testProposedAllowanceDoesNotDependOnGalleryOrRepeatDestinations]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testProposedAllowanceDoesNotDependOnGalleryOrRepeatDestinations]' passed (0.000 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testSourceMetadataRemovedFromPixelOnlyJPEG]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testSourceMetadataRemovedFromPixelOnlyJPEG]' passed (0.007 seconds).
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testSuspendedRestoreCannotReplaceNewerSignInOrSignOut]' started.
+Test Case '-[ImageGeometryTests.ReleaseReadinessTests testSuspendedRestoreCannotReplaceNewerSignInOrSignOut]' passed (0.001 seconds).
+Test Suite 'ReleaseReadinessTests' passed at 2026-11-15 17:34:37.252.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.255 (0.256) seconds
+Test Suite 'WatermarkTests' started at 2026-11-15 17:34:37.252.
+Test Case '-[ImageGeometryTests.WatermarkTests testCancelledInFlightWatermarkPreviewCannotPublish]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testCancelledInFlightWatermarkPreviewCannotPublish]' passed (0.058 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testFlattenedWatermarkSurvivesGalleryReloadAndReexportUnderBothMetadataPolicies]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testFlattenedWatermarkSurvivesGalleryReloadAndReexportUnderBothMetadataPolicies]' passed (0.675 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testLargeLogicalTileUsesBoundedGlyphRaster]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testLargeLogicalTileUsesBoundedGlyphRaster]' passed (0.003 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testLayoutScalesRotatesAndClipsAndRepeatedPlacementsAreBounded]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testLayoutScalesRotatesAndClipsAndRepeatedPlacementsAreBounded]' passed (0.005 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testLogicalGeometryAndRepeatDensityMatchAcrossPreviewAndExportSizes]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testLogicalGeometryAndRepeatDensityMatchAcrossPreviewAndExportSizes]' passed (0.002 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testPreviewAndInjectedLegacyRendererKeepWatermarkComposition]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testPreviewAndInjectedLegacyRendererKeepWatermarkComposition]' passed (0.018 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testUnicodeBlankAndInvalidWatermarkBoundaries]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testUnicodeBlankAndInvalidWatermarkBoundaries]' passed (0.063 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testWatermarkIsCompositedAfterFullRedactionWithoutRestoringSourceColors]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testWatermarkIsCompositedAfterFullRedactionWithoutRestoringSourceColors]' passed (0.190 seconds).
+Test Case '-[ImageGeometryTests.WatermarkTests testWatermarkOnlyAddsPixelsAndNilPreservesSource]' started.
+Test Case '-[ImageGeometryTests.WatermarkTests testWatermarkOnlyAddsPixelsAndNilPreservesSource]' passed (0.271 seconds).
+Test Suite 'WatermarkTests' passed at 2026-11-15 17:34:38.539.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 1.285 (1.287) seconds
+Test Suite 'PhotoVeilGeometryPackageTests.xctest' passed at 2026-11-15 17:34:38.539.
+	 Executed 97 tests, with 2 tests skipped and 0 failures (0 unexpected) in 2.703 (2.716) seconds
+Test Suite 'All tests' passed at 2026-11-15 17:34:38.539.
+	 Executed 97 tests, with 2 tests skipped and 0 failures (0 unexpected) in 2.703 (2.720) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: x86_64-apple-macos14.0
+✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

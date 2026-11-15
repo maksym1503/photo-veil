@@ -1,0 +1,8 @@
+{
+  "file": "Sources/PhotoVeil/MetadataSafeJPEG.swift",
+  "before": "2eb60cb9f9304920e4c00b27b1853341f3bd3fe3c65ca9e703c09b6e7f98f0af",
+  "after": "37d8430d968452b7abe135e580f8a1a5d32584210b0e37f62ab985fe06ae5e10",
+  "exactDelta": "one removed terminal LF; normal final LF retained",
+  "verified": true,
+  "beforeFreshComprehensiveRun": true
+}

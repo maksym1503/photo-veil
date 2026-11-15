@@ -1,0 +1,224 @@
+[
+  {
+    "file": "Tests/PhotoVeilUITests/PhotoVeilUITests.swift",
+    "before": "bb634563a5c42f4d78daf79cfdf5e38dc5d40af97b9fb0ba2fb04ef59df04d98",
+    "after": "d7b9029a9964da574c9a61140b296315159b5f331ae5d86b0980b0585bbc7bec",
+    "unchanged": false
+  },
+  {
+    "file": "Documentation/Marketing/AppStore/NextRelease/Refinement/source/render_refinement.swift",
+    "before": "8fc32a738233df5f410a17e3ec4f8b07dc66b0c6dd25aa6f33cb45577d96985c",
+    "after": "8fc32a738233df5f410a17e3ec4f8b07dc66b0c6dd25aa6f33cb45577d96985c",
+    "unchanged": true
+  },
+  {
+    "file": "PhotoVeil.xcodeproj/project.pbxproj",
+    "before": "31bf3248738509cf00a6e1cb1d863fd557e5fc7a5e274a86c82e3222a73b06cb",
+    "after": "31bf3248738509cf00a6e1cb1d863fd557e5fc7a5e274a86c82e3222a73b06cb",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/DocumentDetection.swift",
+    "before": "3a81c94be15b5ab16bcc2521d49c5fed113d87e72d13139ce91187f786e5e081",
+    "after": "3a81c94be15b5ab16bcc2521d49c5fed113d87e72d13139ce91187f786e5e081",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/SupabaseGallery.swift",
+    "before": "a02e115c8420f46b4d603ad25c15566b2ba4d490ea287dcf7cb0a2281cf0d399",
+    "after": "a02e115c8420f46b4d603ad25c15566b2ba4d490ea287dcf7cb0a2281cf0d399",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/FaceDetection.swift",
+    "before": "996354537cf84bf1c1aace5d2de7d91d0c76985ff3811649180f3eab463349ad",
+    "after": "996354537cf84bf1c1aace5d2de7d91d0c76985ff3811649180f3eab463349ad",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/HomeSponsorshipBanner.swift",
+    "before": "2915e899f6c8e1a167c1828fcf336011967de8580e84ba9200ef9461bb9d4399",
+    "after": "2915e899f6c8e1a167c1828fcf336011967de8580e84ba9200ef9461bb9d4399",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/CommercePolicy.swift",
+    "before": "ff819cdb1f6d5283fd3317b399c40f02815b1294d675822e16c3d17460089607",
+    "after": "f014d6f51ae622edd7d1bb66e0419fcc1c91a205dd7c9543bd990915e900e65c",
+    "unchanged": false
+  },
+  {
+    "file": "Sources/PhotoVeil/PhotosSaver.swift",
+    "before": "a30ed06ef532b9dba2fcf59b572a0a39ae96180be10036613cf8bdb4b61384b4",
+    "after": "a30ed06ef532b9dba2fcf59b572a0a39ae96180be10036613cf8bdb4b61384b4",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/WatermarkControls.swift",
+    "before": "3171587cd3fabec09c6f0f04ad6662e4e89654e5e2df58d8fc78738011c5cff7",
+    "after": "3171587cd3fabec09c6f0f04ad6662e4e89654e5e2df58d8fc78738011c5cff7",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/ZoomablePhotoCanvas.swift",
+    "before": "6977afe09a42ab274bcd120fdfadeb5c0c7ce9afb69a4021c61646c884ded45b",
+    "after": "6977afe09a42ab274bcd120fdfadeb5c0c7ce9afb69a4021c61646c884ded45b",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/MetadataSafeJPEG.swift",
+    "before": "2eb60cb9f9304920e4c00b27b1853341f3bd3fe3c65ca9e703c09b6e7f98f0af",
+    "after": "2eb60cb9f9304920e4c00b27b1853341f3bd3fe3c65ca9e703c09b6e7f98f0af",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/BackendConfiguration.swift",
+    "before": "3fa0a03fa8024c531d472e5a55f62cad85b7627e7ed97b14171e61954921d72e",
+    "after": "3fa0a03fa8024c531d472e5a55f62cad85b7627e7ed97b14171e61954921d72e",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilPresentation.swift",
+    "before": "02204beda9f9dab389c5635c8bbb62d1316f516b9a603bc1ddcd2f22a3513120",
+    "after": "824422cb496e9e7b9a1b96e4980f20d224d67e3abfef733fbb9f060847fcc198",
+    "unchanged": false
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilSubscriptionStore.swift",
+    "before": "87826a9fa81c123e8ebe0ee79b482278c28384f48db67fffc1392e9ce02bc1f1",
+    "after": "87826a9fa81c123e8ebe0ee79b482278c28384f48db67fffc1392e9ce02bc1f1",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/ImageGeometryMapper.swift",
+    "before": "7223831dddc9bdee1c4bdde56423729d111a25fdc4466c5da76d15f9a5cffd78",
+    "after": "7223831dddc9bdee1c4bdde56423729d111a25fdc4466c5da76d15f9a5cffd78",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/DetectedPrivacySelection.swift",
+    "before": "7d8e731996bcd7ad4d591086ddf17dd9283a3aa97210839e337c42d7e0e2cb10",
+    "after": "7d8e731996bcd7ad4d591086ddf17dd9283a3aa97210839e337c42d7e0e2cb10",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/TemporaryExportStorage.swift",
+    "before": "1e73e390c3d54605568f6ad592be131bcdd567135ca7ff3b38bff0a2a3428770",
+    "after": "1e73e390c3d54605568f6ad592be131bcdd567135ca7ff3b38bff0a2a3428770",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilAccount.swift",
+    "before": "d03c31d0a98cbd8011fd7b2d17234dd0d44766582fdca0cb60c2fc1014078c4f",
+    "after": "d03c31d0a98cbd8011fd7b2d17234dd0d44766582fdca0cb60c2fc1014078c4f",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/BlurRenderer.swift",
+    "before": "397b38e148a93a3ee25a04794510a0342ca79527d99b55c326a81796aad07f06",
+    "after": "397b38e148a93a3ee25a04794510a0342ca79527d99b55c326a81796aad07f06",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/GalleryStore.swift",
+    "before": "5339d88a388cf88462ecfc53726a8df5f5c39ec23ea828827fc4ae49f1fb8694",
+    "after": "5339d88a388cf88462ecfc53726a8df5f5c39ec23ea828827fc4ae49f1fb8694",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/BackendTransport.swift",
+    "before": "e7469e5c2063d4b6ffc0524bba45d15681ae1562911808dcc92aeed725fefb94",
+    "after": "e7469e5c2063d4b6ffc0524bba45d15681ae1562911808dcc92aeed725fefb94",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilGallery.swift",
+    "before": "b30caf2dacf047acd5d962c001a17299534851cf48d1c29ef1a70cc3bf25766d",
+    "after": "ec270b4db844390bde3632501f12be49f61f71fef887cdf46c6267cda5360ee1",
+    "unchanged": false
+  },
+  {
+    "file": "Sources/PhotoVeil/PrivacyAnalysis.swift",
+    "before": "57d9c7bcc2fa94c1a07becc93aad21da2993a2c90f73e6e45751ba470de59275",
+    "after": "57d9c7bcc2fa94c1a07becc93aad21da2993a2c90f73e6e45751ba470de59275",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/OAuthPresentation.swift",
+    "before": "94518c9c28d51d7fc61148d64808e2813eb720ca0676052bf1d2d89e663bbad8",
+    "after": "94518c9c28d51d7fc61148d64808e2813eb720ca0676052bf1d2d89e663bbad8",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/ProtectedAuthStorage.swift",
+    "before": "91f3688824fd131a6d52889dffbd95809b4aa9c09fe2b4ecd61f7a20344e128d",
+    "after": "91f3688824fd131a6d52889dffbd95809b4aa9c09fe2b4ecd61f7a20344e128d",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilLibrary.swift",
+    "before": "057484eedeb4b104b81fed5bcc2a812f45e9ef5979cef5bba22c38482a7f270d",
+    "after": "057484eedeb4b104b81fed5bcc2a812f45e9ef5979cef5bba22c38482a7f270d",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/Watermark.swift",
+    "before": "63e20a9108c57aea3b481aa9c1882c90b45ec95229682c5f2d4e33b36533a13b",
+    "after": "63e20a9108c57aea3b481aa9c1882c90b45ec95229682c5f2d4e33b36533a13b",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/PrivacyImageRenderer.swift",
+    "before": "f00914004c991d7ef1e23bf9166d074a5f2b16ee9fe9070f3e4ff143369e666b",
+    "after": "f00914004c991d7ef1e23bf9166d074a5f2b16ee9fe9070f3e4ff143369e666b",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/AccountContracts.swift",
+    "before": "7d7547b158542b757e231df62c6b6e0d0819542a65910e544f819d303b95108a",
+    "after": "7d7547b158542b757e231df62c6b6e0d0819542a65910e544f819d303b95108a",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/PhotoSavePolicy.swift",
+    "before": "fc543a47bf65c5b5ad51b925bf5bfe7db01d168a9bc2992c9baa18cd60278949",
+    "after": "fc543a47bf65c5b5ad51b925bf5bfe7db01d168a9bc2992c9baa18cd60278949",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/PhotoVeilApp.swift",
+    "before": "cbad8370539ffaef87c9383a45c089a3511ada4ca850f12932d3eac03a8dc2bc",
+    "after": "cbad8370539ffaef87c9383a45c089a3511ada4ca850f12932d3eac03a8dc2bc",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/SupabaseAuthentication.swift",
+    "before": "983560eaa52d2bc6418c57f16cf4d8ae6755dde4b1ee283a804f851203d08b2d",
+    "after": "983560eaa52d2bc6418c57f16cf4d8ae6755dde4b1ee283a804f851203d08b2d",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/CloudSync.swift",
+    "before": "915a6afa244ad054abdeb3019b4a7fd2df812f4da4b27834ca0f1b8a84441deb",
+    "after": "915a6afa244ad054abdeb3019b4a7fd2df812f4da4b27834ca0f1b8a84441deb",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/VeilSubscriptions.swift",
+    "before": "8c34d91aaaf10594dd6bbc21db1a7c985d39a3afe5bfa86388c9db414cd554ed",
+    "after": "8c34d91aaaf10594dd6bbc21db1a7c985d39a3afe5bfa86388c9db414cd554ed",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/ContextualAdvertising.swift",
+    "before": "523dff2d81182a4025bcceee5c7d123a8dfdc9c9ccbfee3a1cf14c058db2f57c",
+    "after": "523dff2d81182a4025bcceee5c7d123a8dfdc9c9ccbfee3a1cf14c058db2f57c",
+    "unchanged": true
+  },
+  {
+    "file": "Sources/PhotoVeil/PhotoVeilHome.swift",
+    "before": "507d82652df747be6b4c7a7ec5d3f361835b55ba57c15e53cbf007baf432e04f",
+    "after": "c7dd4cdfd44ac912fea30eda064ccda3155aa0d18741588eb864c385d6dd9b5d",
+    "unchanged": false
+  }
+]

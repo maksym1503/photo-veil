@@ -1,0 +1,42 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "x86_64",
+        "deviceId" : "A9690442-69A8-4117-998B-0F31278091C7",
+        "deviceName" : "Veil-CommerceNative-261",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23B86",
+        "osVersion" : "26.1",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 0,
+      "passedTests" : 9,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Default"
+      }
+    }
+  ],
+  "environmentDescription" : "VeilIntegration · Built with macOS 26.7",
+  "expectedFailures" : 0,
+  "failedTests" : 0,
+  "finishTime" : 1794759760.369,
+  "passedTests" : 9,
+  "result" : "Passed",
+  "skippedTests" : 0,
+  "startTime" : 1794759653.726,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+
+  ],
+  "title" : "Test - PhotoVeil",
+  "topInsights" : [
+
+  ],
+  "totalTestCount" : 9
+}

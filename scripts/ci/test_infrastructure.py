@@ -1,9 +1,19 @@
 """Deterministic checks of the optional device CI boundary; no provider/network needed."""
 import contextlib, io, json, os, runpy, tempfile, unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 SCRIPT=Path(__file__).with_name('browserstack.py')
 class DeviceCIContractTests(unittest.TestCase):
+    def testVeilPRSchemeBuildsOnlyAppCoreAndPRUITestsAndUsesCanonicalPlan(self):
+        scheme_path=Path(__file__).parents[2]/'PhotoVeil.xcodeproj/xcshareddata/xcschemes/VeilPR.xcscheme'
+        root=ET.parse(scheme_path).getroot()
+        entries=root.findall('./BuildAction/BuildActionEntries/BuildActionEntry')
+        built={entry.find('BuildableReference').attrib['BlueprintName'] for entry in entries if entry.attrib.get('buildForTesting')=='YES'}
+        self.assertEqual(built,{'PhotoVeil','PhotoVeilCoreTests','PhotoVeilPRUITests'})
+        plans=root.findall('./TestAction/TestPlans/TestPlanReference')
+        self.assertEqual([plan.attrib['reference'] for plan in plans],['container:VeilPR.xctestplan'])
+
     def execute(self, status='passed', count=1, stale=False):
         with tempfile.TemporaryDirectory() as directory:
             env={'BROWSERSTACK_USERNAME':'test-user','BROWSERSTACK_ACCESS_KEY':'test-access-key',

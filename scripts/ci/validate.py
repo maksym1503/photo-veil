@@ -53,3 +53,10 @@ assert paths==expected, f'Native core source drift: {paths ^ expected}'
 indexed=plistlib.loads(subprocess.check_output(['git','show',':PhotoVeil.xcodeproj/project.pbxproj'],cwd=root))['objects']
 assert not any(v.get('buildSettings',{}).get('DEVELOPMENT_TEAM') for v in indexed.values()), 'Owner-local signing team must not be committed'
 print(f'Inventory complete: {len(actual)} Swift tests. PR plan excludes real Vision/system UI; legacy integration retained.')
+
+commerce=next(v for v in project.values() if v.get('isa')=='PBXNativeTarget' and v['name']=='PhotoVeilCommerceTests')
+phase=next(project[p] for p in commerce['buildPhases'] if project[p]['isa']=='PBXSourcesBuildPhase')
+assert {project[project[b]['fileRef']]['path'] for b in phase['files']} == {r['file'] for r in rows if r['file'].startswith('Tests/PhotoVeilCommerceTests/')}
+app=next(v for v in project.values() if v.get('isa')=='PBXNativeTarget' and v['name']=='PhotoVeil')
+resources=next(project[p] for p in app['buildPhases'] if project[p]['isa']=='PBXResourcesBuildPhase')
+assert not any(project[project[b]['fileRef']].get('path','').endswith('.storekit') for b in resources['files']), 'Local StoreKit fixture must not ship in app resources'

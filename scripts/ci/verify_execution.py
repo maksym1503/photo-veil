@@ -6,7 +6,8 @@ root=Path(__file__).resolve().parents[2]
 rows=json.loads((root/'Documentation/CI/test-inventory.json').read_text())
 if plan=='VeilPR':expected={r['id'] for r in rows if r['layer']=='PR Gate'}
 elif plan=='VeilIntegration':
- expected={r['id'] for r in rows if r['file'].startswith(('Tests/PhotoVeilTests/','Tests/PhotoVeilIntegrationTests/','Tests/PhotoVeilUITests/')) and not r['id'].startswith('DetectionBenchmarkTests/')}
+ expected={r['id'] for r in rows if r['file'].startswith(('Tests/PhotoVeilTests/','Tests/PhotoVeilIntegrationTests/','Tests/PhotoVeilCommerceTests/','Tests/PhotoVeilUITests/')) and not r['id'].startswith('DetectionBenchmarkTests/')}
+elif plan=='VeilCommerce':expected={r['id'] for r in rows if r['id'].split('/')[0] in ['CommerceTests','StoreKitSubscriptionTests','VeilCommerceUITests']}
 elif plan=='VeilDevice':expected={r['id'] for r in rows if r['layer']=='Real Device'}
 else:raise ValueError('Unknown test plan')
 def get(name):

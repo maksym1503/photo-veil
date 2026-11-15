@@ -1,0 +1,33 @@
+{
+  "candidate": "38fc89e28d9d3f1efc8a7490d9a943d7e7864ea5",
+  "result": "failed / stopped; native result bundle incomplete after SIGINT",
+  "log": "/tmp/vail11-beta-qa/matrix/26.5.log",
+  "rawBundle": "/tmp/vail11-beta-qa/matrix/26.5.xcresult",
+  "classification": "deterministic test fixture regression: default one-use quota correctly gates Share after Save",
+  "failedCase": "PhotoVeilUITests/testV43ComposedPrivacyWorkflowAndScopedUndo()",
+  "screenshotInspected": false,
+  "sourceAndLogConfirmed": true,
+  "fix": "Explicit UUID-scoped legacy0 fixtures in composed, full-composition and watermark multi-output tests; no assertions removed",
+  "independentReview": "all findings rechecked and closed",
+  "nextRun": "fresh full PR and matrix on corrected source, not a timing retry",
+  "context": [
+    "    t =    70.52s     Checking `Expect predicate `existsNoRetry == 1` for object \"Copy\" StaticText`",
+    "    t =    70.52s         Checking existence of `\"Copy\" StaticText`",
+    "    t =    70.62s         Capturing element debug description",
+    "    t =    70.62s     Checking existence of `\"Copy\" StaticText`",
+    "    t =    70.72s Collecting debug information to assist test failure triage",
+    "    t =    70.72s     Requesting snapshot of accessibility hierarchy for app with pid 47123",
+    "/Users/macbook/PycharmProjects/photo-privacy-blur/Tests/PhotoVeilUITests/PhotoVeilUITests.swift:1299: error: -[PhotoVeilUITests.PhotoVeilUITests testV43ComposedPrivacyWorkflowAndScopedUndo] : XCTAssertTrue failed",
+    "    t =    71.22s Find the Target Application 'com.maksym1503.veil'",
+    "    t =    71.47s Added attachment named 'v43-three-layers-share'",
+    "    t =    70.72s Collecting debug information to assist test failure triage",
+    "    t =    70.72s     Requesting snapshot of accessibility hierarchy for app with pid 47123",
+    "/Users/macbook/PycharmProjects/photo-privacy-blur/Tests/PhotoVeilUITests/PhotoVeilUITests.swift:1299: error: -[PhotoVeilUITests.PhotoVeilUITests testV43ComposedPrivacyWorkflowAndScopedUndo] : XCTAssertTrue failed",
+    "    t =    71.22s Find the Target Application 'com.maksym1503.veil'",
+    "    t =    71.47s Added attachment named 'v43-three-layers-share'",
+    "    t =    71.48s Tear Down",
+    "Test Case '-[PhotoVeilUITests.PhotoVeilUITests testV43ComposedPrivacyWorkflowAndScopedUndo]' failed (71.850 seconds).",
+    "Test Case '-[PhotoVeilUITests.PhotoVeilUITests testV43FullCompositionAndScopedClears]' started.",
+    "    t =     0.00s Start Test at 2026-11-15 16:30:26.466"
+  ]
+}

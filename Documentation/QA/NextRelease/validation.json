@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-14",
+  "branch": "feature/vail-1-1",
+  "scope": "Geometry and design checkpoint; commerce implementation owner-gated",
+  "native_runs": {
+    "initial_pr": {
+      "result": "Failed",
+      "totalTestCount": 95,
+      "passedTests": 94,
+      "failedTests": 1,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "pan_initiation_ui": {
+      "result": "Failed",
+      "totalTestCount": 6,
+      "passedTests": 5,
+      "failedTests": 1,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "final_geometry": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "real_vision_capture": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    }
+  },
+  "core_source_unchanged_since_initial_pr": true,
+  "full_final_pr_run": false,
+  "full_integration": false,
+  "physical_device": false,
+  "release_ready": false,
+  "source_fingerprints": "reviewed-source-hashes.json",
+  "owner_decisions": [
+    "Treatment of existing count-one users under one-free-export policy",
+    "App Store direction selection before final-set production"
+  ],
+  "project_preservation": {
+    "before_sha256": "4edfafda55d52b0a4801d09c8f37ab8589e7cdb66d21d2e0b0e49556606666b9",
+    "after_sha256": "4edfafda55d52b0a4801d09c8f37ab8589e7cdb66d21d2e0b0e49556606666b9",
+    "byte_identical": true,
+    "verified_by": "Root using pre-task byte copy; QA did not edit project"
+  },
+  "visual_qa": {
+    "blocking_findings": 0,
+    "six_mockup_dimensions": "1320x2868",
+    "matching_before_after_sources": true,
+    "limitation": "Concepts awaiting owner approval; second screenshot is historical native UI; commerce pattern is not yet implemented"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "codeCommit": "2e4d3ee4d01d89796ef34279f977f0343b63ed49",
+  "branch": "feature/vail-1-1",
+  "PR": "https://github.com/maksym1503/photo-veil/pull/7",
+  "version": "1.1",
+  "build": "8",
+  "changedInputsSinceStoppedRun": [
+    "Sources/PhotoVeil/MetadataSafeJPEG.swift",
+    "Tests/PhotoVeilUITests/PhotoVeilUITests.swift"
+  ],
+  "productionDelta": "one terminal LF only in MetadataSafeJPEG.swift; all other production source unchanged",
+  "testDelta": "three explicit isolated legacy0 fixtures; assertions retained and independently reviewed",
+  "freshFullValidationRequired": true
+}

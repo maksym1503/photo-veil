@@ -1,0 +1,23 @@
+[
+  {
+    "file": "Documentation/QA/NextRelease/task-source.patch.gz",
+    "originalFile": "Documentation/QA/NextRelease/task-source.patch",
+    "originalSHA256": "16486d876a6489285c689ffa7bb67506d66e77a9cb90a8259891e19b9d910b58",
+    "gzipSHA256": "4b152627231090e3d57c151bc37217509512cb171b39aa7add46158588368e6b",
+    "losslessVerified": true
+  },
+  {
+    "file": "Documentation/QA/NextRelease/Refinement/task-source.patch.gz",
+    "originalFile": "Documentation/QA/NextRelease/Refinement/task-source.patch",
+    "originalSHA256": "f2b43596c19a8a30123166fc3b2595c42a3c2bc03f1e98f600e83d4f5889853f",
+    "gzipSHA256": "53cc659b2a98dce10602ba952262a5b665890d62c6e71f74fa38c7dc39483495",
+    "losslessVerified": true
+  },
+  {
+    "file": "Documentation/QA/NextRelease/FinalReview/task-only.patch.gz",
+    "originalFile": "Documentation/QA/NextRelease/FinalReview/task-only.patch",
+    "originalSHA256": "9d77bf47b42b448594e16d0e640a981dfe56c6ec208e8e94b471e79239ec72c0",
+    "gzipSHA256": "549a65f15dd7e89f72e395acde1732a484986d7095da9a1512e83f4dc222533a",
+    "losslessVerified": true
+  }
+]

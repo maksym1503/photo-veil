@@ -1,0 +1,22 @@
+{
+  "initialAttempt": {
+    "status": "failed before archive creation",
+    "exitCode": 65,
+    "log": "/tmp/vail11-beta-release/archive-global-profile-failed.log",
+    "cause": "Global provisioning override propagated to swift-crypto_Crypto resource bundle, which does not support provisioning profiles",
+    "classification": "release orchestration configuration, not product/authentication failure",
+    "cleanup": "Original keychain search list restored; dedicated keychain locked"
+  },
+  "correction": "Use existing profile/identity only in temporary app-target Release settings; restore original project bytes in finally; no new signing assets",
+  "correctedAttempt": {
+    "archive": "passed",
+    "export": "passed",
+    "archiveLog": "/tmp/vail11-beta-release/archive.log",
+    "exportLog": "/tmp/vail11-beta-release/export.log",
+    "projectRestoredByteIdentical": true,
+    "keychainSearchListRestored": true,
+    "dedicatedSigningKeychainRelocked": true,
+    "sourceFingerprintMatchesQA": true,
+    "signedArchiveAndExportedIPASignatureResourceGuard": "passed"
+  }
+}

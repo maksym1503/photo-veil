@@ -1,0 +1,9 @@
+{
+  "localProjectSHA256": "2cebffab89568ae55ed3b909526fcb30220426de5f036cfbcc48a4ca6e640995",
+  "committedProjectSHA256": "f1cdad4efc895082bec5a614e52c1eebe155254c22d78878b1e4e99f0cc93749",
+  "onlyLocalDifference": "Two owner-local DEVELOPMENT_TEAM fields; all other project bytes identical",
+  "preservedDuringIndexSanitization": true,
+  "version": "1.1",
+  "build": "8",
+  "bundleID": "com.maksym1503.veil"
+}

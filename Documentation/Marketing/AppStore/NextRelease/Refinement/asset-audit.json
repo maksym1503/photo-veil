@@ -1,0 +1,46 @@
+{
+  "coastSourceContainsFictionalGPS" : true,
+  "gpsValuesLogged" : false,
+  "screenshotCandidates" : [
+    {
+      "alpha" : false,
+      "color" : "RGB",
+      "file" : "01-faces.jpg",
+      "format" : "JPEG",
+      "height" : 2868,
+      "width" : 1320
+    },
+    {
+      "alpha" : false,
+      "color" : "RGB",
+      "file" : "02-plates.jpg",
+      "format" : "JPEG",
+      "height" : 2868,
+      "width" : 1320
+    },
+    {
+      "alpha" : false,
+      "color" : "RGB",
+      "file" : "03-location.jpg",
+      "format" : "JPEG",
+      "height" : 2868,
+      "width" : 1320
+    },
+    {
+      "alpha" : false,
+      "color" : "RGB",
+      "file" : "04-manual.jpg",
+      "format" : "JPEG",
+      "height" : 2868,
+      "width" : 1320
+    },
+    {
+      "alpha" : false,
+      "color" : "RGB",
+      "file" : "05-share.jpg",
+      "format" : "JPEG",
+      "height" : 2868,
+      "width" : 1320
+    }
+  ]
+}

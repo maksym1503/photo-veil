@@ -40,11 +40,12 @@ final class CloudSyncTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let store = try GalleryStore(root: root), user = UUID(), data = try image(), cloud = CloudMock(image: data)
         let item = try await store.save(processed: data, effect: "Blur")
+        let cleaned = try await store.data(for: item.id)
         do { try await CloudSync.run(store: store, cloud: cloud, user: user); XCTFail() } catch {}
         let initial = await cloud.uploads(); XCTAssertTrue(initial.isEmpty)
         try await store.setSync(true, for: user)
         do { try await CloudSync.run(store: store, cloud: cloud, user: user); XCTFail() } catch {}
-        let local = try await store.data(for: item.id); XCTAssertEqual(local, data)
+        let local = try await store.data(for: item.id); XCTAssertEqual(local, cleaned)
         try await CloudSync.run(store: store, cloud: cloud, user: user)
         try await CloudSync.run(store: store, cloud: cloud, user: user)
         let ids = await cloud.uploads(); XCTAssertEqual(ids, [item.id])
@@ -80,6 +81,7 @@ final class CloudSyncTests: XCTestCase {
         let store = try GalleryStore(root: root), user = UUID(), data = try image(), cloud = CloudMock(image: data)
         let kept = try await store.save(processed: data, effect: "Blur", cloudUserID: user, uploaded: false)
         let removed = try await store.save(processed: data, effect: "Blur", cloudUserID: user, uploaded: true)
+        let cleaned = try await store.data(for: kept.id)
         // A different identity cannot mark this owner's item as retained.
         try await store.retainLocalCopyForCloudDeletion(removed.id, for: UUID())
         try await store.retainLocalCopyForCloudDeletion(kept.id, for: user)
@@ -93,7 +95,7 @@ final class CloudSyncTests: XCTestCase {
         try await reloaded.setSync(true, for: user)
         try await CloudSync.run(store: reloaded, cloud: cloud, user: user)
         let items = await reloaded.items(); XCTAssertEqual(items.map(\.id), [kept.id])
-        let saved = try await reloaded.data(for: kept.id); XCTAssertEqual(saved, data)
+        let saved = try await reloaded.data(for: kept.id); XCTAssertEqual(saved, cleaned)
         let uploads = await cloud.uploads(); XCTAssertTrue(uploads.isEmpty)
     }
 

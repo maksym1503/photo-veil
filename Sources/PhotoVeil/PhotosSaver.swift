@@ -21,7 +21,7 @@ struct SystemPhotoSaveAccess: PhotoSaveAccess {
     }
 }
 enum PhotosSaver {
-    static func save(_ data: Data) async throws { try await PhotoSavePolicy.save(data, using: SystemPhotoSaveAccess()) }
+    static func save(_ photo: PhotoExport) async throws { try await PhotoSavePolicy.save(photo.data, using: SystemPhotoSaveAccess()) }
     static func message(for error: Error) -> String {
         switch error {
         case PhotoSaveError.denied: "Photos saving is disabled. You can allow it in iPhone Settings, or use Share or Save to Veil."
@@ -32,22 +32,12 @@ enum PhotosSaver {
 }
 
 enum TemporaryPhoto {
-    static var folder: URL { FileManager.default.temporaryDirectory.appendingPathComponent("VeilExports", isDirectory: true) }
-    static func create(_ data: Data) throws -> URL {
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
-                                                attributes: [.protectionKey: FileProtectionType.complete])
-        let url = folder.appendingPathComponent("Veil-\(UUID().uuidString).jpg")
-        try data.write(to: url, options: [.atomic, .completeFileProtection]); return url
-    }
-    static func clearPreviousSession() {
-        try? FileManager.default.removeItem(at: folder)
-        // V3 exports used the temporary root. Only remove Veil's legacy filenames on a fresh launch.
-        let temporary = FileManager.default.temporaryDirectory
-        for file in (try? FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil)) ?? []
-        where file.lastPathComponent.hasPrefix("Veil-") && file.pathExtension == "jpg" {
-            try? FileManager.default.removeItem(at: file)
-        }
-    }
+    private static let storage = TemporaryExportStorage(
+        root: FileManager.default.temporaryDirectory.appendingPathComponent("VeilExports", isDirectory: true),
+        sessionID: UUID())
+    static var folder: URL { storage.folder }
+    static func create(_ photo: PhotoExport) throws -> URL { try storage.create(photo.data) }
+    static func clearPreviousSession() { storage.clearPreviousSessions() }
 }
 
 /// One presentation value prevents a sheet from opening before its URL is available.

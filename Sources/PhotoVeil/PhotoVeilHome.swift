@@ -3,12 +3,24 @@ import PhotosUI
 import SwiftUI
 import Vision
 
+private enum PrivacyPillar: String, CaseIterable, Identifiable {
+    case redact = "Redact", metadata = "Metadata", watermark = "Watermark"
+    var id: String { rawValue }
+    var symbol: String { switch self { case .redact: "viewfinder"; case .metadata: "info.circle"; case .watermark: "textformat" } }
+}
+private enum EditScope: Hashable { case privacy(EditorMode), watermark }
+
 private struct EditSnapshot {
+    let watermark: PhotoWatermark?
+    let watermarkScope: Bool
+    let pillar: PrivacyPillar
     let mode: EditorMode?
     let focus: EditorMode?
     let backgroundActive: Bool
     let regions: [BlurRegion]
     let strokes: [BlurStroke]
+    let detectionAdjustments: [EditorMode: [Int: CGRect]]
+    let wholeDocumentAdjustments: [Int: CGRect]
     let selectedFaces: Set<Int>
     let selectedPlates: Set<Int>
     let selectedDocuments: Set<Int>
@@ -50,11 +62,31 @@ private struct PrivacyToolRowLayout: Layout {
 
 struct PhotoVeilHome: View {
     @EnvironmentObject private var library: VeilLibrary
+    @EnvironmentObject private var exportAccess: VeilExportAccess
+    @EnvironmentObject private var subscriptions: VeilSubscriptionStore
+    private var premiumState: PremiumPreviewState {
+        .resolve(completed: exportAccess.usage, limit: exportAccess.freeLimit, entitlement: subscriptions.previewEntitlement)
+    }
+    @State private var showingPaywall = false
+    @State private var shareLease: UUID?
     @State private var showingGallery = false
     @State private var successMessage: String?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showingSettings = false
     @State private var pickerItem: PhotosPickerItem?
+    @State private var showingPhotoPicker = false
+    @State private var importingPhoto = false
+    @State private var importTask: Task<Void, Never>?
+    @State private var importID = UUID()
+    @State private var exportingPhoto = false
+    @State private var showingGuide = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var sourceMetadata: SourcePhotoMetadata?
+    @State private var pillar: PrivacyPillar = .redact
+    @State private var watermark: PhotoWatermark?
+    @State private var completedWatermark: PhotoWatermark?
+    @State private var watermarkGestureEditing = false
+    @State private var metadataPolicy: PhotoMetadataPolicy = .keep
     @State private var original: UIImage?
     @State private var previewSource: UIImage?
     @State private var completedRenderLayers: [PrivacyRenderLayer]?
@@ -83,6 +115,8 @@ struct PhotoVeilHome: View {
         nonmutating set { currentSettings.redactionColor = newValue }
     }
     @State private var manualShape: BlurRegion.Shape = .roundedRectangle
+    @State private var detectionAdjustments: [EditorMode: [Int: CGRect]] = [:]
+    @State private var wholeDocumentAdjustments: [Int: CGRect] = [:]
     @State private var faceRegions: [CGRect] = []
     @State private var faceSelection = DetectedPrivacySelection()
     private var selectedFaces: Set<Int> { get { faceSelection.selected } nonmutating set { faceSelection.selected = newValue } }
@@ -102,7 +136,7 @@ struct PhotoVeilHome: View {
     @State private var draftStroke: BlurStroke?
     @State private var paintsStrokes = false
     @State private var showingFinalPreview = false
-    @State private var undoStack = ScopedUndoHistory<EditorMode, EditSnapshot>()
+    @State private var undoStack = ScopedUndoHistory<EditScope, EditSnapshot>()
     @State private var working = false
     @State private var showingOriginal = false
     @State private var manualDraws = true
@@ -127,6 +161,12 @@ struct PhotoVeilHome: View {
     @State private var testExportFingerprint = ""
     #endif
 
+    #if DEBUG
+    private static var allowsSyntheticWatermarkEvidence: Bool {
+        ProcessInfo.processInfo.arguments.contains("-veil-synthetic-watermark-evidence")
+    }
+    #endif
+
     private var detectingRequestedLayers: Bool {
         // Final output must wait for every requested analysis, even after switching tools.
         backgroundAnalysis != nil || faceAnalysis != nil || plateAnalysis != nil || documentAnalysis != nil
@@ -141,41 +181,143 @@ struct PhotoVeilHome: View {
             .toolbar { navigationControls }
         }
         .background(Color(uiColor: .systemBackground))
-        .onChange(of: pickerItem) { _, item in Task { await load(item) } }
+        .onChange(of: pickerItem) { _, item in
+            importTask?.cancel()
+            let generation = UUID(); importID = generation
+            importTask = Task { await load(item, generation: generation) }
+        }
+        .sensoryFeedback(.selection, trigger: mode)
+        .sensoryFeedback(.selection, trigger: currentSettings)
+        .sensoryFeedback(.success, trigger: successMessage)
+        .sensoryFeedback(.error, trigger: errorMessage)
         .onAppear(perform: loadFixtureIfRequested)
         .alert("Couldn’t finish that action", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) { errorMessage = nil }
         } message: { Text(errorMessage ?? "Please choose another image.") }
+        .sheet(isPresented: $showingPaywall) { NavigationStack { VeilSubscriptionView() } }
         .sheet(isPresented: $showingSettings) { VeilSettings() }
         .sheet(isPresented: $showingGallery) { VeilGallery() }
-        .alert("Saved", isPresented: Binding(get: { successMessage != nil }, set: { if !$0 { successMessage = nil } })) {
-            Button("OK") { successMessage = nil }
-        } message: { Text(successMessage ?? "") }
+        .overlay(alignment: .bottom) {
+            if let successMessage {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.title2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Saved").font(.headline)
+                        Text(successMessage).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Button("Dismiss", systemImage: "xmark") { self.successMessage = nil }
+                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                        .accessibilityIdentifier("dismissSaveNotice")
+                }
+                .padding(16).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
+                .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(.primary.opacity(0.08)) }
+                .padding(16).accessibilityElement(children: .contain)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.88), value: successMessage)
+        .sheet(isPresented: $showingGuide) { quickGuide }
         .sheet(item: $shareItem) { item in
-            ShareSheet(items: [item.url]).onDisappear { try? FileManager.default.removeItem(at: item.url) }
+            ShareSheet(items: [item.url]) { completed in
+                if let lease = shareLease {
+                    if let warning = exportAccess.finish(lease, succeeded: completed) { errorMessage = warning }
+                    shareLease = nil
+                }
+            }.onDisappear {
+                try? FileManager.default.removeItem(at: item.url)
+            }
         }
     }
 
     private var importView: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 VeilDemonstration().frame(maxWidth: .infinity)
                 VStack(spacing: 10) {
-                    Text("Share the moment.\nKeep the details.")
-                        .font(.largeTitle.weight(.semibold)).multilineTextAlignment(.center).padding(.horizontal, 24)
-                    Text("Choose. Blur. Share.")
-                        .font(.body).foregroundStyle(.secondary)
+                    VStack(spacing: 2) {
+                        Text("Your photo.").foregroundStyle(.primary)
+                        Text("Your boundaries.").foregroundStyle(Color(uiColor: .systemBlue))
+                    }
+                    .font(.largeTitle.weight(.semibold))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Capsule()
+                        .fill(LinearGradient(colors: [.cyan, .blue, .indigo], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: 64, height: 3)
+                        .opacity(0.7)
+                        .accessibilityHidden(true)
+                    Text("Redact. Control metadata. Add your watermark.")
+                        .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
                 }
-                PhotosPicker(selection: $pickerItem, matching: .images) {
-                    Label("Choose Photo", systemImage: "photo")
-                        .font(.headline).padding(.horizontal, 32).frame(minHeight: 52)
+                Button { showingPhotoPicker = true } label: {
+                    Group {
+                        if importingPhoto {
+                            HStack(spacing: 10) {
+                                ProgressView().tint(.white)
+                                Text("Preparing photo…")
+                            }
+                        } else {
+                            Label("Choose a photo", systemImage: "photo")
+                        }
+                    }
+                    .font(.headline).padding(.horizontal, 32).frame(minHeight: 52)
                 }
                 .modifier(VeilActionStyle(prominent: true))
+                .disabled(importingPhoto)
                 .accessibilityIdentifier("choosePhoto")
-                Label("Processed on this iPhone", systemImage: "iphone")
-                    .font(.footnote).foregroundStyle(.secondary)
+                .photosPicker(isPresented: $showingPhotoPicker, selection: $pickerItem, matching: .images)
+                if subscriptions.previewEntitlement != .pro, let used = exportAccess.usage {
+                    Text(used >= exportAccess.freeLimit ? "Free export used" :
+                         exportAccess.freeLimit == 1 && used == 0 ? "Your first export is free" :
+                         "\(exportAccess.freeLimit - used) free export\(exportAccess.freeLimit - used == 1 ? "" : "s") remaining")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("freeExportAllowance")
+                }
+                Button("See how Veil works", systemImage: "sparkles") { showingGuide = true }
+                    .font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                    .accessibilityIdentifier("quickGuide")
+                HomeSponsorshipBanner(homeVisible: !showingPhotoPicker && !showingGallery && !showingSettings &&
+                    !showingGuide && !showingPaywall && !importingPhoto && !exportingPhoto && original == nil)
             }
             .frame(maxWidth: .infinity).padding(.bottom, 32)
+            .padding(.top, 4)
+        }
+    }
+
+    private var quickGuide: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    Text("Three tools.\nYour boundaries.")
+                        .font(.largeTitle.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    Text("Prepare a copy you feel ready to share.")
+                        .font(.title3).foregroundStyle(.secondary)
+                    ForEach(Array([
+                        ("viewfinder", "Cover the details", "Blur, pixelate or redact faces, plates, documents and any area you draw. Use solid Redact for sensitive text."),
+                        ("info.circle", "Choose what travels", "Keep supported photo details or leave out source metadata, including location. The original stays unchanged."),
+                        ("textformat", "Give it a purpose", "Add a custom watermark or a suggestion. Drag it into place, choose a style, or repeat it across your photo."),
+                        ("square.and.arrow.up", "Review, then share", "Check visible details, watermark and metadata choice. Save or share a finished copy. Detection and watermarks cannot guarantee privacy or prevent misuse.")
+                    ].enumerated()), id: \.offset) { index, step in
+                        HStack(alignment: .top, spacing: 18) {
+                            Image(systemName: step.0).font(.title2).foregroundStyle(.blue)
+                                .frame(width: 36, height: 36).accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(step.1).font(.headline)
+                                Text(step.2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    Label("Editing happens on your iPhone. No account needed.", systemImage: "lock.shield")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    Button("Start with a photo") { showingGuide = false }
+                        .frame(maxWidth: .infinity, minHeight: 50).modifier(VeilActionStyle(prominent: true))
+                }.padding(28)
+            }
+            .navigationTitle("Welcome to Veil").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingGuide = false } } }
         }
     }
 
@@ -205,22 +347,12 @@ struct PhotoVeilHome: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(showingFinalPreview ? "Edit" : "Done") {
                     showingOriginal = false
+                    successMessage = nil
+                    dismissDetectionFeedback()
                     showingFinalPreview.toggle()
                 }.id(showingFinalPreview).disabled(working || detectingRequestedLayers).accessibilityIdentifier("finalPreview")
             }
-            if showingFinalPreview {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Menu("Save photo", systemImage: "square.and.arrow.down") {
-                        Button("Save to Veil", systemImage: "photo.stack") { prepareExport(destination: .gallery) }
-                            .accessibilityIdentifier("saveToVeil")
-                        Button("Save to Photos", systemImage: "photo") { prepareExport(destination: .photos) }
-                            .accessibilityIdentifier("saveToPhotos")
-                    }.labelStyle(.iconOnly).disabled(working || detectingRequestedLayers).accessibilityIdentifier("saveMenu")
-                    Button("Share", systemImage: "square.and.arrow.up") { prepareExport() }
-                        .labelStyle(.iconOnly).modifier(VeilActionStyle(prominent: true))
-                        .disabled(working || detectingRequestedLayers).accessibilityIdentifier("export")
-                }
-            }
+
         }
     }
 
@@ -231,10 +363,10 @@ struct PhotoVeilHome: View {
                     ZoomablePhotoCanvas(
                         original: original,
                         preview: showingOriginal ? previewSource : preview,
-                        mode: showingOriginal || showingFinalPreview ? nil : mode,
-                        faces: faceRegions,
+                        mode: showingOriginal || showingFinalPreview || pillar != .redact ? nil : mode,
+                        faces: adjustedFaceRegions,
                         selectedFaces: selectedFaces,
-                        plates: mode == .documents ? currentDocumentRegions : plateSuggestions,
+                        plates: mode == .documents ? currentDocumentRegions : adjustedPlateRegions,
                         selectedPlates: mode == .documents ? selectedDocuments : selectedPlates,
                         regions: manualRegions,
                         newRegionShape: manualShape,
@@ -245,12 +377,19 @@ struct PhotoVeilHome: View {
                         onFaces: toggleFace,
                         onPlate: { mode == .documents ? toggleDocument($0) : togglePlate($0) },
                         onRegions: replaceManualRegions,
-                        onZoomChanged: { zoomed = $0 }
+                        onZoomChanged: { zoomed = $0 },
+                        watermark: !showingOriginal && !showingFinalPreview && pillar == .watermark ? watermark : nil,
+                        onWatermarkMove: moveWatermark,
+                        onDetectionRect: adjustDetection,
+                        detectionContext: "\(sessionID)-\(hidesEntireDocument)",
+                        premiumPreview: !showingOriginal && premiumState.marked,
+                        protectsPreview: !showingOriginal && premiumState.protectsPhoto
                     )
                     .accessibilityIdentifier("photoCanvas")
                 }
 
                 if !showingFinalPreview {
+                    GeometryReader { geometry in
                     HStack(spacing: 8) {
                         Button { showingOriginal.toggle() } label: {
                             if usesExpandedControls {
@@ -274,7 +413,9 @@ struct PhotoVeilHome: View {
                             .accessibilityIdentifier("fitPhoto")
                         }
                 }
-                .padding(12)
+                    .padding(.top, 16)
+                    .padding(.leading, comparisonInset(in: geometry.size))
+                    }
                 }
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing") {
@@ -291,7 +432,11 @@ struct PhotoVeilHome: View {
                 }
                 #endif
                 if (working || detectingRequestedLayers) && draftStroke == nil {
-                    ProgressView().controlSize(.regular).padding(13).background(.regularMaterial, in: Circle())
+                    VStack(spacing: 10) {
+                        ProgressView().controlSize(.regular)
+                        Text(exportingPhoto ? "Preparing full-quality photo…" : detectingRequestedLayers ? "Finding details…" : "Updating preview…")
+                            .font(.caption.weight(.medium)).multilineTextAlignment(.center)
+                    }.padding(16).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
                         .frame(maxWidth: .infinity, maxHeight: .infinity).accessibilityLabel(detectingRequestedLayers ? "Detecting" : "Processing")
                         .accessibilityIdentifier(detectingRequestedLayers ? "detectionInProgress" : "renderInProgress").allowsHitTesting(false)
                 } else {
@@ -311,18 +456,125 @@ struct PhotoVeilHome: View {
                         .background(.regularMaterial, in: Capsule()).padding(12)
                         .accessibilityIdentifier("detectionFeedback")
                         .allowsHitTesting(false)
+                } else if showingOriginal {
+                    Label("Original · not shared", systemImage: "eye")
+                        .font(.caption.weight(.semibold)).padding(12)
+                        .background(.regularMaterial, in: Capsule()).padding(12).allowsHitTesting(false)
                 }
             }
+            PremiumPreviewNotice(state: premiumState) { showingPaywall = true }
             // Retain the control surface's size so Done never changes the photo transform.
-            if showingFinalPreview { editorControls.hidden().accessibilityHidden(true) }
+            if showingFinalPreview {
+                ZStack {
+                    editorControls.hidden().accessibilityHidden(true)
+                }.overlay { panelContent { finalReview } }
+            }
             else { editorControls }
         }
+    }
+
+    // Use the retained panel footprint, centering short states while allowing larger text to scroll.
+    private func panelContent<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
+        GeometryReader { geometry in
+            ScrollView {
+                content().frame(maxWidth: .infinity, minHeight: geometry.size.height)
+            }.accessibilityElement(children: .contain)
+        }
+    }
+
+    private func comparisonInset(in size: CGSize) -> CGFloat {
+        guard let image = previewSource, image.size.height > 0 else { return 20 }
+        let fittedWidth = min(size.width, size.height * image.size.width / image.size.height)
+        return max(20, (size.width - fittedWidth) / 2)
+    }
+
+    private var metadataControl: some View {
+        VStack(spacing: 6) {
+            metadataOption(.keep, title: "Keep metadata", detail: "Includes location, when available.", symbol: "location")
+            metadataOption(.remove, title: "Remove metadata", detail: "Omit location and source details.", symbol: "location.slash")
+        }.padding(.horizontal, 24).padding(.vertical, 12)
+    }
+
+    private func metadataOption(_ policy: PhotoMetadataPolicy, title: String, detail: String, symbol: String) -> some View {
+        Button {
+            metadataPolicy = policy
+            UISelectionFeedbackGenerator().selectionChanged()
+        } label: {
+            HStack(spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 16) {
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Image(systemName: symbol).font(.system(size: 26, weight: .medium))
+                        .foregroundStyle(metadataPolicy == policy ? Color.blue : Color.secondary)
+                        .frame(width: 36)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.body.weight(.semibold)).foregroundStyle(.primary)
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Text(detail).font(.caption).foregroundStyle(.secondary)
+                    }
+                }.fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                Image(systemName: metadataPolicy == policy ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(metadataPolicy == policy ? Color.blue : Color.secondary.opacity(0.5))
+            }.frame(maxWidth: .infinity, minHeight: 64, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+            .accessibilityLabel(title).accessibilityValue(detail)
+            .accessibilityAddTraits(metadataPolicy == policy ? .isSelected : [])
+            .accessibilityIdentifier(policy == .keep ? "metadataKeep" : "metadataRemove")
+    }
+
+    private var metadataSummary: String {
+        if metadataPolicy == .remove { return "Source metadata removed" }
+        return sourceMetadata?.hasSupportedFields == true ? "Supported metadata kept" : "No source metadata available"
+    }
+
+    private var finalReview: some View {
+        VStack(spacing: 14) {
+            if !dynamicTypeSize.isAccessibilitySize {
+                Text("Ready to share").font(.title2.weight(.semibold))
+            }
+            Button {
+                pillar = .metadata; showingFinalPreview = false
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: metadataPolicy == .remove ? "location.slash" : "info.circle")
+                    Text(dynamicTypeSize.isAccessibilitySize
+                         ? (metadataPolicy == .remove ? "Remove metadata" : "Keep metadata") : metadataSummary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("metadataChoiceExplanation")
+                    Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+                }.font(.subheadline).frame(minHeight: 44)
+            }.buttonStyle(.plain).foregroundStyle(.secondary)
+                .accessibilityLabel("\(metadataSummary). Change metadata choice")
+                .accessibilityValue(metadataPolicy == .remove ? "Remove metadata" : "Keep metadata")
+                .accessibilityIdentifier("metadataReviewChange").disabled(exportingPhoto)
+            if watermark != nil {
+                Label("Watermark added", systemImage: "checkmark")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            let actionLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
+            actionLayout {
+                Menu {
+                    Button("Save to Veil", systemImage: "photo.stack") { prepareExport(destination: .gallery) }
+                        .accessibilityIdentifier("saveToVeil")
+                    Button("Save to Photos", systemImage: "photo") { prepareExport(destination: .photos) }
+                        .accessibilityIdentifier("saveToPhotos")
+                } label: {
+                    Label("Save", systemImage: "square.and.arrow.down").frame(maxWidth: .infinity, minHeight: 44)
+                }.modifier(VeilActionStyle()).accessibilityIdentifier("saveMenu")
+                Button { prepareExport() } label: {
+                    Label("Share", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity, minHeight: 44)
+                }.modifier(VeilActionStyle(prominent: true)).accessibilityIdentifier("export")
+            }.font(.body.weight(.semibold)).disabled(working || detectingRequestedLayers || exportingPhoto)
+            Text("Originals stay unchanged.").font(.caption2).foregroundStyle(.secondary)
+        }.padding(.horizontal, 28).padding(.vertical, 16)
     }
 
     private var usesExpandedControls: Bool { dynamicTypeSize > .large }
 
     // Keep the same three layout slots for every tool/effect. Only their contents change.
-    private var editorControls: some View {
+    private var redactionControls: some View {
         VStack(spacing: 8) {
             VStack(spacing: 4) {
                 if usesExpandedControls {
@@ -360,13 +612,19 @@ struct PhotoVeilHome: View {
                         Button { select(item) } label: {
                             VStack(spacing: 3) {
                                 Image(systemName: item.symbol)
+                                    .symbolEffect(.bounce, options: .nonRepeating, value: !reduceMotion && mode == item)
                                     .font(.system(size: 19, weight: .medium)).frame(width: 26, height: 24)
                                 Text(item.label).font(.caption2.weight(.medium)).lineLimit(1)
                                     .frame(maxWidth: .infinity).frame(height: 16)
                             }
                             .foregroundStyle(mode == item ? Color.primary : Color.secondary)
                             .frame(maxWidth: .infinity).frame(height: 56)
-                            .background(mode == item ? Color(uiColor: .tertiarySystemFill) : .clear, in: RoundedRectangle(cornerRadius: 20))
+                            .background {
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(mode == item ? Color.blue.opacity(0.14) : .clear)
+                                    .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(mode == item ? Color.blue.opacity(0.2) : .clear) }
+                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: mode)
+                            }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(VeilModePressStyle())
@@ -378,6 +636,63 @@ struct PhotoVeilHome: View {
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
+    }
+
+    private var editorControls: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                redactionControls
+                    .opacity(pillar == .redact ? 1 : 0)
+                    .disabled(pillar != .redact).accessibilityHidden(pillar != .redact)
+            }.overlay {
+                    if pillar == .watermark {
+                        panelContent { WatermarkControls(watermark: watermark, change: changeWatermark) }
+                    } else if pillar == .metadata {
+                        panelContent { metadataControl }
+                    }
+            }
+            HStack(spacing: 0) {
+                ForEach(PrivacyPillar.allCases) { item in
+                    Button {
+                        watermarkGestureEditing = false
+                        showingOriginal = false; dismissDetectionFeedback()
+                        pillar = item
+                        UISelectionFeedbackGenerator().selectionChanged()
+                    } label: {
+                        VStack(spacing: 4) {
+                            if usesExpandedControls {
+                                Image(systemName: item.symbol).font(.system(size: 20, weight: .medium))
+                            } else {
+                                Label(item.rawValue, systemImage: item.symbol)
+                                    .font(.caption.weight(.semibold)).lineLimit(1)
+                            }
+                            Capsule().fill(pillar == item ? Color.blue : .clear).frame(width: 24, height: 2)
+                                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: pillar)
+                        }.frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+                    }.buttonStyle(.plain).foregroundStyle(pillar == item ? Color.blue : Color.secondary)
+                        .accessibilityAddTraits(pillar == item ? .isSelected : [])
+                        .accessibilityLabel(item == .redact ? "Redaction tools" : item.rawValue)
+                        .accessibilityIdentifier("pillar_\(item.rawValue.lowercased())")
+                }
+            }.padding(.horizontal, 12).padding(.bottom, 4)
+        }
+    }
+
+    private var undoScope: EditScope? { pillar == .watermark ? .watermark : mode.map(EditScope.privacy) }
+
+    private func changeWatermark(_ next: PhotoWatermark?, _ finished: Bool) {
+        guard watermark != next else { if finished { watermarkGestureEditing = false }; return }
+        if !watermarkGestureEditing { pushUndo(watermarkEdit: true) }
+        watermarkGestureEditing = !finished
+        watermark = next; showingOriginal = false
+        if finished { UISelectionFeedbackGenerator().selectionChanged() }
+        rerender()
+    }
+
+    private func moveWatermark(_ center: CGPoint, _ finished: Bool) {
+        guard var next = watermark else { return }
+        next.center = CGPoint(x: min(0.95, max(0.05, center.x)), y: min(0.95, max(0.05, center.y)))
+        changeWatermark(next, finished)
     }
 
     private var effectControl: some View {
@@ -512,32 +827,40 @@ struct PhotoVeilHome: View {
         pushUndo(); strength = option; rerender()
     }
 
-    @MainActor private func load(_ item: PhotosPickerItem?) async {
-        guard let item else { return }
+    @MainActor private func load(_ item: PhotosPickerItem?, generation: UUID) async {
+        guard let item else { importingPhoto = false; return }
+        importingPhoto = true
         working = true
-        defer { working = false }
+        defer { if importID == generation { working = false; importingPhoto = false } }
         do {
             guard let data = try await item.loadTransferable(type: Data.self),
-                  let pair = await Task.detached(priority: .userInitiated, operation: { () -> (UIImage, UIImage)? in
+                  let pair = try await Task.detached(priority: .userInitiated, operation: { () throws -> (UIImage, UIImage, SourcePhotoMetadata)? in
                       guard let image = UIImage(data: data), let normalized = BlurRenderer.normalizedImage(image),
                             let downsampled = BlurRenderer.previewImage(normalized) else { return nil }
-                      return (normalized, downsampled)
+                      return (normalized, downsampled, try SourcePhotoMetadata.capture(data))
                   }).value else { throw BlurError.unavailable }
-            beginSession(original: pair.0, preview: pair.1)
-        } catch { errorMessage = "The photo couldn’t be loaded. Please try another one." }
+            guard !Task.isCancelled, importID == generation else { return }
+            beginSession(original: pair.0, preview: pair.1, metadata: pair.2)
+        } catch {
+            guard !Task.isCancelled, importID == generation else { return }
+            errorMessage = "The photo couldn’t be loaded. Please try another one."
+        }
     }
 
-    @MainActor private func beginSession(original: UIImage, preview: UIImage) {
+    @MainActor private func beginSession(original: UIImage, preview: UIImage, metadata: SourcePhotoMetadata) {
         faceAnalysis?.cancel(); faceAnalysis = nil; documentAnalysis?.cancel(); documentAnalysis = nil
         backgroundAnalysis?.cancel(); backgroundAnalysis = nil; plateAnalysis?.cancel(); plateAnalysis = nil
         previewRender?.cancel(); previewRender = nil; brushRenderInFlight = false; brushRenderPending = false
         sessionID = UUID(); renderRevision += 1; backgroundUnavailable = false
         self.original = original
+        self.sourceMetadata = metadata
+        self.metadataPolicy = .keep
         self.previewSource = preview
         self.preview = preview
         self.mode = nil
+        self.pillar = .redact; self.watermark = nil; self.completedWatermark = nil; self.watermarkGestureEditing = false
         self.backgroundMask = nil
-        self.faceRegions = []
+        self.faceRegions = []; detectionAdjustments = [:]; wholeDocumentAdjustments = [:]
         self.selectedFaces = []
         self.plateSuggestions = []
         self.selectedPlates = []
@@ -589,8 +912,9 @@ struct PhotoVeilHome: View {
               let fixture = UIImage(data: fixtureData),
               let normalizedFull = BlurRenderer.normalizedImage(fixture),
               let normalized = arguments.contains("-veil-analysis-fixture") ? BlurRenderer.previewImage(normalizedFull, maxDimension: 600) : normalizedFull,
-              let downsampled = BlurRenderer.previewImage(normalized) else { return }
-        beginSession(original: normalized, preview: downsampled)
+              let downsampled = BlurRenderer.previewImage(normalized),
+              let metadata = try? SourcePhotoMetadata.capture(fixtureData) else { return }
+        beginSession(original: normalized, preview: downsampled, metadata: metadata)
         if arguments.contains("-veil-cached-mask-fixture") {
             // Controlled cached mask tests activation/clear/export, not Vision segmentation.
             let extent = CGRect(origin: .zero, size: downsampled.size)
@@ -772,7 +1096,32 @@ struct PhotoVeilHome: View {
         }
     }
 
-    private var currentDocumentRegions: [CGRect] { hidesEntireDocument ? documentBoundaries : documentDetails }
+    private func adjusted(_ cached: [CGRect], overrides: [Int: CGRect]) -> [CGRect] {
+        cached.enumerated().map { overrides[$0.offset] ?? $0.element }
+    }
+    private var adjustedFaceRegions: [CGRect] { adjusted(faceRegions, overrides: detectionAdjustments[.faces] ?? [:]) }
+    private var adjustedPlateRegions: [CGRect] { adjusted(plateSuggestions, overrides: detectionAdjustments[.plate] ?? [:]) }
+    private var currentDocumentRegions: [CGRect] {
+        hidesEntireDocument ? adjusted(documentBoundaries, overrides: wholeDocumentAdjustments)
+            : adjusted(documentDetails, overrides: detectionAdjustments[.documents] ?? [:])
+    }
+    private func adjustDetection(_ index: Int, _ rect: CGRect) {
+        guard !showingOriginal, !showingFinalPreview, pillar == .redact, let mode else { return }
+        let cached: [CGRect]
+        switch mode {
+        case .faces: cached = adjustedFaceRegions
+        case .plate: cached = adjustedPlateRegions
+        case .documents: cached = currentDocumentRegions
+        default: return
+        }
+        let clipped = rect.standardized.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+        guard cached.indices.contains(index), !clipped.isNull, clipped.width > 0, clipped.height > 0,
+              clipped != cached[index] else { return }
+        pushUndo()
+        if mode == .documents && hidesEntireDocument { wholeDocumentAdjustments[index] = clipped }
+        else { detectionAdjustments[mode, default: [:]][index] = clipped }
+        rerender()
+    }
 
     private func setDocumentCoverage(entire: Bool) {
         guard documentAnalysis == nil, didAnalyzeDocuments else { return }
@@ -903,11 +1252,11 @@ struct PhotoVeilHome: View {
         }
         let faces = selectedFaces.sorted().compactMap { index -> BlurRegion? in
             guard faceRegions.indices.contains(index) else { return nil }
-            return BlurRegion(id: "face-\(index)", rect: faceRegions[index], shape: .oval)
+            return BlurRegion(id: "face-\(index)", rect: adjustedFaceRegions[index], shape: .oval)
         }
         let plates = selectedPlates.sorted().compactMap { index -> BlurRegion? in
             guard plateSuggestions.indices.contains(index) else { return nil }
-            return BlurRegion(id: "plate-\(index)", rect: plateSuggestions[index], shape: .roundedRectangle)
+            return BlurRegion(id: "plate-\(index)", rect: adjustedPlateRegions[index], shape: .roundedRectangle)
         }
         let documents = selectedDocuments.sorted().compactMap { index -> BlurRegion? in
             guard currentDocumentRegions.indices.contains(index) else { return nil }
@@ -927,8 +1276,8 @@ struct PhotoVeilHome: View {
         guard mode != .background || backgroundMask != nil || !backgroundSelection.isActive else { return }
         working = true; renderRevision += 1
         let revision = renderRevision, currentMode = mode, currentStrength = strength, isDraft = draftStroke != nil
-        let strokes = renderStrokes, layers = renderLayers
-        if !isBrushUpdate && !brushRenderInFlight && completedRenderLayers == layers {
+        let strokes = renderStrokes, layers = renderLayers, watermarkSnapshot = watermark
+        if !isBrushUpdate && !brushRenderInFlight && completedRenderLayers == layers && completedWatermark == watermarkSnapshot {
             // Invalidate an obsolete in-flight render if the user restored the displayed state.
             previewRender?.cancel(); working = false
             return
@@ -938,7 +1287,7 @@ struct PhotoVeilHome: View {
         previewRender = Task.detached(priority: .userInitiated) {
             guard !Task.isCancelled else { return }
             guard let source = previewSource.cgImage else { return }
-            let output = await renderer.render(source: source, layers: layers)
+            let output = await renderer.render(source: source, layers: layers, watermark: watermarkSnapshot)
                 .map { UIImage(cgImage: $0, scale: previewSource.scale, orientation: .up) }
             guard !Task.isCancelled else { return }
             #if DEBUG
@@ -962,42 +1311,57 @@ struct PhotoVeilHome: View {
                 guard renderRevision == revision else { return }
                 working = false
                 if let output {
-                    completedRenderLayers = layers; preview = output
+                    completedRenderLayers = layers; completedWatermark = watermarkSnapshot; preview = output
                     #if DEBUG
                     if let evidence {
                         testRenderFingerprint = evidence.fingerprint
+                        if watermarkSnapshot == nil || Self.allowsSyntheticWatermarkEvidence {
                         captureTestRender(evidence, names: [
                             "evidence-\(currentMode?.rawValue.lowercased() ?? "none")-\(currentStrength.rawValue.lowercased())-\(strokes.isEmpty ? "regions" : "brush")",
                             "preview-\(currentMode?.rawValue.lowercased() ?? "none")"])
+                        }
                     }
                     #endif
+                } else {
+                    errorMessage = "The edited preview couldn’t be rendered. Try a smaller watermark or reset the edit."
                 }
             }
         }
     }
 
-    private func pushUndo(for tool: EditorMode? = nil, global: Bool = false) {
+    private func pushUndo(for tool: EditorMode? = nil, global: Bool = false, watermarkEdit: Bool = false) {
         let target = global ? nil : (tool ?? mode ?? .manual)
         // Once a new edit starts, Undo belongs to that category again. An old Reset
         // snapshot must not let Manual undo replace newer automatic selections.
-        undoStack.append(EditSnapshot(mode: target, focus: mode, backgroundActive: backgroundSelection.isActive, regions: manualRegions, strokes: strokes, selectedFaces: selectedFaces,
+        undoStack.append(EditSnapshot(watermark: watermark, watermarkScope: watermarkEdit, pillar: pillar, mode: target, focus: mode, backgroundActive: backgroundSelection.isActive, regions: manualRegions, strokes: strokes, detectionAdjustments: detectionAdjustments, wholeDocumentAdjustments: wholeDocumentAdjustments, selectedFaces: selectedFaces,
             selectedPlates: selectedPlates, selectedDocuments: selectedDocuments, hidesEntireDocument: hidesEntireDocument,
-            settings: layerSettings), for: target)
+            settings: layerSettings), for: global ? nil : watermarkEdit ? .watermark : target.map(EditScope.privacy))
     }
 
-    private var canUndo: Bool { undoStack.canUndo(mode) }
+    private var canUndo: Bool { pillar != .metadata && undoStack.canUndo(undoScope) }
 
     private func undo() {
-        guard let snapshot = undoStack.pop(for: mode) else { return }
+        guard pillar != .metadata, let snapshot = undoStack.pop(for: undoScope) else { return }
+        watermarkGestureEditing = false
+        if snapshot.watermarkScope { watermark = snapshot.watermark; rerender(); return }
+        if snapshot.mode == nil { watermark = snapshot.watermark; pillar = snapshot.pillar }
         // Restore only the edited category. A manual undo never restores older automatic
         // selections (and vice versa). The deliberately separate Reset edits remains global.
         if snapshot.mode == nil || snapshot.mode == .background {
             if snapshot.backgroundActive { backgroundSelection.activate() } else { backgroundSelection.clear() }
         }
-        if snapshot.mode == nil || snapshot.mode == .faces { faceSelection.restoreSelection(snapshot.selectedFaces) }
-        if snapshot.mode == nil || snapshot.mode == .plate { plateSelection.restoreSelection(snapshot.selectedPlates) }
+        if snapshot.mode == nil || snapshot.mode == .faces {
+            faceSelection.restoreSelection(snapshot.selectedFaces)
+            detectionAdjustments[.faces] = snapshot.detectionAdjustments[.faces]
+        }
+        if snapshot.mode == nil || snapshot.mode == .plate {
+            plateSelection.restoreSelection(snapshot.selectedPlates)
+            detectionAdjustments[.plate] = snapshot.detectionAdjustments[.plate]
+        }
         if snapshot.mode == nil || snapshot.mode == .documents {
             documentSelection.restoreSelection(snapshot.selectedDocuments); hidesEntireDocument = snapshot.hidesEntireDocument
+            detectionAdjustments[.documents] = snapshot.detectionAdjustments[.documents]
+            wholeDocumentAdjustments = snapshot.wholeDocumentAdjustments
         }
         if snapshot.mode == nil || snapshot.mode == .manual {
             manualRegions = snapshot.regions; strokes = snapshot.strokes; draftStroke = nil
@@ -1011,18 +1375,22 @@ struct PhotoVeilHome: View {
         guard let previewSource else { return }
         renderRevision += 1; working = false; backgroundUnavailable = false
         completedRenderLayers = nil
-        pushUndo(global: true); backgroundSelection.clear(); faceSelection.clear(); plateSelection.clear(); documentSelection.clear(); dismissDetectionFeedback(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
+        pushUndo(global: true); detectionAdjustments = [:]; wholeDocumentAdjustments = [:]; watermark = nil; completedWatermark = nil; watermarkGestureEditing = false; pillar = .redact; backgroundSelection.clear(); faceSelection.clear(); plateSelection.clear(); documentSelection.clear(); dismissDetectionFeedback(); mode = nil; manualRegions = []; selectedFaces = []; selectedPlates = []
         selectedDocuments = []; showingOriginal = false; showingFinalPreview = false; strokes = []; draftStroke = nil; preview = previewSource; manualDraws = true
+        rerender()
     }
 
     private func clearSession() {
+        importTask?.cancel(); importTask = nil; importID = UUID(); importingPhoto = false
+        exportingPhoto = false; successMessage = nil
         faceAnalysis?.cancel(); faceAnalysis = nil; documentAnalysis?.cancel(); documentAnalysis = nil
         backgroundAnalysis?.cancel(); backgroundAnalysis = nil; plateAnalysis?.cancel(); plateAnalysis = nil
         previewRender?.cancel(); previewRender = nil; brushRenderInFlight = false; brushRenderPending = false
         sessionID = UUID(); renderRevision += 1
         dismissDetectionFeedback()
+        sourceMetadata = nil; metadataPolicy = .keep; watermark = nil; completedWatermark = nil; watermarkGestureEditing = false; pillar = .redact
         completedRenderLayers = nil; original = nil; previewSource = nil; preview = nil; backgroundMask = nil; mode = nil
-        faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
+        detectionAdjustments = [:]; wholeDocumentAdjustments = [:]; faceRegions = []; selectedFaces = []; plateSuggestions = []; selectedPlates = []; manualRegions = []
         strokes = []; draftStroke = nil; showingFinalPreview = false; undoStack = .init(); pickerItem = nil; showingOriginal = false; zoomed = false; working = false
     }
 
@@ -1030,75 +1398,108 @@ struct PhotoVeilHome: View {
 
     private func prepareExport(destination: ExportDestination = .share) {
         guard let original else { errorMessage = "The image couldn’t be prepared."; return }
-        working = true
+        guard !working, !detectingRequestedLayers, !exportingPhoto else { return }
+        working = true; exportingPhoto = true; successMessage = nil
         #if DEBUG
         let previewSnapshot = preview
+        let allowsWatermarkEvidence = Self.allowsSyntheticWatermarkEvidence
         #endif
         let currentMode = mode, layers = renderLayers, strokes = renderStrokes, session = sessionID
         let fixtureName = Self.testFixtureName
+        let exportPolicy = metadataPolicy, exportMetadata = sourceMetadata, exportWatermark = watermark
         // Gallery/cloud metadata keeps its existing coarse style tag, not an editable recipe.
         // Select the strongest applied style; the saved pixels always contain every layer.
         let appliedEffects = Set(layers.filter { $0.foregroundMask != nil || !$0.regions.isEmpty || !$0.strokes.isEmpty }.map { $0.settings.effect.rawValue })
         let representativeEffect: PrivacyEffect = appliedEffects.contains(PrivacyEffect.redact.rawValue) ? .redact
             : appliedEffects.contains(PrivacyEffect.pixelate.rawValue) ? .pixelate : .blur
-        Task.detached(priority: .userInitiated) {
-            #if DEBUG
-            if let previewSnapshot, let evidence = Self.testEvidence(previewSnapshot, source: original) {
-                await MainActor.run {
-                    if sessionID == session {
-                        captureTestRender(evidence, names: ["preexport-\(currentMode?.rawValue.lowercased() ?? "none")",
-                            "evidence-preexport-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")"])
-                    }
+        Task {
+            let lease: UUID
+            do {
+                let granted = try await exportAccess.begin()
+                guard sessionID == session else {
+                    if let granted { exportAccess.finish(granted, succeeded: false) }; return
                 }
+                guard let granted else {
+                    working = false; exportingPhoto = false; showingPaywall = true; return
+                }
+                lease = granted
+            } catch {
+                guard sessionID == session else { return }
+                working = false; exportingPhoto = false; errorMessage = VeilExportAccess.message(for: error); return
             }
-            #endif
-            let rendered: UIImage?
-            if let source = original.cgImage,
-               let output = PrivacyImageRenderer.render(source: source, layers: layers) {
-                rendered = UIImage(cgImage: output, scale: 1, orientation: .up)
-            } else {
-                rendered = nil
-            }
-            guard let data = rendered?.jpegData(compressionQuality: 0.98) else {
-                await MainActor.run { working = false; errorMessage = "The edited image couldn’t be exported." }
-                return
+            var handedToShare = false
+            defer {
+                if !handedToShare { exportAccess.finish(lease, succeeded: false) }
+                if sessionID == session { working = false; exportingPhoto = false }
             }
             do {
-                let url = destination == .share ? try TemporaryPhoto.create(data) : nil
-                #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing"), let rendered {
-                    let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                    let exportPNG = rendered.pngData()
-                    try exportPNG?.write(to: directory.appendingPathComponent("export-\(currentMode?.rawValue.lowercased() ?? "none")-\(fixtureName).png"))
-                    try exportPNG?.write(to: directory.appendingPathComponent("evidence-export-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")-\(fixtureName).png"))
-                    if let exportPNG {
-                        let fingerprint = SHA256.hash(data: exportPNG).map { String(format: "%02x", $0) }.joined()
-                        await MainActor.run { if sessionID == session { testExportFingerprint = fingerprint } }
+                let (photo, url) = try await Task.detached(priority: .userInitiated) {
+                    #if DEBUG
+                    if (exportWatermark == nil || allowsWatermarkEvidence), let previewSnapshot, let evidence = Self.testEvidence(previewSnapshot, source: original) {
+                        await MainActor.run {
+                            if sessionID == session {
+                                captureTestRender(evidence, names: ["preexport-\(currentMode?.rawValue.lowercased() ?? "none")",
+                                    "evidence-preexport-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")"])
+                            }
+                        }
                     }
-                }
-                #endif
-                guard await MainActor.run(body: { sessionID == session }) else {
+                    #endif
+                    let rendered: UIImage?
+                    if let source = original.cgImage,
+                       let output = PrivacyImageRenderer.render(source: source, layers: layers, watermark: exportWatermark) {
+                        rendered = UIImage(cgImage: output, scale: 1, orientation: .up)
+                    } else {
+                        rendered = nil
+                    }
+
+                    guard let pixels = rendered?.cgImage else { throw PhotoExportFailure.renderFailed }
+                    let photo = try PhotoExport.encode(pixels, policy: exportPolicy, metadata: exportMetadata)
+                    let url = destination == .share ? try TemporaryPhoto.create(photo) : nil
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("-veil-ui-testing"), (exportWatermark == nil || allowsWatermarkEvidence), let rendered {
+                        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                        let exportPNG = rendered.pngData()
+                        try exportPNG?.write(to: directory.appendingPathComponent("export-\(currentMode?.rawValue.lowercased() ?? "none")-\(fixtureName).png"))
+                        try exportPNG?.write(to: directory.appendingPathComponent("evidence-export-\(currentMode?.rawValue.lowercased() ?? "none")-\(strokes.isEmpty ? "regions" : "brush")-\(fixtureName).png"))
+                        if let exportPNG {
+                            let fingerprint = SHA256.hash(data: exportPNG).map { String(format: "%02x", $0) }.joined()
+                            await MainActor.run { if sessionID == session { testExportFingerprint = fingerprint } }
+                        }
+                    }
+                    #endif
+
+                    return (photo, url)
+                }.value
+                guard sessionID == session else {
                     if let url { try? FileManager.default.removeItem(at: url) }; return
                 }
                 switch destination {
                 case .share:
-                    await MainActor.run { working = false; shareItem = url.map { PhotoShareItem(url: $0) } }
+                    guard let url else { throw PhotoExportFailure.renderFailed }
+                    shareLease = lease; handedToShare = true; shareItem = PhotoShareItem(url: url)
                 case .gallery:
-                    try await library.save(data, effect: representativeEffect.rawValue)
-                    await MainActor.run { working = false; successMessage = "Saved to Private Gallery on this iPhone" }
+                    try await library.save(photo, effect: representativeEffect.rawValue)
+                    if let warning = exportAccess.finish(lease, succeeded: true) { errorMessage = warning }
+                    if sessionID == session {
+                        successMessage = "In your Private Gallery"
+                        UIAccessibility.post(notification: .announcement, argument: "Saved to Private Gallery")
+                    }
                 case .photos:
-                    do {
-                        try await PhotosSaver.save(data)
-                        await MainActor.run { working = false; successMessage = "Saved to Photos" }
-                    } catch {
-                        await MainActor.run { working = false; errorMessage = PhotosSaver.message(for: error) }
+                    try await PhotosSaver.save(photo)
+                    if let warning = exportAccess.finish(lease, succeeded: true) { errorMessage = warning }
+                    if sessionID == session {
+                        successMessage = "In Photos"
+                        UIAccessibility.post(notification: .announcement, argument: "Saved to Photos")
                     }
                 }
             } catch {
-                await MainActor.run { working = false; errorMessage = "The edited image couldn’t be exported." }
+                if sessionID == session {
+                    errorMessage = destination == .photos ? PhotosSaver.message(for: error) : "The edited image couldn’t be exported."
+                }
             }
         }
     }
+    private enum PhotoExportFailure: Error { case renderFailed }
 
     nonisolated private static var testFixtureName: String {
         let arguments = ProcessInfo.processInfo.arguments
@@ -1131,8 +1532,17 @@ struct PhotoVeilHome: View {
 
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
+    var completion: (Bool) -> Void = { _ in }
+    func makeCoordinator() -> ShareExportCompletion { ShareExportCompletion(completion: completion) }
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let coordinator = context.coordinator
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, completed, _, error in
+            // Activity completion is the only success signal available; it is not delivery confirmation.
+            let hasError = error != nil
+            Task { @MainActor in coordinator.finish(completed: completed, hasError: hasError) }
+        }
+        return controller
     }
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

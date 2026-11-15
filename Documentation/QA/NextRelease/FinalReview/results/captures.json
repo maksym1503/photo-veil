@@ -1,0 +1,61 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "x86_64",
+        "deviceId" : "995A38B2-A510-4791-93C3-6630BB588FDC",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23F77",
+        "osVersion" : "26.5",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 2,
+      "passedTests" : 0,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Default"
+      }
+    }
+  ],
+  "environmentDescription" : "VeilIntegration · Built with macOS 26.7",
+  "expectedFailures" : 0,
+  "failedTests" : 2,
+  "finishTime" : 1794737802.141,
+  "passedTests" : 0,
+  "result" : "Failed",
+  "skippedTests" : 0,
+  "startTime" : 1794737468.716,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+    {
+      "failureText" : "XCTAssertGreaterThanOrEqual failed: (\"28.33333333333337\") is less than (\"44.0\")",
+      "targetName" : "PhotoVeilUITests",
+      "testIdentifier" : 1,
+      "testIdentifierString" : "PhotoVeilUITests/testRefinedEditorialAndPreviewJourney()",
+      "testIdentifierURL" : "test://com.apple.xcode/PhotoVeil/PhotoVeilUITests/PhotoVeilUITests/testRefinedEditorialAndPreviewJourney",
+      "testName" : "testRefinedEditorialAndPreviewJourney()"
+    },
+    {
+      "failureText" : "XCTAssertGreaterThanOrEqual failed: (\"28.33333333333337\") is less than (\"44.0\")",
+      "targetName" : "PhotoVeilUITests",
+      "testIdentifier" : 2,
+      "testIdentifierString" : "PhotoVeilUITests/testRefinedEditorialDarkAppearanceJourney()",
+      "testIdentifierURL" : "test://com.apple.xcode/PhotoVeil/PhotoVeilUITests/PhotoVeilUITests/testRefinedEditorialDarkAppearanceJourney",
+      "testName" : "testRefinedEditorialDarkAppearanceJourney()"
+    }
+  ],
+  "title" : "Test - PhotoVeil",
+  "topInsights" : [
+    {
+      "category" : "Common Failures",
+      "impact" : "100% of failures",
+      "text" : "2 runs of 2 tests failed with XCTAssertGreaterThanOrEqual failed: (\"28.33333333333337\") is less than (\"44.0\")"
+    }
+  ],
+  "totalTestCount" : 2
+}

@@ -1,0 +1,18 @@
+{
+  "scope": "Frozen preview implementation reviewed before native QA",
+  "files": {
+    "Tests/PhotoVeilPRUITests/VeilPRSmokeTests.swift": "88d841562cfc33eefed123c2c24608baffb873f50ef66cc6c107651132122cba",
+    "Tests/PhotoVeilCommerceTests/StoreKitSubscriptionTests.swift": "718d6f8274306bbf10ad540953a44da8faee7461b0da97076671f74765dd2f99",
+    "Tests/PhotoVeilUITests/VeilCommerceUITests.swift": "a75b8843e38adb9f16e8cf6622181a6cee67336290035f4ea96ff3ba54d71fbe",
+    "Tests/PhotoVeilUITests/PhotoVeilUITests.swift": "2181e0c740bf711686fd5624701ea10b1464db53b87c7acdd606d75abd17e595",
+    "Tests/PhotoVeilTests/CommerceTests.swift": "ec5c2fc7a2cd155198aac4d20297bb0fa959be50746042aeb7df42df1abc66b5",
+    "Sources/PhotoVeil/CommercePolicy.swift": "ff819cdb1f6d5283fd3317b399c40f02815b1294d675822e16c3d17460089607",
+    "Sources/PhotoVeil/ZoomablePhotoCanvas.swift": "530c7fd7912db160a5d9e95002d82c7053ee3b17c565815be85647cb6195b4a3",
+    "Sources/PhotoVeil/VeilPresentation.swift": "02204beda9f9dab389c5635c8bbb62d1316f516b9a603bc1ddcd2f22a3513120",
+    "Sources/PhotoVeil/VeilSubscriptionStore.swift": "87826a9fa81c123e8ebe0ee79b482278c28384f48db67fffc1392e9ce02bc1f1",
+    "Sources/PhotoVeil/VeilGallery.swift": "13c33de8512481352b534a46a17b8b54f31186458ff1519b27cb312b7ffc1e6d",
+    "Sources/PhotoVeil/PhotoVeilApp.swift": "cbad8370539ffaef87c9383a45c089a3511ada4ca850f12932d3eac03a8dc2bc",
+    "Sources/PhotoVeil/PhotoVeilHome.swift": "507d82652df747be6b4c7a7ec5d3f361835b55ba57c15e53cbf007baf432e04f",
+    "PhotoVeil.xcodeproj/project.pbxproj": "31bf3248738509cf00a6e1cb1d863fd557e5fc7a5e274a86c82e3222a73b06cb"
+  }
+}

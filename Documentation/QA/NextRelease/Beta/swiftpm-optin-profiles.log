@@ -1,0 +1,23 @@
+[0/1] Planning build
+Building for debugging...
+[0/2] Write swift-version--112E4EF74740DA65.txt
+Build complete! (0.25s)
+Test Suite 'Selected tests' started at 2026-11-15 17:34:44.878.
+Test Suite 'PhotoVeilGeometryPackageTests.xctest' started at 2026-11-15 17:34:44.880.
+Test Suite 'DetectionBenchmarkTests' started at 2026-11-15 17:34:44.880.
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testChallengingFixturesAndPerformance]' started.
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testChallengingFixturesAndPerformance]' passed (7.183 seconds).
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testV43FullCompositionPerformance]' started.
+Test Case '-[ImageGeometryTests.DetectionBenchmarkTests testV43FullCompositionPerformance]' passed (2.098 seconds).
+Test Suite 'DetectionBenchmarkTests' passed at 2026-11-15 17:34:54.162.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 9.282 (9.282) seconds
+Test Suite 'PhotoVeilGeometryPackageTests.xctest' passed at 2026-11-15 17:34:54.162.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 9.282 (9.282) seconds
+Test Suite 'Selected tests' passed at 2026-11-15 17:34:54.162.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 9.282 (9.284) seconds
+Veil diagnostic measurements: /tmp/veil-v4-diagnostics/measurements.json
+V4.3 composition measurements: /tmp/veil-v4-diagnostics/v43-composition.json
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: x86_64-apple-macos14.0
+✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

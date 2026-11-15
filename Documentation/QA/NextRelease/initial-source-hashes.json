@@ -1,0 +1,8 @@
+{
+  "scope": "Source of initial native PR attempt; baseline dirty tree preserved separately",
+  "files": {
+    "Sources/PhotoVeil/PhotoVeilHome.swift": "53de51a19bfe21c448214bc9a306ec68d4e8f51c90acddf95899c7a669e1ee03",
+    "Sources/PhotoVeil/ZoomablePhotoCanvas.swift": "bfc123c7aea612ff19d437473b5f0b8ff610d58b0ffcc4bb1b84a25386714cfb",
+    "Tests/PhotoVeilPRUITests/VeilPRSmokeTests.swift": "efb81f32790b31393d5eef005d983cde6a2ce075fd308b109044c76fca0942b9"
+  }
+}
