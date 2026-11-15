@@ -15,7 +15,8 @@ until approval/release. Description and What's New reflect one successful shared
 Save/Share export for new users and preserved recorded legacy two-export usage.
 Monthly/annual IDs, pricing, trials, purchase and Restore remain unchanged.
 [Deployed legal source](LegalSite/) preserves the existing provider/domain/headers;
-privacy, terms and support readback matched its deployed bytes.
+privacy, terms and support readback matched the deployment inputs. This retained
+source normalizes trailing whitespace only; public content is unchanged.
 
 [Final validation and actual UI evidence](../../QA/NextRelease/Final/STATUS.md).
 [Accepted comprehensive QA](../../QA/NextRelease/Beta/STATUS.md) reused per owner
