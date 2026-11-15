@@ -1,0 +1,46 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "x86_64",
+        "deviceId" : "995A38B2-A510-4791-93C3-6630BB588FDC",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23F77",
+        "osVersion" : "26.5",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 0,
+      "passedTests" : 102,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Default"
+      }
+    }
+  ],
+  "environmentDescription" : "VeilPR · Built with macOS 26.7",
+  "expectedFailures" : 0,
+  "failedTests" : 0,
+  "finishTime" : 1794757433.206,
+  "passedTests" : 102,
+  "result" : "Passed",
+  "skippedTests" : 0,
+  "startTime" : 1794757077.036,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+
+  ],
+  "title" : "Test - PhotoVeil",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "38% of duration",
+      "text" : "2 longest test runs with outlier durations exceeding 0.65s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 102
+}

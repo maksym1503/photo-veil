@@ -1,5 +1,12 @@
 # Vail 1.1 — final owner-review checkpoint
 
+> Historical checkpoint: superseded by [available1.1(8) internal beta](../Beta/STATUS.md).
+> Maksym subsequently approved all five designs, Quiet Lattice and new1/legacy2
+> migration. The dedicated Design configuration follow-up was explicitly waived
+> for this internal beta in favor of the completed independent visual review.
+> Earlier pending decisions below retain their original revision scope.
+
+
 2026-11-15 · branch `feature/vail-1-1` · no merge, upload, live listing replacement
 or publication. Production version/build and existing signing configuration remain
 unchanged. This is a reviewed development checkpoint, not release acceptance.

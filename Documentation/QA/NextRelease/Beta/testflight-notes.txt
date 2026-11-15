@@ -1,0 +1,11 @@
+Vail 1.1 (8)
+
+Move and resize automatically detected Faces, Plates and Documents. Check Undo, two-finger zoom/pan, independent regions, Documents Details/Entire Document, and exported placement.
+
+New installations get one successful free Save or Share. Previously recorded two-export allowances and usage are preserved. Failed/cancelled exports do not count. After exhaustion, Quiet Lattice marks the preview and Pro unlocks clean exports. Verify purchase/trial eligibility, Restore and relaunch; active Pro stays clean and unlimited.
+
+Update in place. Do not delete app history or reset Keychain to simulate a new user. An old installation without a surviving quota record receives one export. A free-export attempt can migrate the record even if cancelled; older 1.0 cannot read the migrated allowance, so returning to 1.0 may block free exports until a 1.1-compatible build is installed.
+
+Try metadata Remove/Keep, custom watermarks, Light/Dark, large text and VoiceOver. Use non-sensitive photos and review detection before sharing.
+
+Checklist: https://github.com/maksym1503/photo-veil/blob/feature/vail-1-1/Documentation/QA/NextRelease/Beta/OWNER_TEST_CHECKLIST.md

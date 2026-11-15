@@ -39,6 +39,20 @@ acceptance is the purpose of this internal beta; public-release/V4 gates remain.
 
 ## Current status
 
-Implementation reviewed independently; migration/test fixture findings resolved.
-Comprehensive native validation is in progress; upload has not yet occurred.
-See `Documentation/QA/NextRelease/Beta/` for final evidence and status.
+**Available:**1.1(8) is processed VALID / APP_STORE_ELIGIBLE and IN_BETA_TESTING
+in the existing internal group, membership unchanged. All comprehensive local
+QA, signed archive and exported-IPA checks passed. See the [final checkpoint](../QA/NextRelease/Beta/STATUS.md)
+for exact counts, actual review findings, CI limitations, install steps and migration caveats.
+
+## Distribution preflight references
+
+Existing Apple Distribution identity and matching App Store provisioning profile
+were verified through the established encrypted release keychain and existing
+recovery item; no key material or password was printed/exported. Preflight search
+list was unchanged and the dedicated keychain relocked. Archive/export will use
+temporary command-line signing overrides with search-list restoration in finally.
+Normal export explicitly sets `testFlightInternalTestingOnly=false` and disables
+Xcode automatic build-number changes. Apple upload requirements checked2026-11-15:
+[upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/)
+requires Xcode26+ for iOS; installed26.6 satisfies that build requirement. No
+archive or upload occurs until comprehensive release QA/resource checks pass.

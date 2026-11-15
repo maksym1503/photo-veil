@@ -1,0 +1,32 @@
+{
+  "appID": "6822230720",
+  "buildID": "10c35696-91a3-42b1-84dc-392aac8c9060",
+  "version": "1.1",
+  "buildNumber": "8",
+  "processingState": "VALID",
+  "buildAudienceType": "APP_STORE_ELIGIBLE",
+  "usesNonExemptEncryption": false,
+  "expired": false,
+  "uploadedDate": "2026-11-15T08:46:51-08:00",
+  "expirationDate": "2027-02-13T08:46:51-08:00",
+  "internalBuildState": "IN_BETA_TESTING",
+  "externalBuildState": "READY_FOR_BETA_SUBMISSION",
+  "group": {
+    "id": "8928356b-d0e7-4cdc-9ba4-48ce173822a6",
+    "name": "Veil 1.0 Internal Acceptance",
+    "type": "internal",
+    "membership": "explicit",
+    "hasAccessToAllBuilds": false
+  },
+  "existingTesterCount": 1,
+  "testerMembershipUnchanged": true,
+  "ownerInstallationServerSideAvailable": true,
+  "ownerInstalledThisBuildObserved": false,
+  "liveAppStoreVersion": "1.0",
+  "liveAppStoreState": "READY_FOR_SALE",
+  "publicReviewSubmitted": false,
+  "liveListingChanged": false,
+  "newTestersInvited": false,
+  "testNotesLocale": "en-US",
+  "normalAppStoreEligibleBuild": true
+}

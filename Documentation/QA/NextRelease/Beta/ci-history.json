@@ -12,5 +12,16 @@
   },
   "retryOldRun": false,
   "changeTimeouts": false,
-  "finalRun": "normal trigger after genuine cleanup; pending"
+  "finalRun": "normal trigger after genuine cleanup; pending",
+  "correctedCodeRun": {
+    "id": 43730904130,
+    "url": "https://github.com/maksym1503/photo-veil/actions/runs/43730904130",
+    "candidate": "2e4d3ee4d01d89796ef34279f977f0343b63ed49",
+    "repositorySecurity": "passed",
+    "backend": "passed",
+    "applePR": "cancelled at 20-minute job budget; 95 core and four UI passed, next UI incomplete",
+    "appleJobID": 132862879271,
+    "productFailureDemonstrated": false,
+    "isGreen": false
+  }
 }

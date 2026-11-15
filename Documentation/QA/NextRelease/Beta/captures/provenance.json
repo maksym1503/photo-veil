@@ -1,0 +1,38 @@
+[
+  {
+    "file": "dark-preview.png",
+    "attachment": "08DE194E-E463-41EC-ACC1-CEA6995ED0A9.png",
+    "result": "/tmp/vail11-beta-qa/final/dark-capture.xcresult",
+    "sha256": "0b0b1159c78025cb96628a0b900579e768bbe7bfc16c0d36f4f66337bfbc3b2e"
+  },
+  {
+    "file": "dark-plates.png",
+    "attachment": "2E593688-E3FE-44A8-A701-B60A6BE1F7BC.png",
+    "result": "/tmp/vail11-beta-qa/final/dark-capture.xcresult",
+    "sha256": "1fee6d5c0e9e72fb553ee216c06354153d82a7b02addcebc8965a32372cc6f02"
+  },
+  {
+    "file": "dark-documents-moved.png",
+    "attachment": "E1664806-590E-455A-B171-920A02C87C6B.png",
+    "result": "/tmp/vail11-beta-qa/final/dark-capture.xcresult",
+    "sha256": "e1465d0be152d8f8e77b0fe1c4be146223b9bb81fd39306ac38ab38916e4c572"
+  },
+  {
+    "file": "dark-documents-resized.png",
+    "attachment": "FDE7E298-D406-4B77-AABB-0F9A1002CCDF.png",
+    "result": "/tmp/vail11-beta-qa/final/dark-capture.xcresult",
+    "sha256": "e41817b9b51667e8aa415f8b4a2aeb430a5ce2f8fdac3e446fc1497f0fe8a2d6"
+  },
+  {
+    "file": "new-user-exhausted.png",
+    "attachment": "72F953D5-B2ED-49D7-A697-2D353F10BE2E.png",
+    "result": "/tmp/vail11-beta-qa/final/commerce.xcresult",
+    "sha256": "7b32702a273a30131fa8f1f87455c2408ae8f700ae7a13477923dee0778786c4"
+  },
+  {
+    "file": "legacy-share-exhausted.png",
+    "attachment": "471794F6-2E13-4470-A884-7A04E032A4DC.png",
+    "result": "/tmp/vail11-beta-qa/final/commerce.xcresult",
+    "sha256": "163d5098ed648bc56d5d1b235fe149895230953d89e7b45a79486930818f78bc"
+  }
+]

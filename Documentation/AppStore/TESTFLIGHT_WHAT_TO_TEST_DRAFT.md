@@ -11,8 +11,8 @@ paywall; verified Pro previews/exports stay clean and unlimited. Test purchase,
 trial eligibility, Restore and relaunch in TestFlight.
 
 Update in place and preserve existing photos/Keychain. Do not reset owner data to
-simulate a new user. A missing legacy record is indistinguishable from new. Quota
-v2 is not readable by old1.0, so returning to1.0 may block free exports until a
+simulate a new user. A missing legacy record is indistinguishable from new. A free-export attempt can migrate the record even if cancelled; the count is
+unchanged on cancellation. Quota v2 is not readable by old1.0, so returning to1.0 may block free exports until a
 v2-aware build is installed. Check Light/Dark, large text, VoiceOver and actual
 iPhone gesture feel. Detection can miss details; inspect the full image.
 

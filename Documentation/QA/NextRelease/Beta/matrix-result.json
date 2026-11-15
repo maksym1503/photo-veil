@@ -1,0 +1,63 @@
+{
+  "status": "PASS",
+  "scope": "153/153 across documented local compatibility matrix; not a single-runtime Integration pass",
+  "unique_cases": 153,
+  "provenance": {
+    "source_sha256": "48e5909576c70b334028ea8c48314bca443ec513dc6195fdcba62c3767a1b43c",
+    "build_sha256": "a5538dc6996f4c3e84bae8d986d6ae47171f8bf70d3db9ffbafbabe1c1f105f4"
+  },
+  "shards": [
+    {
+      "runtime": "26.1",
+      "passed": 9,
+      "bundle": "/tmp/vail11-beta-qa/final/matrix/26.1.xcresult",
+      "configurations": [
+        {
+          "device": {
+            "architecture": "x86_64",
+            "deviceId": "A9690442-69A8-4117-998B-0F31278091C7",
+            "deviceName": "Veil-CommerceNative-261",
+            "modelName": "iPhone 17 Pro",
+            "osBuildNumber": "23B86",
+            "osVersion": "26.1",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 9,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Default"
+          }
+        }
+      ]
+    },
+    {
+      "runtime": "26.5",
+      "passed": 144,
+      "bundle": "/tmp/vail11-beta-qa/final/matrix/26.5.xcresult",
+      "configurations": [
+        {
+          "device": {
+            "architecture": "x86_64",
+            "deviceId": "995A38B2-A510-4791-93C3-6630BB588FDC",
+            "deviceName": "iPhone 17 Pro",
+            "modelName": "iPhone 17 Pro",
+            "osBuildNumber": "23F77",
+            "osVersion": "26.5",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 144,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Default"
+          }
+        }
+      ]
+    }
+  ]
+}

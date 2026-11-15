@@ -38,7 +38,8 @@ Availability is confirmed separately in the final beta status. Once available:
 
 A legacy installation without a surviving record receives the new1-export policy.
 Quota is device-local, not account-synced; reinstall persistence is not guaranteed.
-After a v2 record is written, old1.0 cannot decode it and fails closed for free
+A free-export attempt writes v2 during admission, even if that attempt is later
+cancelled (without consuming usage). After v2 is written, old1.0 cannot decode it and fails closed for free
 exports. Returning to1.0 can therefore block free exports until a v2-aware build
 is installed; do not delete the quota to work around it. Save success and Keychain
 commit are not atomic across a process kill. Quiet Lattice reduces screenshot
