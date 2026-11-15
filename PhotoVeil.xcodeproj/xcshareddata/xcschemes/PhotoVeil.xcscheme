@@ -14,14 +14,14 @@
          <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForAnalyzing="NO" buildForArchiving="NO">
             <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="B348D4785EBDA98453BA5A03" BuildableName="PhotoVeilPRUITests.xctest" BlueprintName="PhotoVeilPRUITests" ReferencedContainer="container:PhotoVeil.xcodeproj" />
          </BuildActionEntry>
-      </BuildActionEntries>
+      <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForAnalyzing="NO" buildForArchiving="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="636D894987561FD7EE4C1A0C" BuildableName="PhotoVeilCommerceTests.xctest" BlueprintName="PhotoVeilCommerceTests" ReferencedContainer="container:PhotoVeil.xcodeproj" /></BuildActionEntry></BuildActionEntries>
    </BuildAction>
    <TestAction buildConfiguration="Debug">
       <TestPlans>
          <TestPlanReference reference="container:VeilPR.xctestplan" default="YES" />
          <TestPlanReference reference="container:VeilIntegration.xctestplan" />
          <TestPlanReference reference="container:VeilDevice.xctestplan" />
-      </TestPlans>
+      <TestPlanReference reference="container:VeilCommerce.xctestplan" /></TestPlans>
    </TestAction>
    <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Debugger" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES">
       <BuildableProductRunnable runnableDebuggingMode="0">

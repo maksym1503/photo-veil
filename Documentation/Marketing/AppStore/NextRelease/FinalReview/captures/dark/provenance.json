@@ -1,0 +1,62 @@
+{
+  "result": "/tmp/vail-final-capture-dark-fixed.xcresult",
+  "appearance": "simctl ui appearance dark; visually confirmed; restored light",
+  "captures": [
+    {
+      "file": "accessibility-frames.txt",
+      "attachment": "6A0A8331-8396-4B3A-955F-6B02B26F6DAD.txt"
+    },
+    {
+      "file": "preview-dark.png",
+      "attachment": "0DA1EB2F-AEB3-4FB0-87DB-978246DEF96D.png"
+    },
+    {
+      "file": "preview-light.png",
+      "attachment": "E6CF0353-CC26-4F6F-862D-EC7F133BE094.png"
+    },
+    {
+      "file": "gallery-clean.png",
+      "attachment": "F6DDD1E6-A355-4AAD-8D97-901D4F05A13B.png"
+    },
+    {
+      "file": "05-share-after.png",
+      "attachment": "D33F9F38-03B3-4530-A9F7-BA79448870F8.png"
+    },
+    {
+      "file": "04-documents-before.png",
+      "attachment": "CBF46892-AAC7-4BE2-B6A5-876CF08C4157.png"
+    },
+    {
+      "file": "04-documents-after.png",
+      "attachment": "4898F174-5822-4429-B767-B343C3686939.png"
+    },
+    {
+      "file": "04-documents-moved.png",
+      "attachment": "1B6E36AD-5C4E-4AD2-BDA6-9223B36692A6.png"
+    },
+    {
+      "file": "04-documents-detected.png",
+      "attachment": "2B855464-F30B-465D-8184-C5A251383DFB.png"
+    },
+    {
+      "file": "03-location-after.png",
+      "attachment": "E7A2AAF7-A598-40CC-BC68-48D608C1624F.png"
+    },
+    {
+      "file": "02-plates-before.png",
+      "attachment": "11B5A45C-A868-4146-82C1-9C009F2070A9.png"
+    },
+    {
+      "file": "02-plates-after.png",
+      "attachment": "2588F64C-B52C-47B7-9D4D-7C0991CD58EC.png"
+    },
+    {
+      "file": "01-faces-before.png",
+      "attachment": "6572FB05-B904-4685-A7EE-4A63E38313FA.png"
+    },
+    {
+      "file": "01-faces-after.png",
+      "attachment": "A6520977-99B2-4DCE-A9C0-EB723B001F43.png"
+    }
+  ]
+}

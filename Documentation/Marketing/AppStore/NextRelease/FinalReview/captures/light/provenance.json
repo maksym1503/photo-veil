@@ -1,0 +1,62 @@
+{
+  "result": "/tmp/vail-final-capture-light-fixed.xcresult",
+  "appearance_method": "simctl ui destination appearance light; verified by actual screenshot review",
+  "captures": [
+    {
+      "file": "accessibility-frames.txt",
+      "native_attachment": "B77726D0-983D-4B02-B4D7-EC1F0CCFE939.txt"
+    },
+    {
+      "file": "preview-dark.png",
+      "native_attachment": "6AF4228F-1421-41FA-8B6A-C04DC17BA026.png"
+    },
+    {
+      "file": "preview-light.png",
+      "native_attachment": "7B202467-D298-4A80-8A60-1E16145F1A3D.png"
+    },
+    {
+      "file": "gallery-clean.png",
+      "native_attachment": "F6549F4C-6CDE-4E8A-B96A-087B1C4A20A8.png"
+    },
+    {
+      "file": "05-share-after.png",
+      "native_attachment": "032B2C27-4B61-49CD-BF69-6C27BA64C60D.png"
+    },
+    {
+      "file": "04-documents-before.png",
+      "native_attachment": "ECDE6210-CC47-42DC-8756-54D80A22A4F2.png"
+    },
+    {
+      "file": "04-documents-after.png",
+      "native_attachment": "B9B26725-32AF-4A5B-B47E-A6916FD97B25.png"
+    },
+    {
+      "file": "04-documents-moved.png",
+      "native_attachment": "B2B30508-5D1A-428C-A817-38707EA1DBB3.png"
+    },
+    {
+      "file": "04-documents-detected.png",
+      "native_attachment": "AA121E07-1E59-41AF-B25A-1B7A4376EC1A.png"
+    },
+    {
+      "file": "03-location-after.png",
+      "native_attachment": "C6B41634-56CD-4D51-8D18-279C0A246A35.png"
+    },
+    {
+      "file": "02-plates-before.png",
+      "native_attachment": "5D25A2A8-96C6-40A9-994F-706448E8908A.png"
+    },
+    {
+      "file": "02-plates-after.png",
+      "native_attachment": "DBE3163F-B1CF-4330-8683-7EE71A5D9A77.png"
+    },
+    {
+      "file": "01-faces-before.png",
+      "native_attachment": "3CB2A4F4-AD01-46F0-A8FD-0A885471594D.png"
+    },
+    {
+      "file": "01-faces-after.png",
+      "native_attachment": "E14819A5-B097-4ADD-AB7C-B0A475FED4B6.png"
+    }
+  ]
+}

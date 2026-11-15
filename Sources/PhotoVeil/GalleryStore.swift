@@ -12,6 +12,8 @@ struct GalleryItem: Codable, Identifiable, Equatable, Sendable {
     let byteCount: Int
     var cloudUserID: UUID?
     var uploaded: Bool
+    var metadataPolicy: PhotoMetadataPolicy? = nil
+    var effectiveMetadataPolicy: PhotoMetadataPolicy { metadataPolicy ?? .remove }
     // Optional for backward-compatible decoding of earlier version-1 local indexes.
     var retainsLocalAfterCloudDeletion: Bool? = nil
 }
@@ -64,24 +66,30 @@ actor GalleryStore {
     }
 
     @discardableResult func save(processed data: Data, effect: String, id: UUID = UUID(), createdAt: Date = Date(),
+                                cloudUserID: UUID? = nil, uploaded: Bool = false,
+                                metadataPolicy: PhotoMetadataPolicy = .remove) throws -> GalleryItem {
+        try save(photo: PhotoExport.processing(data, policy: metadataPolicy), effect: effect, id: id, createdAt: createdAt,
+                 cloudUserID: cloudUserID, uploaded: uploaded)
+    }
+
+    @discardableResult func save(photo: PhotoExport, effect: String, id: UUID = UUID(), createdAt: Date = Date(),
                                 cloudUserID: UUID? = nil, uploaded: Bool = false) throws -> GalleryItem {
+        let data = photo.data
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
               let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true,
                   kCGImageSourceThumbnailMaxPixelSize: 384, kCGImageSourceCreateThumbnailWithTransform: true] as CFDictionary)
         else { throw StoreError.invalidImage }
-        let thumbData = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(thumbData, "public.jpeg" as CFString, 1, nil) else { throw StoreError.invalidImage }
-        CGImageDestinationAddImage(destination, thumb, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
-        guard CGImageDestinationFinalize(destination) else { throw StoreError.invalidImage }
+        let retainedMetadata: SourcePhotoMetadata? = photo.metadataPolicy == .keep ? try SourcePhotoMetadata.capture(data) : nil
+        let thumbData = try PhotoExport.encode(thumb, policy: photo.metadataPolicy, metadata: retainedMetadata, quality: 0.8).data
         if let existing = index.items.first(where: { $0.id == id }) { return existing }
         let folder = root.appendingPathComponent(id.uuidString, isDirectory: true)
         try Self.directory(folder)
         do {
             try Self.write(data, to: folder.appendingPathComponent("processed.jpg"))
-            try Self.write(thumbData as Data, to: folder.appendingPathComponent("thumbnail.jpg"))
-            let item = GalleryItem(id: id, createdAt: createdAt, updatedAt: createdAt, width: image.width, height: image.height,
-                                   effect: effect, byteCount: data.count + thumbData.length, cloudUserID: cloudUserID, uploaded: uploaded)
+            try Self.write(thumbData, to: folder.appendingPathComponent("thumbnail.jpg"))
+            let item = GalleryItem(id: id, createdAt: createdAt, updatedAt: createdAt, width: photo.width, height: photo.height,
+                                   effect: effect, byteCount: data.count + thumbData.count, cloudUserID: cloudUserID, uploaded: uploaded,
+                                   metadataPolicy: photo.metadataPolicy)
             var next = index; next.items.append(item)
             try persist(next)
             return item
@@ -91,6 +99,12 @@ actor GalleryStore {
     func data(for id: UUID, thumbnail: Bool = false) throws -> Data {
         guard index.items.contains(where: { $0.id == id }) else { throw StoreError.missingItem }
         return try Data(contentsOf: root.appendingPathComponent(id.uuidString).appendingPathComponent(thumbnail ? "thumbnail.jpg" : "processed.jpg"))
+    }
+    /// Reconstruct outgoing legacy copies without mutating protected history.
+    func exportPhoto(for id: UUID, thumbnail: Bool = false) throws -> PhotoExport {
+        guard let item = index.items.first(where: { $0.id == id }) else { throw StoreError.missingItem }
+        return try PhotoExport.processing(data(for: id, thumbnail: thumbnail), policy: item.effectiveMetadataPolicy,
+                                          quality: thumbnail ? 0.8 : 0.98)
     }
     func delete(_ ids: Set<UUID>, propagate: Bool = true) throws {
         var next = index

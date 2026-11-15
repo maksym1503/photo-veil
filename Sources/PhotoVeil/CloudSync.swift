@@ -11,10 +11,13 @@ struct CloudGalleryItem: Codable, Equatable, Sendable {
     let processedPath: String
     let thumbnailPath: String
     let deletedAt: Date?
+    var metadataPolicy: PhotoMetadataPolicy? = nil
+    var effectiveMetadataPolicy: PhotoMetadataPolicy { metadataPolicy ?? .remove }
     enum CodingKeys: String, CodingKey {
         case id, width, height, effect
         case userID = "user_id", createdAt = "created_at", updatedAt = "updated_at"
         case processedPath = "processed_path", thumbnailPath = "thumbnail_path", deletedAt = "deleted_at"
+        case metadataPolicy = "metadata_policy"
     }
     static func path(user: UUID, item: UUID, thumbnail: Bool = false) -> String {
         "\(user.uuidString.lowercased())/\(item.uuidString.lowercased())/\(thumbnail ? "thumbnail" : "processed").jpg"
@@ -56,19 +59,22 @@ enum CloudSync {
         for item in await store.items() where !item.uploaded && item.retainsLocalAfterCloudDeletion != true && (item.cloudUserID == nil || item.cloudUserID == user) && !deleted.contains(item.id) {
             try await check()
             try await store.bind(item.id, to: user)
-            let processed = try await store.data(for: item.id), thumbnail = try await store.data(for: item.id, thumbnail: true)
+            let processed = try await store.exportPhoto(for: item.id), thumbnail = try await store.exportPhoto(for: item.id, thumbnail: true)
             let record = CloudGalleryItem(id: item.id, userID: user, createdAt: item.createdAt, updatedAt: item.updatedAt,
-                                          width: item.width, height: item.height, effect: item.effect,
+                                          width: processed.width, height: processed.height, effect: item.effect,
                                           processedPath: CloudGalleryItem.path(user: user, item: item.id),
-                                          thumbnailPath: CloudGalleryItem.path(user: user, item: item.id, thumbnail: true), deletedAt: nil)
-            try await cloud.upload(record, processed: processed, thumbnail: thumbnail)
+                                          thumbnailPath: CloudGalleryItem.path(user: user, item: item.id, thumbnail: true), deletedAt: nil,
+                                          metadataPolicy: item.effectiveMetadataPolicy)
+            try await check()
+            try await cloud.upload(record, processed: processed.data, thumbnail: thumbnail.data)
             try await check(); try await store.markUploaded(item.id, for: user)
         }
         let localIDs = Set(await store.items().map(\.id))
         let pendingIDs = Set(await store.tombstones(for: user).map(\.id))
         for item in remote where item.deletedAt == nil && !localIDs.contains(item.id) && !pendingIDs.contains(item.id) {
             try await check(); let data = try await cloud.download(item); try await check()
-            try await store.save(processed: data, effect: item.effect, id: item.id, createdAt: item.createdAt, cloudUserID: user, uploaded: true)
+            try await store.save(processed: data, effect: item.effect, id: item.id, createdAt: item.createdAt,
+                                 cloudUserID: user, uploaded: true, metadataPolicy: item.effectiveMetadataPolicy)
         }
     }
 }

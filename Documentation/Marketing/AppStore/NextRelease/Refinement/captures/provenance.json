@@ -1,0 +1,62 @@
+{
+  "result": "/tmp/vail-refine-capture.xcresult",
+  "test": "PhotoVeilUITests/testRefinedEditorialAndPreviewJourney",
+  "analyzer": "Production Vision; synthetic photos; no quota/entitlement injection",
+  "attachments": [
+    {
+      "file": "preview-dark.png",
+      "attachment": "C33841E0-4ADA-44B1-A7FE-B5811B1752EE.png",
+      "native_name": "refined-preview-dark_0_00655C78-5F75-48E2-81E1-DB202117F22B.png"
+    },
+    {
+      "file": "preview-light.png",
+      "attachment": "81EA09F9-B109-45BC-8B1B-09F1D67063F4.png",
+      "native_name": "refined-preview-light_0_7A6089B1-C420-4E48-AFB3-323070290566.png"
+    },
+    {
+      "file": "gallery-clean.png",
+      "attachment": "C375B7A6-ECDA-478D-9EDE-1172948F62C7.png",
+      "native_name": "refined-gallery-clean_0_45B650A1-48FD-40DA-8FC5-4903AD83B441.png"
+    },
+    {
+      "file": "05-share-after.png",
+      "attachment": "FED564FB-1269-43C8-AC4E-C5BD83C00F99.png",
+      "native_name": "refined-05-share-after_0_CA8A0098-03B7-4F67-AFD9-9890105A0048.png"
+    },
+    {
+      "file": "04-manual-before.png",
+      "attachment": "A3FB7FF4-9841-4543-9F11-6A3CDBA5FEF5.png",
+      "native_name": "refined-04-manual-before_0_D7333C53-8771-4A52-BAC2-01A06ADD6937.png"
+    },
+    {
+      "file": "04-manual-after.png",
+      "attachment": "5A08E74E-5F96-4BBB-9FBD-012C53A99CEC.png",
+      "native_name": "refined-04-manual-after_0_8826104E-2B7D-42D9-B882-66CE3EC0C1FF.png"
+    },
+    {
+      "file": "03-location-after.png",
+      "attachment": "EC3D9275-E10C-47D1-8ED6-0E0EBABDF383.png",
+      "native_name": "refined-03-location-after_0_B81F8900-2441-41F8-A6C4-50CCF9C7CE74.png"
+    },
+    {
+      "file": "02-plates-before.png",
+      "attachment": "2CDC9FB1-6D63-44BE-ABC1-88960B285717.png",
+      "native_name": "refined-02-plates-before_0_ABBE980A-FE4D-472E-AAC7-882CB4526801.png"
+    },
+    {
+      "file": "02-plates-after.png",
+      "attachment": "C52BD734-0C9C-4656-8E88-6B799312FC0D.png",
+      "native_name": "refined-02-plates-after_0_84B70219-8282-40FB-B89B-711F363A6BAE.png"
+    },
+    {
+      "file": "01-faces-before.png",
+      "attachment": "31157387-D4D3-42D3-A2D4-9A631962006E.png",
+      "native_name": "refined-01-faces-before_0_EA24503F-FF31-44DE-B142-4B74B2782C88.png"
+    },
+    {
+      "file": "01-faces-after.png",
+      "attachment": "6E0017B5-FC52-462B-9588-CEF33E03FD91.png",
+      "native_name": "refined-01-faces-after_0_DBA26F76-19BE-443F-B214-BED035D7D655.png"
+    }
+  ]
+}

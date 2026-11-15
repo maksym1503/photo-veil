@@ -1,0 +1,145 @@
+{
+  "status": "Refined candidates awaiting final owner approval; no live assets replaced",
+  "tool": "Built-in imagegen for photo sources; native UI capture; AppKit composition",
+  "capture_provenance": "captures/provenance.json",
+  "asset_audit": "asset-audit.json",
+  "review_evidence": "../../../../QA/NextRelease/Refinement/STATUS.md",
+  "source_prompts": "source/prompts.md",
+  "assets": {
+    "README.md": {
+      "sha256": "31345e01f1e572e6c06174945263c7f70f37cd086501cddd84bac2e95b701735"
+    },
+    "captures/01-faces-after.png": {
+      "sha256": "52c1178e75f558a7906e1b00b9c19562e2c907acfb851dab62137b480e5d8518",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/01-faces-before.png": {
+      "sha256": "35c3f9919d036f51b2357bf202fa6999f46785bf4491327f445c44cf8c25b32c",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/02-plates-after.png": {
+      "sha256": "9f16c621dfa47f9fa9e469750749e2775829f84cf7b92ac6cbc8924383f7c850",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/02-plates-before.png": {
+      "sha256": "4027336ceb06649234a83184163e3720c67856884ae1e961f99b3e60a3bf8412",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/03-location-after.png": {
+      "sha256": "188e0f6e4670666a758973f32247a2c0275351eaad1df15995534aa478508326",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/04-manual-after.png": {
+      "sha256": "2c5c9452794df545e6ea9ff7bf855970d611bdef1e011992c751e1e193f97837",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/04-manual-before.png": {
+      "sha256": "06cb8dee9cf6366cbd8788e83f71576c795d647e9f945b4e75b4846398ab8269",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/05-share-after.png": {
+      "sha256": "95b9d83c6540e4e6ae6f9e0daa1851f752e2fe4ab82e025a7d017628c1fd785b",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/gallery-clean.png": {
+      "sha256": "8398ce42d2e220b486f2d551ca13ceee4c809cfcd2fae96dde5ea8510b063b1c",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/preview-dark.png": {
+      "sha256": "52b7c62d293f39335dea5922e884d92faad33938ba30cb631ce6b34fb13ea8a0",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/preview-light.png": {
+      "sha256": "3fe368f5c9afa07a154c4ea7bc6343ab50c422a6eb16ae7126214ce8be799a56",
+      "width": 1206,
+      "height": 2622
+    },
+    "editorial-calm/01-faces.jpg": {
+      "sha256": "61e9e2ab912f7d7538faefae625a7ffe45916d882eae399fa33355a9b05acf96",
+      "width": 1320,
+      "height": 2868,
+      "color": "RGB",
+      "alpha": false
+    },
+    "editorial-calm/02-plates.jpg": {
+      "sha256": "51fd2dfed0bdccc8c9924b0e3f74cb7e9d7faecd0639d59168c0302c9fb1d4bc",
+      "width": 1320,
+      "height": 2868,
+      "color": "RGB",
+      "alpha": false
+    },
+    "editorial-calm/03-location.jpg": {
+      "sha256": "c2ccb9d5876257f51dc1c1b3d5a8eb6045dc82efa48b2c61dcbf548d6c32fdca",
+      "width": 1320,
+      "height": 2868,
+      "color": "RGB",
+      "alpha": false
+    },
+    "editorial-calm/04-manual.jpg": {
+      "sha256": "8ee2ca4a7e6a3cc354e994bac15e75d7b110bd5041640d4a7b2fb275233b3b84",
+      "width": 1320,
+      "height": 2868,
+      "color": "RGB",
+      "alpha": false
+    },
+    "editorial-calm/05-share.jpg": {
+      "sha256": "56fe23f987e9fea61e166d5fd7d1a379fde8de2a4982608382099a14bdc60159",
+      "width": 1320,
+      "height": 2868,
+      "color": "RGB",
+      "alpha": false
+    },
+    "editorial-contact-sheet.png": {
+      "sha256": "e957d06761de9f52e929d118d0e336cfeddc9848479212b23707e8a29846d56f",
+      "width": 2400,
+      "height": 1240
+    },
+    "quiet-lattice-contact-sheet.png": {
+      "sha256": "7f652bc832f31b6164780815e0be4cd945eb59ce62c14f74541894bb145a9a95",
+      "width": 1400,
+      "height": 1690
+    },
+    "source/audit_assets.swift": {
+      "sha256": "a1cb06abb91bc797c8ec7cd9fc77ff6f8c5fea3f00ccb570707615c2ec9108b0"
+    },
+    "source/cafe.png": {
+      "sha256": "17f094f2e668187c7bc27c09dc14c311d51731a94edc7731fda64b02cb0c2233",
+      "width": 1122,
+      "height": 1402
+    },
+    "source/card.png": {
+      "sha256": "d974eded49bc21c97bea6dc9d086721709be51ff787941bd66cc2f6e79a49ac2",
+      "width": 1122,
+      "height": 1402
+    },
+    "source/coast.png": {
+      "sha256": "cce741a18d64aafd86f37fe25a93e6d1f2f891d1d463d8e9cf25ee2cd6fe52e3",
+      "width": 1122,
+      "height": 1402
+    },
+    "source/night.png": {
+      "sha256": "9fe5e1eacf10b73153b62023515707d9d10f1a703f83768c822d02e41e66452b",
+      "width": 1122,
+      "height": 1402
+    },
+    "source/prepare_fixtures.swift": {
+      "sha256": "ddf4eb0af5f2ad406a8518317eac1b8c1effd2b06e8d1c5d3b6e672a1880006a"
+    },
+    "source/prompts.md": {
+      "sha256": "28d0b003745419384ffcea2a330f831a197b91182c36b4341f19f5d2f7b410e0"
+    },
+    "source/render_refinement.swift": {
+      "sha256": "8fc32a738233df5f410a17e3ec4f8b07dc66b0c6dd25aa6f33cb45577d96985c"
+    }
+  }
+}

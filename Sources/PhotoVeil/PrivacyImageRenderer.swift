@@ -76,13 +76,29 @@ struct PrivacyRenderLayer: Equatable {
 /// Serialize previews; cancelled queued requests never start expensive image evaluation.
 /// Export remains independent and always renders the complete requested snapshot.
 actor PrivacyPreviewRenderer {
-    private let renderImage: (CGImage, [PrivacyRenderLayer]) -> CGImage?
-    init(renderImage: @escaping (CGImage, [PrivacyRenderLayer]) -> CGImage? = {
-        PrivacyImageRenderer.render(source: $0, layers: $1)
-    }) { self.renderImage = renderImage }
-    func render(source: CGImage, layers: [PrivacyRenderLayer]) -> CGImage? {
+    private let renderImage: (CGImage, [PrivacyRenderLayer], PhotoWatermark?) -> CGImage?
+
+    init() {
+        renderImage = { PrivacyImageRenderer.render(source: $0, layers: $1, watermark: $2) }
+    }
+
+    /// Existing injected privacy-only renderers remain supported. If a watermark is
+    /// requested, it is composed over their processed result instead of being dropped.
+    init(renderImage: @escaping (CGImage, [PrivacyRenderLayer]) -> CGImage?) {
+        self.renderImage = { source, layers, watermark in
+            guard let output = renderImage(source, layers) else { return nil }
+            guard let watermark else { return output }
+            return PrivacyImageRenderer.composite(watermark: watermark, over: output)
+        }
+    }
+
+    init(renderImageWithWatermark: @escaping (CGImage, [PrivacyRenderLayer], PhotoWatermark?) -> CGImage?) {
+        renderImage = renderImageWithWatermark
+    }
+
+    func render(source: CGImage, layers: [PrivacyRenderLayer], watermark: PhotoWatermark? = nil) -> CGImage? {
         guard !Task.isCancelled else { return nil }
-        let output = renderImage(source, layers)
+        let output = renderImage(source, layers, watermark)
         return Task.isCancelled ? nil : output
     }
 }
@@ -109,7 +125,7 @@ enum PrivacyImageRenderer {
     /// category order (Background, Faces, Plates, Documents, Manual). Every stage filters and
     /// blends the accumulated image, never the original: a new mask cannot restore source pixels.
     /// Build one CI graph and materialize it once, shared by preview and every export destination.
-    static func render(source: CGImage, layers: [PrivacyRenderLayer]) -> CGImage? {
+    static func render(source: CGImage, layers: [PrivacyRenderLayer], watermark: PhotoWatermark? = nil) -> CGImage? {
         let active = layers.enumerated().filter {
             $0.element.foregroundMask != nil || !$0.element.regions.isEmpty || !$0.element.strokes.isEmpty
         }.sorted {
@@ -120,14 +136,40 @@ enum PrivacyImageRenderer {
             }
             return $0.offset < $1.offset
         }
-        guard !active.isEmpty else { return source }
         var accumulated = CIImage(cgImage: source)
         let extent = accumulated.extent
         for (_, layer) in active {
             guard let output = apply(layer, to: accumulated, extent: extent) else { return nil }
             accumulated = output
         }
+        if let watermark, !watermark.isBlank {
+            guard WatermarkRenderer.isValid(watermark, imageSize: extent.size),
+                  let layout = WatermarkRenderer.layout(for: watermark, imageSize: extent.size),
+                  let tile = WatermarkRenderer.tile(for: watermark, layout: layout) else { return nil }
+            let centers = WatermarkRenderer.placementCenters(for: layout, repeated: watermark.repeated, imageSize: extent.size)
+            guard !centers.isEmpty else { return nil }
+            let tileImage = CIImage(cgImage: tile).transformed(
+                by: CGAffineTransform(scaleX: 1 / layout.rasterScale, y: 1 / layout.rasterScale))
+                .cropped(to: CGRect(origin: .zero, size: layout.tileSize))
+            for center in centers {
+                let tileRect = CGRect(x: center.x - layout.tileSize.width / 2,
+                                      y: extent.height - center.y - layout.tileSize.height / 2,
+                                      width: layout.tileSize.width, height: layout.tileSize.height)
+                let placed = tileImage.transformed(by: CGAffineTransform(translationX: tileRect.minX, y: tileRect.minY))
+                let rotated = WatermarkRenderer.rotated(placed,
+                    degreesClockwise: watermark.rotation,
+                    center: CGPoint(x: center.x, y: extent.height - center.y))
+                accumulated = rotated.composited(over: accumulated).cropped(to: extent)
+            }
+        }
+        guard !active.isEmpty || (watermark.map { !$0.isBlank } ?? false) else { return source }
         return context.createCGImage(accumulated, from: extent)
+    }
+
+    /// Compatibility path for caller-supplied two-argument preview closures.
+    /// Production rendering uses the shared graph above, so it materializes once.
+    static func composite(watermark: PhotoWatermark, over image: CGImage) -> CGImage? {
+        render(source: image, layers: [], watermark: watermark)
     }
 
     private static func apply(_ layer: PrivacyRenderLayer, to accumulated: CIImage, extent: CGRect) -> CIImage? {

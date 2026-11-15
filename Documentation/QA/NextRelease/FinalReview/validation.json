@@ -1,0 +1,81 @@
+{
+  "date": "2026-11-15",
+  "branch": "feature/vail-1-1",
+  "productionFilesChanged": [
+    "CommercePolicy.swift",
+    "PhotoVeilHome.swift",
+    "VeilGallery.swift",
+    "VeilPresentation.swift"
+  ],
+  "nativeResults": {
+    "captures": {
+      "result": "Failed",
+      "totalTestCount": 2,
+      "passedTests": 0,
+      "failedTests": 2,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "pr": {
+      "result": "Passed",
+      "totalTestCount": 100,
+      "passedTests": 100,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "capture-dark-fixed": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "commerce": {
+      "result": "Passed",
+      "totalTestCount": 27,
+      "passedTests": 27,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "capture-light-fixed": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    },
+    "pr-accessibility": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "expectedFailures": 0
+    }
+  },
+  "swiftPM": {
+    "passed": 41,
+    "failed": 0,
+    "suites": {
+      "CommerceTests": 14,
+      "PrivacyImageRendererTests": 18,
+      "WatermarkTests": 9
+    }
+  },
+  "release": {
+    "unsignedSimulatorBuild": "passed",
+    "resourceGuard": "passed",
+    "log": "/tmp/vail-final-release.log",
+    "binarySHA256": "e8193da7af6eb70f764e3ca3e6e38b107bfb6aaee511a853e98cfdc702cacbe0"
+  },
+  "inventoryMethods": 159,
+  "migrationImplemented": false,
+  "freeExportLimit": 2,
+  "dedicatedDesignAgentAvailable": false,
+  "blockingFinalReviewerFindings": 0,
+  "releaseAuthorized": false
+}

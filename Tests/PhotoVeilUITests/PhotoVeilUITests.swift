@@ -1,6 +1,200 @@
 import XCTest
 
 final class PhotoVeilUITests: XCTestCase {
+    /// All photos are fictional; analysis, controls, renders and saves are the real app.
+    @MainActor func testRefinedEditorialAndPreviewJourney() { captureFinalEditorialJourney(appearance: "Light") }
+    @MainActor func testRefinedEditorialDarkAppearanceJourney() { captureFinalEditorialJourney(appearance: "Dark") }
+
+    @MainActor private func captureFinalEditorialJourney(appearance: String) {
+        let app = XCUIApplication()
+        let scope = UUID().uuidString
+        func load(_ fixture: String, mode: String) {
+            app.terminate()
+            app.launchArguments = ["-veil-ui-testing", "-veil-fixture", fixture, "-veil-mode", mode, "-veil-test-storage-id", scope, "-veil-legacy-usage", "0", "-AppleInterfaceStyle", appearance]
+            app.launch(); waitForRender(app, timeout: 120)
+        }
+        func capture(_ name: String) { attach(app, "final-" + appearance.lowercased() + "-" + name) }
+        func save() {
+            app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+            XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 20))
+            app.buttons["dismissSaveNotice"].tap()
+        }
+        func rectValue(_ element: XCUIElement) -> [Double] {
+            let values = (element.value as? String ?? "").split(separator: ",").compactMap { Double($0) }
+            XCTAssertEqual(values.count, 4, "Selected detected region must expose normalized geometry")
+            return values
+        }
+        func move(_ region: XCUIElement) {
+            let before = rectValue(region)
+            let from = region.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            from.press(forDuration: 0.1, thenDragTo: from.withOffset(CGVector(dx: -14, dy: -8)))
+            waitForRender(app)
+            let after = rectValue(region)
+            XCTAssertNotEqual(Array(after.prefix(2)), Array(before.prefix(2)), "Move must change the detected region origin")
+            XCTAssertEqual(Array(after.suffix(2)), Array(before.suffix(2)), "Move must preserve detected region dimensions")
+        }
+        func resize(_ region: XCUIElement) {
+            let before = rectValue(region)
+            let from = region.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 1))
+            from.press(forDuration: 0.1, thenDragTo: from.withOffset(CGVector(dx: 30, dy: 20)))
+            waitForRender(app)
+            let after = rectValue(region)
+            XCTAssertEqual(Array(after.prefix(2)), Array(before.prefix(2)), "Resize must preserve detected region origin")
+            XCTAssertNotEqual(Array(after.suffix(2)), Array(before.suffix(2)), "Resize must change detected region dimensions")
+        }
+        load("marketing-cafe", mode: "faces")
+        XCTAssertTrue(app.buttons["face_1"].exists)
+        capture("01-faces-after")
+        app.buttons["originalToggle"].tap(); capture("01-faces-before"); app.buttons["originalToggle"].tap()
+        load("two-people-car", mode: "plate")
+        XCTAssertTrue(app.buttons["plate_0"].exists)
+        app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
+        app.scrollViews["photoCanvas"].pinch(withScale: 1.8, velocity: 1)
+        waitForRender(app)
+        capture("02-plates-after")
+        app.buttons["originalToggle"].tap(); capture("02-plates-before"); app.buttons["originalToggle"].tap()
+        load("marketing-coast", mode: "manual")
+        app.buttons["pillar_metadata"].tap(); app.buttons["metadataRemove"].tap()
+        XCTAssertTrue(app.buttons["metadataRemove"].isSelected)
+        capture("03-location-after")
+        load("marketing-card", mode: "documents")
+        let detected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "document_")).allElementsBoundByIndex
+        XCTAssertFalse(detected.isEmpty, "Real Vision must detect the photographed document; no manual fallback")
+        guard let target = detected.min(by: { a, b in
+            let ar = rectValue(a), br = rectValue(b)
+            guard ar.count == 4, br.count == 4 else { return false }
+            return abs(ar[1] + ar[3] / 2 - 0.475) < abs(br[1] + br[3] / 2 - 0.475)
+        }) else { return }
+        let targetID = target.identifier
+        app.buttons["documentCoverage"].tap(); app.buttons["Clear All"].tap(); waitForRender(app)
+        let region = app.buttons[targetID]; region.tap(); waitForRender(app)
+        app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
+        let initialRect = rectValue(region)
+        let initialPixels = app.otherElements["processingComplete"].value as? String
+        capture("04-documents-detected")
+        move(region)
+        XCTAssertNotEqual(rectValue(region), initialRect)
+        capture("04-documents-moved")
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertEqual(rectValue(region), initialRect)
+        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, initialPixels)
+        move(region); let movedRect = rectValue(region)
+        resize(region); XCTAssertNotEqual(rectValue(region), movedRect)
+        app.buttons["Undo"].tap(); waitForRender(app); XCTAssertEqual(rectValue(region), movedRect)
+        resize(region)
+        XCTAssertTrue((app.otherElements["analysisCounts"].value as? String ?? "").contains("documents=1"))
+        XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String ?? "").contains("documents=1,rectangles=0,strokes=0"))
+        capture("04-documents-after")
+        app.buttons["originalToggle"].tap(); capture("04-documents-before"); app.buttons["originalToggle"].tap()
+        load("two-faces", mode: "faces")
+        XCTAssertTrue(app.buttons["face_1"].exists)
+        app.buttons["finalPreview"].tap(); capture("05-share-after")
+        // Consume actual successful exports; no quota or entitlement fixture override.
+        save()
+        app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
+        let item = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 10)); item.tap()
+        let galleryPhoto = app.descendants(matching: .any).matching(identifier: "galleryProcessedPhoto").firstMatch
+        XCTAssertTrue(galleryPhoto.waitForExistence(timeout: 10))
+        capture("gallery-clean")
+        load("two-faces", mode: "faces"); app.buttons["finalPreview"].tap(); save()
+        let mark = app.descendants(matching: .any).matching(identifier: "premiumPreviewWatermark").firstMatch
+        XCTAssertTrue(mark.waitForExistence(timeout: 10))
+        load("marketing-cafe", mode: "faces")
+        XCTAssertTrue(mark.waitForExistence(timeout: 10)); capture("preview-light")
+        load("marketing-night", mode: "faces")
+        XCTAssertTrue(app.buttons["face_1"].exists)
+        XCTAssertTrue(mark.waitForExistence(timeout: 10)); capture("preview-dark")
+        let unlock = app.buttons["unlockCleanExports"]
+        XCTAssertTrue(unlock.exists); XCTAssertTrue(unlock.isHittable)
+        XCTAssertGreaterThanOrEqual(unlock.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(unlock.frame.height, 44)
+        let frames = ["appearance": appearance, "unlockWidth": String(Double(unlock.frame.width)), "unlockHeight": String(Double(unlock.frame.height)), "unlockHittable": String(unlock.isHittable)]
+        let frameEvidence = XCTAttachment(string: frames.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: "\n"))
+        frameEvidence.name = "final-" + appearance.lowercased() + "-accessibility-frames"
+        frameEvidence.lifetime = .keepAlways; add(frameEvidence)
+        unlock.tap()
+        XCTAssertTrue(app.buttons["subscriptionRestore"].waitForExistence(timeout: 15))
+        app.buttons["subscriptionClose"].tap()
+        XCTAssertTrue(mark.exists)
+        app.terminate()
+    }
+
+    /// Marketing evidence uses actual Vision results, never substituted rectangles.
+    @MainActor func testNextReleaseFaceMarketingCapture() {
+        let app = launch(fixture: "two-people-car")
+        app.buttons["mode_faces"].tap(); waitForRender(app, timeout: 120)
+        XCTAssertTrue(app.buttons["face_0"].exists)
+        XCTAssertTrue(app.buttons["face_1"].exists)
+        attach(app, "vail11-real-faces")
+        app.buttons["originalToggle"].tap()
+        attach(app, "vail11-real-faces-before")
+        app.buttons["originalToggle"].tap()
+        app.terminate()
+    }
+
+    /// Real production interaction/rendering with an original, rights-controlled synthetic document.
+    /// Capture at native simulator resolution; no UI is reconstructed or composited.
+    @MainActor func testAppStoreScreenshotJourney() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-empty", "-veil-reset-history"]
+        app.launch()
+        let hero = app.otherElements["privacyDemonstration"]
+        XCTAssertTrue(hero.waitForExistence(timeout: 10))
+        hero.tap() // Stop automatic cycling through the existing user interaction.
+        for _ in 0..<4 {
+            if hero.value as? String == "Visual privacy" || hero.value as? String == "Privacy tools preview" { break }
+            hero.tap()
+        }
+        XCTAssertTrue(app.buttons["choosePhoto"].isHittable)
+        attach(app, "appstore-01-home")
+        app.terminate()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "release-owned-sample", "-veil-mode", "manual", "-veil-reset-history", "-veil-synthetic-watermark-evidence"]
+        app.launch(); waitForRender(app)
+        app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.10, dy: 0.50), to: CGVector(dx: 0.90, dy: 0.60))
+        waitForRender(app)
+        XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String)?.contains("rectangles=1") == true)
+        attach(app, "appstore-02-redact")
+        app.buttons["pillar_metadata"].tap()
+        XCTAssertTrue(app.buttons["metadataKeep"].isSelected)
+        attach(app, "appstore-03-metadata-keep")
+        app.buttons["pillar_watermark"].tap(); app.buttons["watermarkAdd"].tap(); waitForRender(app)
+        app.buttons["watermarkText"].tap()
+        let field = app.descendants(matching: .any).matching(identifier: "watermarkTextField").firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        app.buttons["watermarkClearText"].tap(); field.typeText("PRIVATE COPY")
+        app.buttons["watermarkApplyText"].tap(); waitForRender(app)
+        app.buttons["watermarkStyle"].tap(); app.buttons["Stamp"].tap(); waitForRender(app)
+        attach(app, "appstore-04-watermark")
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(app.buttons["metadataReviewChange"].value as? String, "Keep metadata")
+        XCTAssertTrue(app.buttons["saveMenu"].isHittable); XCTAssertTrue(app.buttons["export"].isHittable)
+        attach(app, "appstore-05-review")
+        app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 20))
+        app.buttons["dismissSaveNotice"].tap()
+        app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
+        let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.tap()
+        XCTAssertTrue(app.staticTexts["Exports keep supported metadata"].exists)
+        attach(app, "appstore-06-gallery")
+        // Audit the second real saved-file branch without rewriting the Keep copy.
+        app.terminate()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "release-owned-sample", "-veil-mode", "manual"]
+        app.launch(); waitForRender(app)
+        app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
+        drag(app.scrollViews["photoCanvas"], from: CGVector(dx: 0.10, dy: 0.50), to: CGVector(dx: 0.90, dy: 0.60))
+        waitForRender(app)
+        app.buttons["pillar_metadata"].tap(); app.buttons["metadataRemove"].tap()
+        app.buttons["pillar_watermark"].tap(); app.buttons["watermarkAdd"].tap(); waitForRender(app)
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(app.buttons["metadataReviewChange"].value as? String, "Remove metadata")
+        app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 20))
+        attach(app, "qa-native-remove-export")
+    }
+
     @MainActor func testV43ToolbarGeometry() {
         let app = launch(fixture: "two-people-car")
         app.buttons["mode_manual"].tap(); waitForRender(app)
@@ -65,7 +259,7 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["finalPreview"].tap(); attach(app, "v43-three-layers-done")
         XCTAssertEqual(fingerprint(), final)
         app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
         XCTAssertEqual(fingerprint(), final)
         XCTAssertEqual(app.otherElements["exportFingerprint"].value as? String, final, "Gallery export must exactly match the live composition")
         export(app, "v43-three-layers-share")
@@ -131,7 +325,7 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["finalPreview"].tap(); attach(app, "v43-full-done")
         XCTAssertEqual(app.otherElements["processingComplete"].value as? String, fingerprint)
         app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
         let savedExport = app.otherElements["exportFingerprint"].value as? String
         XCTAssertFalse(savedExport?.isEmpty ?? true)
         export(app, "v43-full-composition-share")
@@ -157,7 +351,7 @@ final class PhotoVeilUITests: XCTestCase {
 
     @MainActor func testV41RenderedControlsAndGallery() {
         let app = XCUIApplication()
-        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history"]
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-veil-reset-history", "-veil-test-storage-id", UUID().uuidString, "-veil-legacy-usage", "0"]
         app.launch(); waitForRender(app)
         attach(app, "v41-photo-loaded")
         for tool in ["background", "faces", "plate", "documents", "manual"] {
@@ -204,7 +398,7 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["finalPreview"].tap()
         for _ in 0..<2 {
             app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-            XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+            XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
         }
         app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
         attach(app, "v41-gallery-normal")
@@ -220,7 +414,7 @@ final class PhotoVeilUITests: XCTestCase {
         XCTAssertLessThan(app.buttons["gallerySelect"].frame.midY, app.frame.height * 0.25)
         XCTAssertEqual(app.staticTexts["gallerySelectionStatus"].label, "2 selected")
         app.buttons["galleryDeleteSelected"].tap(); app.buttons["Delete photos"].tap()
-        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Your finished photos live here. Choose Save to Veil after editing."].waitForExistence(timeout: 10))
     }
 
     @MainActor func testRapidEffectParametersKeepControlFrames() {
@@ -262,7 +456,7 @@ final class PhotoVeilUITests: XCTestCase {
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch(); waitForRender(app)
         app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
         app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
         attach(app, "v41-largest-gallery-normal")
         app.buttons["gallerySelect"].tap()
@@ -277,8 +471,9 @@ final class PhotoVeilUITests: XCTestCase {
         let trash = app.buttons["galleryDeleteSelected"].frame
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: trash.midX + 21, dy: trash.midY)).tap()
         XCTAssertTrue(app.buttons["Delete photos"].waitForExistence(timeout: 5))
+        attach(app, "gallery-largest-delete-confirmation")
         app.buttons["Delete photos"].tap()
-        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Your finished photos live here. Choose Save to Veil after editing."].waitForExistence(timeout: 10))
     }
 
     @MainActor func testRapidRenderedStateChangesWithoutIdleBetweenSelections() {
@@ -310,16 +505,39 @@ final class PhotoVeilUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["choosePhoto"].waitForExistence(timeout: 10))
         attach(app, "first-launch")
+        let guide = app.buttons["quickGuide"]
+        if !guide.isHittable { app.swipeUp() }
+        guide.tap()
+        XCTAssertTrue(app.staticTexts["Cover the details"].waitForExistence(timeout: 5))
+        attach(app, "quick-guide")
+        app.buttons["Done"].tap()
         app.buttons["settings"].tap()
-        XCTAssertTrue(app.staticTexts["Version / Build"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["About Veil"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Version / Build"].exists)
         attach(app, "settings")
         app.buttons["About Veil"].tap()
-        XCTAssertTrue(app.staticTexts["Share the moment. Keep the details."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Your photo. Your boundaries."].waitForExistence(timeout: 5))
         attach(app, "about")
         app.buttons["BackButton"].tap()
         app.buttons["photoPrivacy"].tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Photo processing happens on this iPhone.")).firstMatch.waitForExistence(timeout: 5))
         attach(app, "privacy")
+        app.buttons["BackButton"].tap()
+        let help = app.buttons["Help / Support"]
+        if !help.isHittable { app.swipeUp() }
+        help.tap()
+        XCTAssertTrue(app.staticTexts["Before you share"].waitForExistence(timeout: 5))
+        let metadata = app.buttons["Does Veil remove photo metadata?"]
+        if !metadata.isHittable { app.swipeUp() }
+        metadata.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Choose Remove metadata or Keep metadata in the Metadata tool")).firstMatch.waitForExistence(timeout: 5))
+        attach(app, "metadata-help")
+        metadata.tap()
+        let download = app.buttons["A photo is taking time to open"]
+        if !download.isHittable { app.swipeUp() }
+        download.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "The system picker may need to download")).firstMatch.waitForExistence(timeout: 5))
+        attach(app, "help-expanded")
     }
 
     @MainActor func testLargestTextToolAndStrengthMenus() {
@@ -346,6 +564,29 @@ final class PhotoVeilUITests: XCTestCase {
             XCTAssertLessThanOrEqual(app.buttons["effectMenu"].frame.maxY, parameter.frame.minY)
             XCTAssertLessThanOrEqual(parameter.frame.maxY, app.buttons["shapeMenu"].frame.minY)
         }
+        app.buttons["finalPreview"].tap()
+        let change = app.buttons["metadataReviewChange"]
+        XCTAssertTrue(change.waitForExistence(timeout: 5))
+        XCTAssertEqual(change.value as? String, "Keep metadata")
+        XCTAssertFalse(app.buttons["pillar_metadata"].exists)
+        change.tap()
+        XCTAssertTrue(app.buttons["metadataKeep"].isHittable)
+        XCTAssertTrue(app.buttons["metadataRemove"].isHittable)
+        XCTAssertLessThanOrEqual(app.buttons["metadataKeep"].frame.maxY, app.buttons["metadataRemove"].frame.minY)
+        XCTAssertLessThanOrEqual(app.buttons["metadataRemove"].frame.maxY, app.buttons["pillar_metadata"].frame.minY)
+        attach(app, "design-metadata-largest-keep")
+        let remove = app.buttons["metadataRemove"]
+        remove.tap(); XCTAssertTrue(remove.isSelected)
+        attach(app, "design-metadata-largest-remove")
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(change.value as? String, "Remove metadata")
+        change.tap(); app.buttons["metadataKeep"].tap(); app.buttons["finalPreview"].tap()
+        XCTAssertEqual(change.value as? String, "Keep metadata")
+        XCTAssertFalse(app.buttons["metadataKeep"].exists, "Review summarizes choices instead of repeating editing controls")
+        XCTAssertTrue(app.buttons["saveMenu"].exists)
+        XCTAssertTrue(app.buttons["saveMenu"].isHittable, "Final review actions should be visible without scrolling")
+        XCTAssertTrue(app.buttons["export"].isHittable)
+        attach(app, "largest-text-metadata-choice")
     }
 
     @MainActor func testFacesDetectionSelectionAndStableCanvas() {
@@ -664,16 +905,23 @@ final class PhotoVeilUITests: XCTestCase {
         let hero = app.otherElements["privacyDemonstration"]
         XCTAssertTrue(hero.waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts["Veil"].exists)
-        if hero.value as? String == "Static blurred portrait" {
+        if hero.value as? String == "Privacy tools preview" {
             attach(app, "v42-landing-reduce-motion")
-            Thread.sleep(forTimeInterval: 4)
-            XCTAssertEqual(hero.value as? String, "Static blurred portrait")
+            hero.tap()
+            XCTAssertEqual(hero.value as? String, "Privacy tools preview")
         } else {
-            for state in ["Blurred portrait", "Clear portrait", "Blurred portrait"] {
+            for state in ["Visual privacy", "Original preview"] {
                 let phase = expectation(for: NSPredicate(format: "value == %@", state), evaluatedWith: hero)
                 wait(for: [phase], timeout: 15)
             }
             attach(app, "v42-landing-repeated-animation")
+            hero.tap() // Take user control before observing the stable phase.
+            let beforeTap = hero.value as? String
+            hero.tap()
+            let states = ["Original preview", "Visual privacy"]
+            let index = states.firstIndex(of: beforeTap ?? "") ?? 0
+            XCTAssertEqual(hero.value as? String, states[(index + 1) % states.count])
+            attach(app, "v42-landing-interactive")
         }
     }
 
@@ -686,6 +934,34 @@ final class PhotoVeilUITests: XCTestCase {
         app.swipeUp()
         XCTAssertTrue(app.buttons["choosePhoto"].isHittable)
         attach(app, "v42-landing-largest-action")
+        let guide = app.buttons["quickGuide"]
+        if !guide.isHittable { app.swipeUp() }
+        guide.tap()
+        XCTAssertTrue(app.navigationBars["Welcome to Veil"].waitForExistence(timeout: 5))
+        let review = app.staticTexts["Review, then share"]
+        for _ in 0..<6 {
+            if review.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(review.isHittable)
+        attach(app, "quick-guide-largest")
+        app.buttons["Done"].tap()
+        app.buttons["settings"].tap()
+        let help = app.buttons["Help / Support"]
+        for _ in 0..<6 {
+            if help.isHittable { break }
+            app.swipeUp()
+        }
+        help.tap()
+        XCTAssertTrue(app.staticTexts["Before you share"].waitForExistence(timeout: 5))
+        let question = app.buttons["A photo is taking time to open"]
+        for _ in 0..<6 {
+            if question.isHittable { break }
+            app.swipeUp()
+        }
+        question.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "The system picker may need to download")).firstMatch.waitForExistence(timeout: 5))
+        attach(app, "help-largest-expanded")
     }
 
     @MainActor func testV42LandingAndGalleryConfirmationEvidence() {
@@ -693,11 +969,15 @@ final class PhotoVeilUITests: XCTestCase {
         app.launchArguments = ["-veil-ui-testing", "-veil-empty"]
         app.launch(); XCTAssertTrue(app.buttons["choosePhoto"].waitForExistence(timeout: 10))
         attach(app, "v42-landing")
+        for index in 0..<4 {
+            app.otherElements["privacyDemonstration"].tap()
+            attach(app, "design-hero-tap-\(index)")
+        }
         app.terminate()
         app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history"]
         app.launch(); waitForRender(app)
         app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
         app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
         let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
         XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.tap()
@@ -709,24 +989,58 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["galleryShare"].exists)
         app.buttons["Delete"].tap(); app.buttons["Delete photo"].tap()
-        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Your finished photos live here. Choose Save to Veil after editing."].waitForExistence(timeout: 10))
+        app.terminate()
+        // This gallery-selection regression needs two outputs, using a fresh isolated legacy allowance.
+        app.launchArguments += ["-veil-test-storage-id", UUID().uuidString, "-veil-legacy-usage", "0"]
+        app.launch(); waitForRender(app)
+        app.buttons["finalPreview"].tap()
+        for _ in 0..<2 {
+            app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+            XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
+        }
+        app.buttons["Close photo"].tap(); app.buttons["gallery"].tap(); app.buttons["gallerySelect"].tap()
+        let photos = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_"))
+        XCTAssertTrue(photos.firstMatch.waitForExistence(timeout: 10)); XCTAssertEqual(photos.count, 2)
+        photos.element(boundBy: 0).tap(); attach(app, "design-gallery-one-selected")
+        photos.element(boundBy: 1).tap(); attach(app, "design-gallery-two-selected")
+        app.buttons["galleryDeleteSelected"].tap()
+        XCTAssertTrue(app.buttons["Delete photos"].waitForExistence(timeout: 5)); attach(app, "design-gallery-multiple-delete")
+        app.buttons["galleryDeleteCancel"].tap(); XCTAssertEqual(app.staticTexts["gallerySelectionStatus"].label, "2 selected")
+        app.buttons["galleryDeleteSelected"].tap(); app.buttons["Delete photos"].tap()
+        XCTAssertTrue(app.staticTexts["Your finished photos live here. Choose Save to Veil after editing."].waitForExistence(timeout: 10))
     }
 
     @MainActor func testLocalGallerySaveRelaunchShareAndDelete() {
         let app = XCUIApplication()
-        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history"]
+        let scope = UUID().uuidString
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history", "-veil-test-storage-id", scope, "-veil-legacy-usage", "0"]
         app.launch(); waitForRender(app)
-        app.buttons["finalPreview"].tap(); app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
-        app.terminate(); app.launchArguments = ["-veil-ui-testing", "-veil-empty"]; app.launch()
+        app.buttons["pillar_metadata"].tap(); app.buttons["metadataRemove"].tap()
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(app.buttons["metadataReviewChange"].value as? String, "Remove metadata")
+        app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
+        app.terminate(); app.launchArguments = ["-veil-ui-testing", "-veil-empty", "-veil-test-storage-id", scope]; app.launch()
         app.buttons["gallery"].tap()
         let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
         XCTAssertTrue(photo.waitForExistence(timeout: 10)); attach(app, "v4-gallery-local-reloaded")
         photo.tap(); attach(app, "v4-gallery-photo")
+        XCTAssertTrue(app.staticTexts["galleryMetadataRemoval"].exists)
+        // Inspect/cancel Share before consuming the final legacy export with Photos.
         app.buttons["galleryShare"].tap(); XCTAssertTrue(app.staticTexts["Copy"].waitForExistence(timeout: 10)); attach(app, "v4-gallery-share")
+        XCTAssertTrue(app.buttons["Close"].exists); app.buttons["Close"].tap()
+        app.buttons["gallerySaveToPhotos"].tap()
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if system.alerts.firstMatch.waitForExistence(timeout: 5) {
+            let allow = system.alerts.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label CONTAINS %@", "Allow", "Don’t")).firstMatch
+            if allow.exists { allow.tap() }
+        }
+        XCTAssertTrue(app.staticTexts["Saved to Photos · source metadata removed"].waitForExistence(timeout: 15))
+        app.alerts.buttons["OK"].tap()
         app.terminate(); app.launch(); app.buttons["gallery"].tap(); photo.tap()
         app.buttons["Delete"].tap(); app.buttons["Delete photo"].tap()
-        XCTAssertTrue(app.staticTexts["Save a finished photo to Veil. Stored on this iPhone."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Your finished photos live here. Choose Save to Veil after editing."].waitForExistence(timeout: 10))
         attach(app, "v4-gallery-empty")
     }
 
@@ -795,6 +1109,95 @@ final class PhotoVeilUITests: XCTestCase {
         app.buttons["fitPhoto"].tap(); attach(app, "v4-small-faces-fit")
     }
 
+    @MainActor func testWatermarkCustomTextStylesAndExportPaths() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-faces", "-veil-mode", "faces", "-veil-reset-history", "-veil-synthetic-watermark-evidence"]
+        app.launch(); waitForRender(app)
+        let editingViewport = transform(app)
+        app.buttons["pillar_watermark"].tap(); assertCamera(app, editingViewport)
+        attach(app, "design-watermark-empty")
+        app.buttons["pillar_metadata"].tap(); assertCamera(app, editingViewport)
+        XCTAssertTrue(app.buttons["metadataKeep"].isSelected)
+        attach(app, "design-metadata-keep")
+        app.buttons["metadataRemove"].tap(); attach(app, "design-metadata-remove")
+        app.buttons["finalPreview"].tap(); assertCamera(app, editingViewport)
+        XCTAssertEqual(app.buttons["metadataReviewChange"].value as? String, "Remove metadata")
+        XCTAssertFalse(app.buttons["pillar_metadata"].exists)
+        attach(app, "design-final-review-remove")
+        app.buttons["finalPreview"].tap()
+        app.buttons["pillar_metadata"].tap(); app.buttons["metadataKeep"].tap()
+        app.buttons["pillar_watermark"].tap(); app.buttons["watermarkAdd"].tap(); waitForRender(app)
+        app.buttons["watermarkText"].tap()
+        let field = app.descendants(matching: .any).matching(identifier: "watermarkTextField").firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        app.buttons["watermarkClearText"].tap()
+        field.typeText("For synthetic testing only")
+        XCTAssertEqual(field.value as? String, "For synthetic testing only")
+        app.buttons["watermarkApplyText"].tap(); waitForRender(app)
+        app.buttons["watermarkStyle"].tap(); app.buttons["Stamp"].tap(); waitForRender(app)
+        app.buttons["watermarkRepeat"].tap(); waitForRender(app)
+        app.buttons["watermarkPlacement"].tap(); app.buttons["Bottom"].tap(); waitForRender(app)
+        app.buttons["watermarkAdjust"].tap()
+        XCTAssertTrue(app.sliders["watermarkSize"].waitForExistence(timeout: 5))
+        app.sliders["watermarkSize"].adjust(toNormalizedSliderPosition: 0.45)
+        app.sliders["watermarkOpacity"].adjust(toNormalizedSliderPosition: 0.65)
+        app.sliders["watermarkRotation"].adjust(toNormalizedSliderPosition: 0.35)
+        app.buttons["watermarkAdjustDone"].tap(); waitForRender(app)
+        attach(app, "watermark-custom-composition")
+        app.buttons["finalPreview"].tap()
+        XCTAssertEqual(app.buttons["metadataReviewChange"].value as? String, "Keep metadata")
+        XCTAssertFalse(app.buttons["metadataKeep"].exists)
+        attach(app, "design-final-review-watermark-keep")
+        app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); app.buttons["dismissSaveNotice"].tap()
+        app.buttons["Close photo"].tap(); app.buttons["gallery"].tap()
+        let photo = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "gallery_")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.tap()
+        XCTAssertTrue(app.staticTexts["Exports keep supported metadata"].exists)
+        attach(app, "watermark-gallery-flattened")
+        // Cancel Share before the second completed export uses the free allowance.
+        app.buttons["galleryShare"].tap()
+        XCTAssertTrue(app.staticTexts["Copy"].waitForExistence(timeout: 15)); attach(app, "watermark-gallery-share")
+        app.buttons["Close"].tap()
+        app.buttons["gallerySaveToPhotos"].tap()
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if system.alerts.firstMatch.waitForExistence(timeout: 5) {
+            let allow = system.alerts.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label CONTAINS %@", "Allow", "Don’t")).firstMatch
+            if allow.exists { allow.tap() }
+        }
+        XCTAssertTrue(app.staticTexts["Saved to Photos · supported metadata kept"].waitForExistence(timeout: 15)); app.alerts.buttons["OK"].tap()
+    }
+
+    @MainActor func testWatermarkControlsWithLargestText() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-veil-ui-testing", "-veil-fixture", "two-people-car", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL", "-veil-synthetic-watermark-evidence"]
+        app.launch(); waitForRender(app)
+        let before = transform(app)
+        app.buttons["pillar_watermark"].tap(); app.buttons["watermarkAdd"].tap(); waitForRender(app)
+        assertCamera(app, before)
+        XCTAssertTrue(app.buttons["watermarkText"].isHittable)
+        let textButton = app.buttons["watermarkText"], styleButton = app.buttons["watermarkStyle"]
+        XCTAssertLessThanOrEqual(textButton.frame.maxY, styleButton.frame.minY + 1, "Accessible text controls stack without overlap")
+        for control in [textButton, styleButton] {
+            XCTAssertGreaterThanOrEqual(control.frame.minX, 0)
+            XCTAssertLessThanOrEqual(control.frame.maxX, app.frame.width)
+            XCTAssertLessThanOrEqual(control.frame.maxY, app.buttons["pillar_watermark"].frame.minY)
+        }
+        let remove = app.buttons["watermarkRemove"]
+        if !remove.isHittable { app.swipeUp() }
+        XCTAssertTrue(remove.isHittable)
+        attach(app, "watermark-largest-controls")
+        textButton.tap()
+        XCTAssertTrue(app.buttons["watermarkClearText"].waitForExistence(timeout: 5))
+        attach(app, "watermark-largest-text-editor")
+        app.buttons["Cancel"].tap()
+        remove.tap(); waitForRender(app)
+        app.buttons["Undo"].tap(); waitForRender(app)
+        XCTAssertTrue(app.buttons["watermarkText"].exists)
+        app.buttons["pillar_metadata"].tap(); assertCamera(app, before)
+        app.buttons["pillar_redact"].tap(); assertCamera(app, before)
+    }
+
     @MainActor func testOptionalAccountUnconfigured() {
         let app = XCUIApplication(); app.launch()
         app.buttons["settings"].tap(); app.buttons["account"].tap()
@@ -802,6 +1205,7 @@ final class PhotoVeilUITests: XCTestCase {
         XCTAssertFalse(app.buttons["continueWithApple"].exists)
         XCTAssertFalse(app.buttons["continueWithGoogle"].exists)
         attach(app, "v41-account-local-only")
+        if !app.buttons["Configuration details"].isHittable { app.swipeUp() }
         app.buttons["Configuration details"].tap()
         XCTAssertTrue(app.staticTexts["backendDiagnostic"].waitForExistence(timeout: 5))
     }
@@ -836,8 +1240,8 @@ final class PhotoVeilUITests: XCTestCase {
             let allow = system.alerts.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label CONTAINS %@", "Allow", "Don’t")).firstMatch
             if allow.exists { allow.tap() }
         }
-        XCTAssertTrue(app.alerts["Saved"].waitForExistence(timeout: 15)); attach(app, "v4-saved-to-photos")
-        app.alerts.buttons["OK"].tap(); XCTAssertTrue(app.buttons["export"].exists)
+        XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 15)); attach(app, "v4-saved-to-photos")
+        app.buttons["dismissSaveNotice"].tap(); XCTAssertTrue(app.buttons["export"].exists)
     }
 
     @MainActor private func checkBackground(fixture: String, name: String) {

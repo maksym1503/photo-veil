@@ -1,0 +1,184 @@
+--- before/Tests/PhotoVeilUITests/PhotoVeilUITests.swift
++++ after/Tests/PhotoVeilUITests/PhotoVeilUITests.swift
+@@ -2,28 +2,45 @@
+ 
+ final class PhotoVeilUITests: XCTestCase {
+     /// All photos are fictional; analysis, controls, renders and saves are the real app.
+-    @MainActor func testRefinedEditorialAndPreviewJourney() {
++    @MainActor func testRefinedEditorialAndPreviewJourney() { captureFinalEditorialJourney(appearance: "Light") }
++    @MainActor func testRefinedEditorialDarkAppearanceJourney() { captureFinalEditorialJourney(appearance: "Dark") }
++
++    @MainActor private func captureFinalEditorialJourney(appearance: String) {
+         let app = XCUIApplication()
+         let scope = UUID().uuidString
+         func load(_ fixture: String, mode: String) {
+             app.terminate()
+-            app.launchArguments = ["-veil-ui-testing", "-veil-fixture", fixture, "-veil-mode", mode, "-veil-test-storage-id", scope]
++            app.launchArguments = ["-veil-ui-testing", "-veil-fixture", fixture, "-veil-mode", mode, "-veil-test-storage-id", scope, "-AppleInterfaceStyle", appearance]
+             app.launch(); waitForRender(app, timeout: 120)
+         }
+-        func capture(_ name: String) { attach(app, "refined-" + name) }
++        func capture(_ name: String) { attach(app, "final-" + appearance.lowercased() + "-" + name) }
+         func save() {
+             app.buttons["saveMenu"].tap(); app.buttons["saveToVeil"].tap()
+             XCTAssertTrue(app.buttons["dismissSaveNotice"].waitForExistence(timeout: 20))
+             app.buttons["dismissSaveNotice"].tap()
+         }
+-        func drawImageRect(_ rect: CGRect) {
+-            let canvas = app.scrollViews["photoCanvas"]
+-            let size = canvas.frame.size
+-            let fit = min(size.width / 1122, size.height / 1402)
+-            let origin = CGPoint(x: (size.width - 1122 * fit) / 2, y: (size.height - 1402 * fit) / 2)
+-            let start = canvas.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: origin.x + rect.minX * 1122 * fit, dy: origin.y + rect.minY * 1402 * fit))
+-            let end = canvas.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: origin.x + rect.maxX * 1122 * fit, dy: origin.y + rect.maxY * 1402 * fit))
+-            start.press(forDuration: 0.1, thenDragTo: end); waitForRender(app)
++        func rectValue(_ element: XCUIElement) -> [Double] {
++            let values = (element.value as? String ?? "").split(separator: ",").compactMap { Double($0) }
++            XCTAssertEqual(values.count, 4, "Selected detected region must expose normalized geometry")
++            return values
++        }
++        func move(_ region: XCUIElement) {
++            let before = rectValue(region)
++            let from = region.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
++            from.press(forDuration: 0.1, thenDragTo: from.withOffset(CGVector(dx: -14, dy: -8)))
++            waitForRender(app)
++            let after = rectValue(region)
++            XCTAssertNotEqual(Array(after.prefix(2)), Array(before.prefix(2)), "Move must change the detected region origin")
++            XCTAssertEqual(Array(after.suffix(2)), Array(before.suffix(2)), "Move must preserve detected region dimensions")
++        }
++        func resize(_ region: XCUIElement) {
++            let before = rectValue(region)
++            let from = region.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 1))
++            from.press(forDuration: 0.1, thenDragTo: from.withOffset(CGVector(dx: 30, dy: 20)))
++            waitForRender(app)
++            let after = rectValue(region)
++            XCTAssertEqual(Array(after.prefix(2)), Array(before.prefix(2)), "Resize must preserve detected region origin")
++            XCTAssertNotEqual(Array(after.suffix(2)), Array(before.suffix(2)), "Resize must change detected region dimensions")
+         }
+         load("marketing-cafe", mode: "faces")
+         XCTAssertTrue(app.buttons["face_1"].exists)
+@@ -31,18 +48,44 @@
+         app.buttons["originalToggle"].tap(); capture("01-faces-before"); app.buttons["originalToggle"].tap()
+         load("two-people-car", mode: "plate")
+         XCTAssertTrue(app.buttons["plate_0"].exists)
++        app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
++        app.scrollViews["photoCanvas"].pinch(withScale: 1.8, velocity: 1)
++        waitForRender(app)
+         capture("02-plates-after")
+         app.buttons["originalToggle"].tap(); capture("02-plates-before"); app.buttons["originalToggle"].tap()
+         load("marketing-coast", mode: "manual")
+         app.buttons["pillar_metadata"].tap(); app.buttons["metadataRemove"].tap()
+         XCTAssertTrue(app.buttons["metadataRemove"].isSelected)
+         capture("03-location-after")
+-        load("marketing-card", mode: "manual")
++        load("marketing-card", mode: "documents")
++        let detected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "document_")).allElementsBoundByIndex
++        XCTAssertFalse(detected.isEmpty, "Real Vision must detect the photographed document; no manual fallback")
++        guard let target = detected.min(by: { a, b in
++            let ar = rectValue(a), br = rectValue(b)
++            guard ar.count == 4, br.count == 4 else { return false }
++            return abs(ar[1] + ar[3] / 2 - 0.475) < abs(br[1] + br[3] / 2 - 0.475)
++        }) else { return }
++        let targetID = target.identifier
++        app.buttons["documentCoverage"].tap(); app.buttons["Clear All"].tap(); waitForRender(app)
++        let region = app.buttons[targetID]; region.tap(); waitForRender(app)
+         app.buttons["effectMenu"].tap(); app.buttons["Redact"].tap(); waitForRender(app)
+-        drawImageRect(CGRect(x: 0.23, y: 0.44, width: 0.54, height: 0.065))
+-        drawImageRect(CGRect(x: 0.29, y: 0.64, width: 0.41, height: 0.065))
+-        capture("04-manual-after")
+-        app.buttons["originalToggle"].tap(); capture("04-manual-before"); app.buttons["originalToggle"].tap()
++        let initialRect = rectValue(region)
++        let initialPixels = app.otherElements["processingComplete"].value as? String
++        capture("04-documents-detected")
++        move(region)
++        XCTAssertNotEqual(rectValue(region), initialRect)
++        capture("04-documents-moved")
++        app.buttons["Undo"].tap(); waitForRender(app)
++        XCTAssertEqual(rectValue(region), initialRect)
++        XCTAssertEqual(app.otherElements["processingComplete"].value as? String, initialPixels)
++        move(region); let movedRect = rectValue(region)
++        resize(region); XCTAssertNotEqual(rectValue(region), movedRect)
++        app.buttons["Undo"].tap(); waitForRender(app); XCTAssertEqual(rectValue(region), movedRect)
++        resize(region)
++        XCTAssertTrue((app.otherElements["analysisCounts"].value as? String ?? "").contains("documents=1"))
++        XCTAssertTrue((app.otherElements["privacySelectionCounts"].value as? String ?? "").contains("documents=1,rectangles=0,strokes=0"))
++        capture("04-documents-after")
++        app.buttons["originalToggle"].tap(); capture("04-documents-before"); app.buttons["originalToggle"].tap()
+         load("two-faces", mode: "faces")
+         XCTAssertTrue(app.buttons["face_1"].exists)
+         app.buttons["finalPreview"].tap(); capture("05-share-after")
+@@ -62,8 +105,15 @@
+         load("marketing-night", mode: "faces")
+         XCTAssertTrue(app.buttons["face_1"].exists)
+         XCTAssertTrue(mark.waitForExistence(timeout: 10)); capture("preview-dark")
+-        XCTAssertTrue(app.buttons["unlockCleanExports"].exists)
+-        app.buttons["unlockCleanExports"].tap()
++        let unlock = app.buttons["unlockCleanExports"]
++        XCTAssertTrue(unlock.exists); XCTAssertTrue(unlock.isHittable)
++        XCTAssertGreaterThanOrEqual(unlock.frame.width, 44)
++        XCTAssertGreaterThanOrEqual(unlock.frame.height, 44)
++        let frames = ["appearance": appearance, "unlockWidth": String(Double(unlock.frame.width)), "unlockHeight": String(Double(unlock.frame.height)), "unlockHittable": String(unlock.isHittable)]
++        let frameEvidence = XCTAttachment(string: frames.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: "\n"))
++        frameEvidence.name = "final-" + appearance.lowercased() + "-accessibility-frames"
++        frameEvidence.lifetime = .keepAlways; add(frameEvidence)
++        unlock.tap()
+         XCTAssertTrue(app.buttons["subscriptionRestore"].waitForExistence(timeout: 15))
+         app.buttons["subscriptionClose"].tap()
+         XCTAssertTrue(mark.exists)
+--- before/Sources/PhotoVeil/CommercePolicy.swift
++++ after/Sources/PhotoVeil/CommercePolicy.swift
+@@ -135,7 +135,8 @@
+ enum PreviewEntitlement: Equatable { case unknown, free, pro }
+ enum PremiumPreviewState: Equatable {
+     case clean, checking, exhausted, unavailable
+-    var marked: Bool { self == .exhausted || self == .unavailable }
++    var marked: Bool { self == .exhausted }
++    var protectsPhoto: Bool { self == .checking || self == .unavailable }
+     static func resolve(completed: Int?, limit: Int, entitlement: PreviewEntitlement) -> Self {
+         if entitlement == .pro { return .clean }
+         if let completed, completed >= 0, completed < limit { return .clean }
+--- before/Sources/PhotoVeil/VeilPresentation.swift
++++ after/Sources/PhotoVeil/VeilPresentation.swift
+@@ -394,13 +394,16 @@
+     let state: PremiumPreviewState
+     let unlock: () -> Void
+     var body: some View {
+-        if state.marked {
++        if state.marked || state == .unavailable {
+             VStack(alignment: .leading, spacing: 4) {
+                 HStack(spacing: 12) {
+-                    Text("Preview Mode").font(.subheadline.weight(.semibold))
++                    Text(state == .unavailable ? "Export access unavailable" : "Preview Mode").font(.subheadline.weight(.semibold))
+                     Spacer(minLength: 8)
+-                    Button("Unlock Clean Exports", action: unlock)
+-                        .font(.caption.weight(.semibold)).frame(minHeight: 44)
++                    Button(action: unlock) {
++                        Text("Unlock Clean Exports")
++                            .font(.caption.weight(.semibold))
++                            .frame(minWidth: 44, minHeight: 44)
++                    }
+                         .modifier(VeilActionStyle(prominent: true))
+                         .accessibilityIdentifier("unlockCleanExports")
+                 }
+--- before/Sources/PhotoVeil/VeilGallery.swift
++++ after/Sources/PhotoVeil/VeilGallery.swift
+@@ -163,7 +163,7 @@
+                 Image(uiImage: image).resizable().scaledToFit()
+                     .accessibilityIdentifier("galleryProcessedPhoto")
+                     .overlay {
+-                        PremiumPreviewLattice(marked: premiumState.marked, checking: premiumState == .checking)
++                        PremiumPreviewLattice(marked: premiumState.marked, checking: premiumState.protectsPhoto)
+                             .aspectRatio(image.size, contentMode: .fit).allowsHitTesting(false)
+                     }
+             }
+--- before/Sources/PhotoVeil/PhotoVeilHome.swift
++++ after/Sources/PhotoVeil/PhotoVeilHome.swift
+@@ -376,7 +376,7 @@
+                         onDetectionRect: adjustDetection,
+                         detectionContext: "\(sessionID)-\(hidesEntireDocument)",
+                         premiumPreview: !showingOriginal && premiumState.marked,
+-                        protectsPreview: !showingOriginal && premiumState == .checking
++                        protectsPreview: !showingOriginal && premiumState.protectsPhoto
+                     )
+                     .accessibilityIdentifier("photoCanvas")
+                 }

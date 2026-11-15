@@ -1,0 +1,4 @@
+appearance=Dark
+unlockHeight=28.33333333333337
+unlockHittable=true
+unlockWidth=150.33333333333334

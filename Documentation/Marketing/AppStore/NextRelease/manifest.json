@@ -1,0 +1,115 @@
+{
+  "status": "Design concepts awaiting owner selection; no final-set production or upload",
+  "generated_photo_tool": "built-in imagegen",
+  "source_prompt": "source/image-prompt.txt",
+  "first_screenshot_capture": {
+    "file": "captures/vail11-faces.png",
+    "source_result": "/tmp/vail11-marketing.xcresult",
+    "test": "PhotoVeilUITests/testNextReleaseFaceMarketingCapture",
+    "analyzer": "Production Vision, synthetic photo input; no substituted detector geometry"
+  },
+  "second_screenshot_capture": {
+    "file": "captures/details-reference.png",
+    "source": "Documentation/AppStore/Screenshots/1.0-release/en-US/raw/appstore-02-redact.png",
+    "scope": "Historical genuine manual-document UI; not final1.1 release acceptance"
+  },
+  "assets": {
+    "a-editorial/01.png": {
+      "sha256": "4284aa8f01beda1ef6ddc2a7e148ee6b1e5102712128183297ca8957b1d42d93",
+      "width": 1320,
+      "height": 2868
+    },
+    "a-editorial/02.png": {
+      "sha256": "37b9030127ba4d548e9959e2a94135870fbc40ce1e7aab2a90e63a684e1de70d",
+      "width": 1320,
+      "height": 2868
+    },
+    "a-editorial/contact-sheet.png": {
+      "sha256": "2e0b35523334852b64f1b712a3f4058e0e9ef27569334c2524ee3596b7baab2d",
+      "width": 880,
+      "height": 1040
+    },
+    "all-directions.png": {
+      "sha256": "bfa9e0c13b1dafe9724ee99abdf5a25bc42a6b066210ce94c4622cd8ea0c656d",
+      "width": 1800,
+      "height": 1180
+    },
+    "b-studio/01.png": {
+      "sha256": "44c9646692246cacae46a997f1a40b3f9b213ba52d1962541f108d865791bebc",
+      "width": 1320,
+      "height": 2868
+    },
+    "b-studio/02.png": {
+      "sha256": "212a57feb5de29c99c6d1bc2d3154a4b268aef748c952f2fa232eb0ea75172ad",
+      "width": 1320,
+      "height": 2868
+    },
+    "b-studio/contact-sheet.png": {
+      "sha256": "557afbfed90a83d26b4669a4079583bed6f9e78d51454c5bb2b39b216d489806",
+      "width": 880,
+      "height": 1040
+    },
+    "c-photo-story/01.png": {
+      "sha256": "d2ea85df3036ab098733fe5a174b51cb0798b747652874c28709466ee72bd088",
+      "width": 1320,
+      "height": 2868
+    },
+    "c-photo-story/02.png": {
+      "sha256": "16bde235440b007ed830f9779dcb8aca85bbdb0a388425a4f504eca3da580467",
+      "width": 1320,
+      "height": 2868
+    },
+    "c-photo-story/contact-sheet.png": {
+      "sha256": "a053230de161e1a1b634a56c6e967d5cba99212698fee1d6473e46f5f5627029",
+      "width": 880,
+      "height": 1040
+    },
+    "captures/details-reference.png": {
+      "sha256": "e72a852db8ccb8546094239844cc01ad30e7e22882b1595edae6362e9cb70872",
+      "width": 1320,
+      "height": 2868
+    },
+    "captures/vail11-faces-before.png": {
+      "sha256": "22dc395a8e814f534d88a11a751082701d8d3f9c1474d6fa03fb2701ff471e4a",
+      "width": 1206,
+      "height": 2622
+    },
+    "captures/vail11-faces.png": {
+      "sha256": "bdff5a7500944f508950c9faf346c13447c19513697b5591c90bf1e8b6ce9a9f",
+      "width": 1206,
+      "height": 2622
+    },
+    "preview-concept-a-lattice.png": {
+      "sha256": "3bd2c1af01317b44299bc1ed9130d8805169db58fd8e250eee6e336a96744233",
+      "width": 900,
+      "height": 1300
+    },
+    "preview-concept-b-ribbon.png": {
+      "sha256": "01316ccf261b12bc2db3d56d1eccc7c58964a10c1868a34e254faf384a366dae",
+      "width": 900,
+      "height": 1300
+    },
+    "preview-concepts.png": {
+      "sha256": "1545de9ece3e05e126a36c2071781fe8ec7b56aa17c17d769ea226ce94dd9f66",
+      "width": 1200,
+      "height": 960
+    },
+    "source/image-prompt.txt": {
+      "sha256": "a3b0d5fc25f6c7c182f1616a0ed82722efa4dc3164e0f488c1cdf7c0f491c2df"
+    },
+    "source/render_concepts.swift": {
+      "sha256": "c2968ef1123e4bc1baf19679317f32eeff780f61adb1dfbc5d2472e0494865ab"
+    },
+    "source/synthetic-cafe.png": {
+      "sha256": "17f094f2e668187c7bc27c09dc14c311d51731a94edc7731fda64b02cb0c2233",
+      "width": 1122,
+      "height": 1402
+    },
+    "source/synthetic-document.jpg": {
+      "sha256": "4df21cb5b82697f2878ae085dfc3e6bf3b38862340ec0c6248dd9c2018211bdc"
+    },
+    "source/synthetic-street.jpg": {
+      "sha256": "c1ad85632de47ba0715d0332640c52155089dfed9fa7e3d128d21ce630fb9bab"
+    }
+  }
+}

@@ -44,7 +44,11 @@
         "DetectedPrivacySelectionTests",
         "BackendConfigurationTests",
         "FaceDetectionTests",
-        "GalleryStoreTests"
+        "GalleryStoreTests",
+        "ReleaseReadinessTests",
+        "WatermarkTests",
+        "CommerceTests",
+        "ContextualAdvertisingTests"
       ],
       "parallelizable": false
     },

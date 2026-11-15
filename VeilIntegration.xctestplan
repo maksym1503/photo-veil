@@ -36,6 +36,14 @@
         "name": "PhotoVeilUITests"
       },
       "parallelizable": false
+    },
+    {
+      "target": {
+        "containerPath": "container:PhotoVeil.xcodeproj",
+        "identifier": "636D894987561FD7EE4C1A0C",
+        "name": "PhotoVeilCommerceTests"
+      },
+      "parallelizable": false
     }
   ]
 }

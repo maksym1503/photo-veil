@@ -1,0 +1,19 @@
+# ADR-009 — Legal-site Cloudflare Pages preparation
+
+## Owner-approved publication addendum — 2026-10-28
+
+The owner approved final legal content, Maksym Bilyi/Poland and veil.app.support@proton.me, and explicitly authorized deployment. CTO approved separating website country-only contact disclosure from Apple DSA classification. Explicit country-only approval is mandatory; address/phone/trader-contact fields must be empty and the website trader block is omitted. Apple DSA Active is recorded as owner-confirmed compliance state, never as an inferred or changed trader classification. Preserve all legacy validation and publication/security gates. Private address/phone disclosure remains forbidden. Cloudflare upload currently fails with HTTP403; publication and app/ASC URL changes require actual public-content verification.
+
+## Access authorization addendum — 2026-10-28
+
+The owner explicitly authorized configuring the official Cloudflare MCP integration and OAuth access to the separate **Veil** account. CTO reviewed this bounded access setup. Register `cloudflare-veil` at `https://mcp.cloudflare.com/mcp`, keep credentials in Codex storage outside the repository, and verify the selected account ID before any account mutation. This supersedes the historical account/API restriction below only within the newly authorized scope. Do not access szybkitok.pl, attach domains, purchase services or publish a preview/draft. Final legal content and public contacts still require explicit owner approval before any upload/publication. The existing static packaging architecture remains unchanged.
+
+After authenticated account verification, the CTO also approved creating the empty Direct Upload project `veil-legal` in verified Veil account `38fb0d48cb0beef413083f534b7cf090`, using only its name and `main` production branch. The project reserves `veil-legal.pages.dev`; zero deployments were independently read back. No source integration, custom domain, analytics, functions, bindings, credentials or paid upgrade was added. This preparation does not authorize uploading draft assets or bypass final content/contact approval.
+
+Accepted 2026-10-14 after CTO gate. Local buildless HTML/CSS retains Veil's visual identity and uses the final public App Store name, Blur, Watermark & Metadata. No app behavior, public app URL, provider registration or publication changes.
+
+Use existing static drafts and fail-closed owner-approved publication builder. Produce a separate conspicuously named review-only folder/ZIP while identity, contacts, jurisdiction/consumer terms, retention, hosting facts and publication approval remain unknown. Each review page retains a DRAFT banner, noindex and robots Disallow; these are indexing hints, not access controls or deployment authorization.
+
+Publication packaging requires explicit owner/legal approval and actual release/hosting scope. Render escaped text, reject unresolved placeholders, unexpected resources, symlinks, path traversal, collisions and injected headers. Package fixed public filenames only; no configuration, scripts, repository metadata, diagnostic screenshots or manifest inside upload assets. Keep audit results outside ZIP. Restrictive static CSP/security headers, no unsolicited HSTS/preload, JavaScript, fonts/CDN assets, forms or analytics. Cloudflare request processing must be disclosed separately from on-device photo processing; retention/processing settings cannot be invented.
+
+Root owns validator, packaging, QA and handoff. Presentation owns four page templates/CSS. Independent CTO reviews implementation; separate presentation review inspects actual browser screenshots. Native static files avoid dependencies/framework/server complexity. Publication and app URL configuration require later owner action; no account/API/deployment calls are authorized.

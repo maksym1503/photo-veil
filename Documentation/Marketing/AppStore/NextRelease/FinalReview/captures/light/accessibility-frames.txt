@@ -1,0 +1,4 @@
+appearance=Light
+unlockHeight=57.99999999999994
+unlockHittable=true
+unlockWidth=150.33333333333334

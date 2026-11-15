@@ -25,11 +25,23 @@ enum AccountFailure: Error { case unconfigured, invalidIdentity, unavailable, in
     private let auth: any VeilAuthentication
     private(set) var identity: VeilIdentity?
     init(auth: any VeilAuthentication) { self.auth = auth }
-    func restore() async throws { identity = try await auth.restore() }
-    func apple(_ proof: AppleIdentityProof) async throws { identity = try await auth.signInApple(proof) }
-    func google() async throws { identity = try await auth.signInGoogle() }
-    func signOut() async throws { try await auth.signOut(); identity = nil }
-    func delete() async throws { try await auth.deleteAccount(); identity = nil }
+    private var operationID = UUID()
+    private func change(_ operation: () async throws -> VeilIdentity?) async throws {
+        let revision = UUID(); operationID = revision
+        do {
+            let result = try await operation()
+            guard operationID == revision else { return }
+            identity = result
+        } catch {
+            guard operationID == revision else { return }
+            throw error
+        }
+    }
+    func restore() async throws { try await change { try await auth.restore() } }
+    func apple(_ proof: AppleIdentityProof) async throws { try await change { try await auth.signInApple(proof) } }
+    func google() async throws { try await change { try await auth.signInGoogle() } }
+    func signOut() async throws { try await change { try await auth.signOut(); return nil } }
+    func delete() async throws { try await change { try await auth.deleteAccount(); return nil } }
 }
 
 /// The public URL scheme never accepts arbitrary authentication payloads through onOpenURL.
@@ -41,4 +53,29 @@ enum OAuthCallbackPolicy {
         let codes = (components.queryItems ?? []).filter { $0.name == "code" }
         return codes.count == 1 && !(codes[0].value ?? "").isEmpty
     }
+}
+
+/// Failed consent writes must never silently restore an earlier opt-in in this process.
+/// The store remains authoritative across launches; callers disclose a failed write.
+struct SyncConsentGate {
+    struct Change: Equatable {
+        let user: UUID
+        let enabled: Bool
+        fileprivate let revision = UUID()
+    }
+    private var latest: Change?
+    private var suppressed = Set<UUID>()
+    mutating func begin(user: UUID, enabled: Bool) -> Change {
+        let change = Change(user: user, enabled: enabled)
+        latest = change
+        suppressed.insert(user)
+        return change
+    }
+    mutating func complete(_ change: Change, succeeded: Bool, currentUser: UUID?) -> Bool? {
+        guard latest == change, currentUser == change.user else { return nil }
+        if succeeded && change.enabled { suppressed.remove(change.user) }
+        return succeeded && change.enabled
+    }
+    func permitsRestoration(for user: UUID) -> Bool { !suppressed.contains(user) }
+    mutating func invalidate() { latest = nil }
 }

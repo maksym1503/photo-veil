@@ -64,3 +64,34 @@ A Reset edits undo snapshot expires when a new edit begins, so a later category 
 Region effects request only their selected bounding rectangle plus the feather halo from Core Image; filter inputs remain the full accumulated image so blur/pixel sampling quality and coordinates are unchanged. Background still spans the image. This avoids evaluating every region filter over a 48 MP image and keeps the same shared composition graph for preview/export. See [Apple’s intermediate cache option](https://developer.apple.com/documentation/coreimage/cicontextoption/cacheintermediates).
 
 Undo retains up to 30 edits per category, so repeated automatic edits cannot evict Manual history. Cached re-entry with an unchanged selection creates no undo record; reactivation after a clear or partial selection remains an undoable edit.
+
+## Optional source photo metadata
+
+[ADR-005](../Engineering/Decisions/005-optional-photo-metadata.md) supersedes mandatory removal. After Done, a native Remove/Keep control snapshots policy with export layers. Import captures an immutable supported-metadata snapshot before pixel normalization, kept in memory only. `PhotoExport` privately constructs bytes, actual dimensions and policy; Share, Photos and gallery accept that result. Remove uses pixel-only opaque sRGB reconstruction, with no raw-byte fallback. Keep reattaches supported native fields while normalizing orientation/dimensions and omitting original previews, MakerNotes/opaque payloads, auxiliary images and unsupported tags. Exact source-format preservation is impossible after rendered JPEG encoding.
+
+Local gallery policy is optional (legacy absent means Remove); gallery exports, thumbnails and cloud upload/download retain the chosen policy. The additive cloud migration must be reviewed/applied before configured sync with this client, and is not deployed here. Unknown policy values fail decoding. The existing actor/detached architecture handles encoding; consent/cancellation is rechecked before upload. No original cache, new dependency, provider or activation. Existing files/delivered copies remain unchanged; already removed metadata cannot be recovered. Operational dates/IDs remain. Physical 12–48MP color/memory and Photos Info checks remain required.
+
+## Three-pillar composition and watermarking
+
+[ADR-006](../Engineering/Decisions/006-three-pillar-watermark.md) separates Redact/Metadata/Watermark focus from automatic/manual EditorMode and active privacy layers. Session-only immutable PhotoWatermark values describe bounded text, native style, normalized center/size, opacity, clockwise rotation and repeat intent. Shared Core Text metrics create a small transparent tile; Core Image source-over applies it after all privacy layers, with one final image materialization. No source pixels enter the watermark branch. Watermark-only output bypasses the previous empty-layer early return. Preview serialization, revision/session guards and cache identity now include the watermark snapshot; final output snapshots that same state before metadata encoding. Failed active composition prevents export.
+
+Direct positioning lives in the existing UIKit photo-content coordinate system; one finger moves the mark in watermark focus and two fingers navigate. Other pillars do not reactivate Vision. Scoped watermark history shares the existing bounded Undo mechanism; global Reset includes watermark state, while category undo cannot restore unrelated state. Closing/replacing the source clears text/history. Gallery/cloud still hold flattened processed JPEGs and thumbnails; re-export does not reapply watermarking or require a schema change. Metadata Keep/Remove remains independent. No recipe/preferences/logging or backend text fields are added. Synthetic test-only image evidence requires a separate opt-in flag for watermarked compositions.
+
+## 1.1 automatic-region adjustments
+
+[ADR-013](../Engineering/Decisions/013-adjustable-detections-premium-preview.md)
+retains immutable cached detection geometry and session-only normalized rectangle
+adjustments keyed by category/index. Document details and whole-document boundaries
+have separate adjustment maps. Faces remain oval; plates rounded; documents rectangular.
+Canvas drag/resize commits once on completion; cancelled gestures commit nothing.
+One finger edits selected automatic regions, two fingers navigate, and tap still
+toggles coverage. Resize handles maintain screen size while zooming. VoiceOver
+provides move/grow/shrink actions for active regions. Source and document-coverage
+identity invalidate pending gestures and stale accessibility actions.
+
+Scoped snapshots include these adjustment maps. Category Undo restores only its
+geometry/selection/settings; global Reset and Undo include every map. Cached
+reactivation retains adjustments without another Vision request. `renderLayers`
+resolves the same adjusted normalized geometry for preview and every export.
+Nothing is persisted as an editable recipe; gallery/cloud retain flattened pixels.
+The proposed one-export/premium-preview changes remain owner-gated in ADR-013.
